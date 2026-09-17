@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cifar10-backbone-lab"
+version = "0.2.0"
+description = "An educational CIFAR-10 framework for comparing CNN and Transformer backbones"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.1",
+    "torchvision>=0.16",
+]
+
+[project.optional-dependencies]
+visualization = [
+    "matplotlib>=3.7",
+    "torchinfo>=1.8",
+]
+transformers = [
+    "einops>=0.7",
+    "timm>=0.9",
+]
+notebook = [
+    "einops>=0.7",
+    "ipykernel>=6.25",
+    "jupyterlab>=4.0",
+    "matplotlib>=3.7",
+    "timm>=0.9",
+    "torchinfo>=1.8",
+]
+dev = [
+    "build>=1.2",
+    "pytest>=8.0",
+    "ruff>=0.6",
+]
+
+[tool.setuptools]
+py-modules = ["utils"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["backbone*", "cifar10_lab*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

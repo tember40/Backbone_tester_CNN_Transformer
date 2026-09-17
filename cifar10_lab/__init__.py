@@ -1,0 +1,37 @@
+"""Reusable training utilities for the CIFAR-10 backbone education project."""
+
+from .checkpoints import load_model_weights
+from .config import DataConfig, ExperimentConfig, TrainConfig
+from .data import CIFAR10_CLASSES, CIFAR10_MEAN, CIFAR10_STD, load_cifar10_data
+from .engine import evaluate_model, evaluate_model_detailed, train_model
+from .environment import (
+    RuntimeEnvironment,
+    default_num_workers,
+    detect_environment,
+    select_device,
+)
+from .registry import MODEL_REGISTRY, create_model, format_model_catalog, list_models
+
+__version__ = "0.2.0"
+
+__all__ = [
+    "CIFAR10_CLASSES",
+    "CIFAR10_MEAN",
+    "CIFAR10_STD",
+    "DataConfig",
+    "ExperimentConfig",
+    "MODEL_REGISTRY",
+    "RuntimeEnvironment",
+    "TrainConfig",
+    "create_model",
+    "default_num_workers",
+    "detect_environment",
+    "evaluate_model",
+    "evaluate_model_detailed",
+    "format_model_catalog",
+    "list_models",
+    "load_cifar10_data",
+    "load_model_weights",
+    "select_device",
+    "train_model",
+]
