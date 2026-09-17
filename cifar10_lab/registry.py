@@ -61,7 +61,8 @@ class ModelRegistry:
             return self._specs[model_id]
         except KeyError as error:
             available = ", ".join(self.model_ids(cifar10_ready_only=True))
-            raise KeyError(f"Unknown model_id {model_id!r}. Available models: {available}") from error
+            message = f"Unknown model_id {model_id!r}. Available models: {available}"
+            raise KeyError(message) from error
 
     def create(self, model_id, num_classes=10, image_size=None, **kwargs):
         return self.get(model_id).create(
@@ -93,6 +94,32 @@ def _register_family(module, family, model_ids, dependency_group="core"):
             dependency_group=dependency_group,
         ))
 
+
+for model_id, family, description in (
+    (
+        "perceptron",
+        "Perceptron",
+        "A single affine layer over flattened pixels; the linear baseline.",
+    ),
+    (
+        "mlp",
+        "Multilayer Perceptron",
+        "Two hidden ReLU layers for studying nonlinear representation learning.",
+    ),
+    (
+        "mlp_deep",
+        "Multilayer Perceptron",
+        "A deeper fully connected baseline without spatial inductive bias.",
+    ),
+):
+    MODEL_REGISTRY.register(ModelSpec(
+        model_id=model_id,
+        module="backbone.Perceptron",
+        factory=model_id,
+        family=family,
+        image_size_parameter="image_size",
+        description=description,
+    ))
 
 _register_family("backbone.AlexNet", "AlexNet", ("alexnet", "alexnet_bn"))
 _register_family(

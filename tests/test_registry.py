@@ -22,6 +22,15 @@ class RegistryTests(unittest.TestCase):
             output = model(torch.randn(1, 3, 32, 32))
         self.assertEqual(tuple(output.shape), (1, 10))
 
+    def test_foundational_models_have_expected_output_shape(self):
+        sample = torch.randn(2, 3, 32, 32)
+        for model_id in ("perceptron", "mlp", "mlp_deep", "alexnet"):
+            with self.subTest(model_id=model_id):
+                model = create_model(model_id, num_classes=10, image_size=32).eval()
+                with torch.no_grad():
+                    output = model(sample)
+                self.assertEqual(tuple(output.shape), (2, 10))
+
     def test_unsupported_cifar_model_is_guarded(self):
         with self.assertRaises(ValueError):
             create_model("inception_v3", num_classes=10, image_size=32)

@@ -16,21 +16,24 @@ from .environment import (
     detect_environment,
     select_device,
 )
+from .foundations import ClassicPerceptron, TinyMLP, make_logic_gate, train_tiny_mlp
 from .paths import LabPaths, get_lab_paths, resolve_checkpoint_dir, resolve_data_dir
 from .registry import MODEL_REGISTRY, create_model, format_model_catalog, list_models
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 __all__ = [
     "CIFAR10_CLASSES",
     "CIFAR10_MEAN",
     "CIFAR10_STD",
+    "ClassicPerceptron",
     "DataConfig",
     "ExperimentConfig",
     "LabPaths",
     "MODEL_REGISTRY",
     "RuntimeEnvironment",
     "TrainConfig",
+    "TinyMLP",
     "create_model",
     "default_num_workers",
     "detect_environment",
@@ -42,8 +45,10 @@ __all__ = [
     "list_models",
     "load_cifar10_data",
     "load_model_weights",
+    "make_logic_gate",
     "resolve_checkpoint_dir",
     "resolve_data_dir",
     "select_device",
     "train_model",
+    "train_tiny_mlp",
 ]

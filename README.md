@@ -1,6 +1,6 @@
 # CIFAR-10 Multiclass Classification Framework
 
-이 프로젝트는 CIFAR-10 데이터셋을 활용하여 다양한 CNN 및 Transformer 기반 백본 모델들을 사용하여 Multiclass Classification을 연습할 수 있는 프레임워크를 제공합니다.
+이 프로젝트는 CIFAR-10 데이터셋을 활용하여 퍼셉트론과 MLP의 기초부터 AlexNet, 현대 CNN, Vision Transformer까지 직접 실행·비교하는 교육용 이미지 분류 프레임워크입니다.
 
 ## 프로젝트 구조
 
@@ -27,6 +27,7 @@ classification
  │   ├── paths.py
  │   ├── registry.py
  │   └── visualization.py
+ ├── foundations.ipynb  # 퍼셉트론→MLP→AlexNet 교과서형 실습
  ├── main.ipynb         # 메인 실행 노트북
  ├── bootstrap.py       # 가상환경·의존성·데이터셋 자동 준비
  ├── pyproject.toml     # 패키지와 의존성 정의
@@ -35,7 +36,12 @@ classification
 
 ## 지원되는 백본 모델
 
+### 신경망 기초
+*   단층 퍼셉트론 (`perceptron`): 펼 픽셀에 하나의 선형 변환을 적용하는 기준선
+*   다층 퍼셉트론 (`mlp`, `mlp_deep`): 은닉층과 ReLU로 비선형 표현을 학습하는 기준선
+
 ### CNN 계열
+*   AlexNet (`alexnet`, `alexnet_bn`)
 *   VGG (VGG11, VGG11_bn, VGG13, VGG13_bn, VGG16, VGG16_bn, VGG19, VGG19_bn)
 *   ResNet (ResNet18, ResNet34, ResNet50, ResNet101, ResNet152, ResNeXt, Wide ResNet)
 *   MobileNet (MobileNetV2)
@@ -49,6 +55,13 @@ classification
 *   Pyramid Vision Transformer (PVT-Tiny, PVT-Small, PVT-Medium, PVT-Large)
 
 > `main.ipynb`의 기본 비교 목록은 32×32 입력을 직접 처리할 수 있는 모델만 포함합니다. PVT는 `img_size=32`로 생성하며, 원래 큰 입력을 전제로 하는 InceptionV3는 CIFAR-10용 구조를 별도로 조정한 뒤 비교하는 것을 권장합니다.
+
+## 권장 학습 순서
+
+1. `foundations.ipynb`: 단일 뉴런의 가중합, 활성화 함수, AND 학습 과정을 시각적으로 확인합니다.
+2. 같은 노트북에서 XOR을 통해 단일 퍼셉트론의 한계와 MLP 은닉층의 역할을 확인합니다.
+3. CIFAR-10에서 `perceptron → mlp → alexnet → resnet18`을 순서대로 실행합니다.
+4. `main.ipynb`에서 현대 CNN과 Transformer 백본을 같은 조건으로 비교합니다.
 
 ## 빠른 시작
 
@@ -75,6 +88,8 @@ source .venv/bin/activate
 cifar10-lab train --model resnet18 --quick
 python -m jupyter lab
 ```
+
+Jupyter Lab이 열리면 처음에는 `foundations.ipynb`, 그다음에 `main.ipynb`를 실행하는 것을 권장합니다.
 
 `bootstrap.py` 실행 중에 PyTorch와 CIFAR-10을 받으므로 인터넷 연결과 수백 MB 이상의 저장 공간이 필요합니다. 노트북이 필요 없으면 `python bootstrap.py --minimal`, 데이터는 나중에 받으려면 `python bootstrap.py --skip-data`를 사용합니다.
 
