@@ -3,11 +3,13 @@ import re
 
 import torch
 
+from .paths import resolve_checkpoint_dir
 
-def checkpoint_path(model_id, weight_dir="weight"):
+
+def checkpoint_path(model_id, weight_dir=None):
     if not re.fullmatch(r"[A-Za-z0-9_.-]+", model_id):
         raise ValueError("model_id may contain only letters, numbers, '.', '_' and '-'.")
-    return os.path.join(weight_dir, f"Cifar-10_{model_id}.pth")
+    return resolve_checkpoint_dir(weight_dir) / f"Cifar-10_{model_id}.pth"
 
 
 def torch_load_compatible(path, device):
@@ -18,7 +20,7 @@ def torch_load_compatible(path, device):
         return torch.load(path, map_location=device)
 
 
-def load_model_weights(model, model_id, device="cpu", weight_dir="weight"):
+def load_model_weights(model, model_id, device="cpu", weight_dir=None):
     """model_id가 일치하는 checkpoint를 안전하게 불러온다."""
     weight_path = checkpoint_path(model_id, weight_dir)
     if not os.path.exists(weight_path):
@@ -43,4 +45,3 @@ def load_model_weights(model, model_id, device="cpu", weight_dir="weight"):
     model.load_state_dict(checkpoint)
     print(f"Loaded legacy weights from {weight_path}; no training metadata is available.")
     return {"model_id": model_id, "history": None, "legacy": True}
-

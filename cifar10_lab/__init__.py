@@ -10,9 +10,10 @@ from .environment import (
     detect_environment,
     select_device,
 )
+from .paths import LabPaths, get_lab_paths, resolve_checkpoint_dir, resolve_data_dir
 from .registry import MODEL_REGISTRY, create_model, format_model_catalog, list_models
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     "CIFAR10_CLASSES",
@@ -20,6 +21,7 @@ __all__ = [
     "CIFAR10_STD",
     "DataConfig",
     "ExperimentConfig",
+    "LabPaths",
     "MODEL_REGISTRY",
     "RuntimeEnvironment",
     "TrainConfig",
@@ -29,9 +31,12 @@ __all__ = [
     "evaluate_model",
     "evaluate_model_detailed",
     "format_model_catalog",
+    "get_lab_paths",
     "list_models",
     "load_cifar10_data",
     "load_model_weights",
+    "resolve_checkpoint_dir",
+    "resolve_data_dir",
     "select_device",
     "train_model",
 ]

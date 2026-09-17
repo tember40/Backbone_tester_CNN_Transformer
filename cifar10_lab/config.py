@@ -7,7 +7,7 @@ class DataConfig:
     val_ratio: float = 0.1
     seed: int = 42
     num_workers: int | None = None
-    data_root: str = "Cifar-10 dataset"
+    data_root: str | None = None
     max_train_samples: int | None = None
     max_val_samples: int | None = None
     max_test_samples: int | None = None
@@ -43,7 +43,7 @@ class ExperimentConfig:
     num_classes: int = 10
     image_size: int = 32
     device: str = "auto"
-    weight_dir: str = "weight"
+    weight_dir: str | None = None
     data: DataConfig = field(default_factory=DataConfig)
     train: TrainConfig = field(default_factory=TrainConfig)
 
@@ -54,8 +54,8 @@ class ExperimentConfig:
             raise ValueError("num_classes must be at least 2.")
         if self.image_size < 1:
             raise ValueError("image_size must be at least 1.")
-        if not self.weight_dir:
-            raise ValueError("weight_dir must not be empty.")
+        if self.weight_dir is not None and not self.weight_dir:
+            raise ValueError("weight_dir must not be empty when provided.")
 
     def to_dict(self):
         return asdict(self)

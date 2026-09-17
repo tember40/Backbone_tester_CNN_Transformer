@@ -6,7 +6,7 @@
 
 ```
 classification
- ├── Cifar-10 dataset/  # CIFAR-10 데이터셋이 다운로드될 위치
+ ├── Cifar-10 dataset/  # 기존 개발 환경의 데이터셋(있으면 자동 재사용)
  ├── backbone/          # 다양한 백본 모델들의 파이썬 코드
  │   ├── VGG.py
  │   ├── ResNet.py
@@ -23,12 +23,10 @@ classification
  │   ├── environment.py
  │   ├── engine.py
  │   ├── checkpoints.py
+ │   ├── cli.py
+ │   ├── paths.py
  │   ├── registry.py
  │   └── visualization.py
- ├── weight/            # 학습된 모델의 가중치 파일이 저장될 위치
- │   ├── Cifar-10_resnet18.pth
- │   └── Cifar-10_convnext_tiny.pth
- │   └── ...
  ├── main.ipynb         # 메인 실행 노트북
  ├── pyproject.toml     # 패키지와 의존성 정의
  └── utils.py           # 이전 노트북 호환용 import 모듈
@@ -60,7 +58,7 @@ Python 3.10 이상을 권장합니다. 프로젝트 폴더에서 가상환경을
 ```powershell
 py -3 -m venv .venv
 .venv\Scripts\python -m pip install --upgrade pip
-.venv\Scripts\python -m pip install -e ".[notebook]"
+.venv\Scripts\python -m pip install ".[notebook]"
 .venv\Scripts\python -m jupyter lab
 ```
 
@@ -69,7 +67,7 @@ py -3 -m venv .venv
 ```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
-.venv/bin/python -m pip install -e ".[notebook]"
+.venv/bin/python -m pip install ".[notebook]"
 .venv/bin/python -m jupyter lab
 ```
 
@@ -79,13 +77,19 @@ python3 -m venv .venv
 
 | 목적 | 설치 명령 | 포함 내용 |
 |---|---|---|
-| 최소 실행 | `pip install -e .` | PyTorch, torchvision, 핵심 모듈 |
-| 시각화 | `pip install -e ".[visualization]"` | matplotlib, torchinfo |
-| Transformer | `pip install -e ".[transformers]"` | einops, timm |
-| 전체 노트북 실습 | `pip install -e ".[notebook]"` | 시각화, Transformer, Jupyter |
-| 개발·테스트 | `pip install -e ".[notebook,dev]"` | 전체 실습, pytest, ruff, build |
+| 최소 실행 | `pip install .` | PyTorch, torchvision, 핵심 모듈 |
+| 시각화 | `pip install ".[visualization]"` | matplotlib, torchinfo |
+| Transformer | `pip install ".[transformers]"` | einops, timm |
+| 전체 노트북 실습 | `pip install ".[notebook]"` | 시각화, Transformer, Jupyter |
+| 개발·테스트 | `pip install -e ".[notebook,dev]"` | 전체 실습, pytest, ruff, build, 소스 수정 즉시 반영 |
 
 동일한 구성은 `requirements-core.txt`, `requirements.txt`, `requirements-dev.txt`로도 설치할 수 있습니다.
+
+설치 확인은 다음 명령으로 할 수 있습니다.
+
+```bash
+cifar10-lab doctor
+```
 
 ## 사용 방법
 
@@ -95,15 +99,48 @@ python3 -m venv .venv
 
     *   **백본 모델 선택**: `MODEL_ID`만 원하는 백본 ID로 변경합니다. Registry가 모델 ID를 실제 생성 함수와 연결하고 입력 크기 및 추가 의존성을 관리합니다. 모델 ID는 체크포인트 파일명에도 사용되므로 VGG16/VGG19 또는 ResNet18/ResNet50의 가중치가 서로 충돌하지 않습니다.
 
-    *   **전체 학습**: 빠른 실행이 정상적으로 끝난 다음 `QUICK_RUN = False`로 변경합니다. 빠른 실행과 전체 학습의 체크포인트는 각각 `weight/quick`, `weight/full`에 분리됩니다.
+    *   **전체 학습**: 빠른 실행이 정상적으로 끝난 다음 `QUICK_RUN = False`로 변경합니다. 빠른 실행과 전체 학습의 체크포인트는 사용자 데이터 폴더의 `checkpoints/quick`, `checkpoints/full`에 분리됩니다.
 
     *   **모델 구조 및 파라미터 확인**: `torchinfo.summary`를 사용하여 선택된 모델의 구조와 파라미터 수를 확인할 수 있습니다.
 
-    *   **데이터셋 다운로드 및 학습/평가**: `main.ipynb`를 실행하면 CIFAR-10 데이터셋이 자동으로 `Cifar-10 dataset/` 디렉토리에 다운로드됩니다. 공식 학습 데이터는 train/validation으로 재현 가능하게 분리하며, test 데이터는 최종 평가에서만 사용합니다.
+    *   **데이터셋 다운로드 및 학습/평가**: `main.ipynb`를 실행하면 CIFAR-10 데이터셋이 사용자 데이터 폴더에 자동 다운로드됩니다. 단, 개발 중인 저장소에 기존 `Cifar-10 dataset/`이 있으면 그 데이터를 재사용합니다. 공식 학습 데이터는 train/validation으로 재현 가능하게 분리하며, test 데이터는 최종 평가에서만 사용합니다.
 
-        *   `weight/` 디렉토리에 선택된 모델의 체크포인트(`Cifar-10_{model_id}.pth`)가 없으면 학습을 시작하고, validation 정확도가 가장 높은 모델을 저장합니다.
+        *   `checkpoints/quick` 또는 `checkpoints/full`에 선택된 모델의 체크포인트(`Cifar-10_{model_id}.pth`)가 없으면 학습을 시작하고, validation 정확도가 가장 높은 모델을 저장합니다.
         *   체크포인트에는 모델 ID, 가중치, optimizer 상태, 최고 validation 정확도와 학습 이력이 함께 저장됩니다.
         *   데이터 분할 및 샘플, train/validation 학습 곡선, test confusion matrix와 클래스별 정확도를 단계별로 시각화합니다.
+
+## 명령행에서 실행
+
+노트북 없이도 동일한 Registry, 설정, 데이터 분할과 체크포인트 형식을 사용합니다.
+
+```bash
+# 설치 및 장치 확인
+cifar10-lab doctor
+
+# 사용 가능한 모델 확인
+cifar10-lab list-models
+
+# 적은 데이터와 1 epoch로 전체 흐름 확인
+cifar10-lab train --model resnet18 --quick
+
+# 전체 데이터로 10 epoch 학습
+cifar10-lab train --model resnet18
+
+# 저장된 빠른 실행 체크포인트 평가
+cifar10-lab evaluate --model resnet18 --quick
+```
+
+`python -m cifar10_lab`, `python -m cifar10_lab.train`, `python -m cifar10_lab.evaluate` 방식도 사용할 수 있습니다. 기존 체크포인트가 있으면 학습을 건너뛰며, 다시 학습하려면 `--retrain`을 추가합니다.
+
+## 데이터와 결과 저장 위치
+
+실행 위치와 관계없이 운영체제의 사용자 데이터 폴더 아래에 저장합니다.
+
+- Windows: `%LOCALAPPDATA%/cifar10-backbone-lab`
+- macOS: `~/Library/Application Support/cifar10-backbone-lab`
+- Linux: `$XDG_DATA_HOME/cifar10-backbone-lab` 또는 `~/.local/share/cifar10-backbone-lab`
+
+그 아래에 `data`, `checkpoints`, `results`가 생성됩니다. 저장 위치를 직접 지정하려면 `CIFAR10_LAB_HOME` 환경 변수 또는 `--data-dir`, `--checkpoint-dir`, `--results-dir` 옵션을 사용합니다. Editable 개발 환경에서는 기존 `Cifar-10 dataset` 폴더가 발견되면 다시 다운로드하지 않고 재사용합니다.
 
 ## Python 모듈에서 사용
 

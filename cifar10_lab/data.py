@@ -3,6 +3,7 @@ import torchvision
 import torchvision.transforms as transforms
 
 from .environment import default_num_workers
+from .paths import resolve_data_dir
 
 
 CIFAR10_MEAN = (0.4914, 0.4822, 0.4465)
@@ -20,7 +21,7 @@ def load_cifar10_data(
     num_workers=None,
     pin_memory=None,
     image_size=32,
-    data_root="Cifar-10 dataset",
+    data_root=None,
     max_train_samples=None,
     max_val_samples=None,
     max_test_samples=None,
@@ -53,14 +54,15 @@ def load_cifar10_data(
         transforms.Normalize(CIFAR10_MEAN, CIFAR10_STD),
     ])
 
+    resolved_data_root = resolve_data_dir(data_root)
     train_dataset_aug = torchvision.datasets.CIFAR10(
-        root=data_root, train=True, download=True, transform=transform_train
+        root=resolved_data_root, train=True, download=True, transform=transform_train
     )
     train_dataset_eval = torchvision.datasets.CIFAR10(
-        root=data_root, train=True, download=False, transform=transform_eval
+        root=resolved_data_root, train=True, download=False, transform=transform_eval
     )
     test_dataset = torchvision.datasets.CIFAR10(
-        root=data_root, train=False, download=True, transform=transform_eval
+        root=resolved_data_root, train=False, download=True, transform=transform_eval
     )
 
     split_generator = torch.Generator().manual_seed(seed)

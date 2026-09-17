@@ -1,5 +1,3 @@
-import os
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -57,7 +55,7 @@ def train_model(
     epochs=10,
     learning_rate=0.001,
     model_id="model",
-    weight_dir="weight",
+    weight_dir=None,
     experiment_config=None,
 ):
     """Train으로 학습하고 validation 정확도로 최적 checkpoint를 선택한다."""
@@ -75,8 +73,8 @@ def train_model(
 
     best_val_accuracy = float("-inf")
     best_epoch = 0
-    os.makedirs(weight_dir, exist_ok=True)
     weight_path = checkpoint_path(model_id, weight_dir)
+    weight_path.parent.mkdir(parents=True, exist_ok=True)
 
     for epoch in range(epochs):
         model.train()

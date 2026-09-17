@@ -10,3 +10,4 @@ dist/
 Cifar-10 dataset/
 weight/
 *.pth
+.cifar10-lab/
