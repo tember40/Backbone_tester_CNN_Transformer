@@ -28,6 +28,7 @@ classification
  │   ├── registry.py
  │   └── visualization.py
  ├── foundations.ipynb  # 퍼셉트론→MLP→AlexNet 교과서형 실습
+ ├── cnn_internals.ipynb # AlexNet 특징맵·pooling·수용영역 실습
  ├── main.ipynb         # 메인 실행 노트북
  ├── bootstrap.py       # 가상환경·의존성·데이터셋 자동 준비
  ├── pyproject.toml     # 패키지와 의존성 정의
@@ -60,8 +61,9 @@ classification
 
 1. `foundations.ipynb`: 단일 뉴런의 가중합, 활성화 함수, AND 학습 과정을 시각적으로 확인합니다.
 2. 같은 노트북에서 XOR을 통해 단일 퍼셉트론의 한계와 MLP 은닉층의 역할을 확인합니다.
-3. CIFAR-10에서 `perceptron → mlp → alexnet → resnet18`을 순서대로 실행합니다.
-4. `main.ipynb`에서 현대 CNN과 Transformer 백본을 같은 조건으로 비교합니다.
+3. `cnn_internals.ipynb`에서 AlexNet의 특징맵, pooling, 수용영역을 층별로 확인합니다.
+4. CIFAR-10에서 `perceptron → mlp → alexnet → resnet18`을 순서대로 실행합니다.
+5. `main.ipynb`에서 현대 CNN과 Transformer 백본을 같은 조건으로 비교합니다.
 
 ## 빠른 시작
 
@@ -89,7 +91,7 @@ cifar10-lab train --model resnet18 --quick
 python -m jupyter lab
 ```
 
-Jupyter Lab이 열리면 처음에는 `foundations.ipynb`, 그다음에 `main.ipynb`를 실행하는 것을 권장합니다.
+Jupyter Lab이 열리면 `foundations.ipynb` → `cnn_internals.ipynb` → `main.ipynb` 순서로 실행하는 것을 권장합니다.
 
 `bootstrap.py` 실행 중에 PyTorch와 CIFAR-10을 받으므로 인터넷 연결과 수백 MB 이상의 저장 공간이 필요합니다. 노트북이 필요 없으면 `python bootstrap.py --minimal`, 데이터는 나중에 받으려면 `python bootstrap.py --skip-data`를 사용합니다.
 
@@ -127,7 +129,7 @@ cifar10-lab doctor
 
     *   **데이터셋 다운로드 및 학습/평가**: `main.ipynb`를 실행하면 CIFAR-10 데이터셋이 사용자 데이터 폴더에 자동 다운로드됩니다. 단, 개발 중인 저장소에 기존 `Cifar-10 dataset/`이 있으면 그 데이터를 재사용합니다. 공식 학습 데이터는 train/validation으로 재현 가능하게 분리하며, test 데이터는 최종 평가에서만 사용합니다.
 
-        *   `checkpoints/quick` 또는 `checkpoints/full`에 선택된 모델의 체크포인트(`Cifar-10_{model_id}.pth`)가 없으면 학습을 시작하고, validation 정확도가 가장 높은 모델을 저장합니다.
+        *   모델, seed, 학습률, 데이터 설정을 해시한 실험 ID로 체크포인트를 분리하여 서로 다른 실험이 덮어쓰지 않습니다.
         *   체크포인트에는 모델 ID, 가중치, optimizer 상태, 최고 validation 정확도와 학습 이력이 함께 저장됩니다.
         *   데이터 분할 및 샘플, train/validation 학습 곡선, test confusion matrix와 클래스별 정확도를 단계별로 시각화합니다.
 
@@ -153,11 +155,26 @@ cifar10-lab train --model resnet18
 
 # 저장된 빠른 실행 체크포인트 평가
 cifar10-lab evaluate --model resnet18 --quick
+
+# 1 epoch 체크포인트를 총 5 epoch까지 이어서 학습
+cifar10-lab train --model resnet18 --quick --epochs 5 --resume
+
+# 같은 조건으로 여러 모델을 학습하고 CSV·JSON·PNG 비교 보고서 생성
+cifar10-lab compare --models perceptron mlp alexnet resnet18 --quick
+
+# 각 계열의 대표 모델 입출력 형상 검증
+cifar10-lab validate-models --models alexnet resnet18 vit_tiny
+
+# 메모리와 시간이 충분한 환경에서 CIFAR-10-ready 전체 모델 검증
+cifar10-lab validate-models --all
+
+# AlexNet의 특징맵·pooling·수용영역 그림 저장
+cifar10-lab visualize-cnn --model alexnet
 ```
 
 `train`이나 노트북을 먼저 실행해도 데이터가 없으면 CIFAR-10을 자동으로 다운로드합니다. 따라서 `download-data`는 데이터를 미리 준비하고 싶을 때만 사용하면 됩니다. 원하는 폴더에 받으려면 `cifar10-lab download-data --data-dir ./data`를 사용합니다.
 
-`python -m cifar10_lab`, `python -m cifar10_lab.train`, `python -m cifar10_lab.evaluate` 방식도 사용할 수 있습니다. 기존 체크포인트가 있으면 학습을 건너뛰며, 다시 학습하려면 `--retrain`을 추가합니다.
+`python -m cifar10_lab`, `python -m cifar10_lab.train`, `python -m cifar10_lab.evaluate` 방식도 사용할 수 있습니다. 같은 실험 ID의 체크포인트가 있으면 학습을 건너뛰며, 저장된 optimizer와 마지막 가중치에서 이어서 학습하려면 `--resume`, 처음부터 다시 학습하려면 `--retrain`을 사용합니다. `--save-plots`를 추가하면 학습 곡선과 confusion matrix를 PNG로 저장합니다.
 
 ## 데이터와 결과 저장 위치
 

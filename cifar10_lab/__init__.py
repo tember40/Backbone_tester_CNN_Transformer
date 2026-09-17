@@ -17,10 +17,11 @@ from .environment import (
     select_device,
 )
 from .foundations import ClassicPerceptron, TinyMLP, make_logic_gate, train_tiny_mlp
+from .experiments import experiment_fingerprint, experiment_id, set_global_seed
 from .paths import LabPaths, get_lab_paths, resolve_checkpoint_dir, resolve_data_dir
 from .registry import MODEL_REGISTRY, create_model, format_model_catalog, list_models
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 
 __all__ = [
     "CIFAR10_CLASSES",
@@ -40,6 +41,8 @@ __all__ = [
     "download_cifar10",
     "evaluate_model",
     "evaluate_model_detailed",
+    "experiment_fingerprint",
+    "experiment_id",
     "format_model_catalog",
     "get_lab_paths",
     "list_models",
@@ -49,6 +52,7 @@ __all__ = [
     "resolve_checkpoint_dir",
     "resolve_data_dir",
     "select_device",
+    "set_global_seed",
     "train_model",
     "train_tiny_mlp",
 ]

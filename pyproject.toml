@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cifar10-backbone-lab"
-version = "0.5.0"
+version = "0.6.0"
 description = "An educational CIFAR-10 framework for comparing CNN and Transformer backbones"
 readme = "README.md"
 requires-python = ">=3.10"

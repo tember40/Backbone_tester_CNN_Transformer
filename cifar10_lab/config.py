@@ -59,3 +59,10 @@ class ExperimentConfig:
 
     def to_dict(self):
         return asdict(self)
+
+    @classmethod
+    def from_dict(cls, values):
+        payload = dict(values)
+        payload["data"] = DataConfig(**payload.get("data", {}))
+        payload["train"] = TrainConfig(**payload.get("train", {}))
+        return cls(**payload)

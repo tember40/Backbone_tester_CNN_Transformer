@@ -76,6 +76,7 @@ def main(argv=None):
     print(f"Activate the environment: {activate}")
     print("Run the beginner example: cifar10-lab train --model resnet18 --quick")
     print("Open the foundations notebook: python -m jupyter lab foundations.ipynb")
+    print("Continue with CNN internals in: cnn_internals.ipynb")
     print("Then explore all backbones in: main.ipynb")
     return 0
 

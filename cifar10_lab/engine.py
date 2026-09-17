@@ -1,3 +1,5 @@
+import copy
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -57,6 +59,8 @@ def train_model(
     model_id="model",
     weight_dir=None,
     experiment_config=None,
+    experiment_id=None,
+    resume_checkpoint=None,
 ):
     """Train으로 학습하고 validation 정확도로 최적 checkpoint를 선택한다."""
     if epochs < 1:
@@ -64,19 +68,50 @@ def train_model(
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    history = {
+    empty_history = {
         "train_loss": [],
         "val_loss": [],
         "train_accuracy": [],
         "val_accuracy": [],
     }
+    resume_history = resume_checkpoint.get("history") if resume_checkpoint else None
+    history = copy.deepcopy(resume_history or empty_history)
+    best_val_accuracy = (
+        float(resume_checkpoint.get("best_val_accuracy", float("-inf")))
+        if resume_checkpoint is not None
+        else float("-inf")
+    )
+    best_epoch = (
+        int(resume_checkpoint.get("epoch", 0)) if resume_checkpoint is not None else 0
+    )
+    best_model_state = (
+        copy.deepcopy(resume_checkpoint["model_state"])
+        if resume_checkpoint is not None
+        else copy.deepcopy(model.state_dict())
+    )
+    start_epoch = (
+        int(resume_checkpoint.get("completed_epochs", 0))
+        if resume_checkpoint is not None
+        else 0
+    )
+    if resume_checkpoint is not None:
+        model.load_state_dict(
+            resume_checkpoint.get("last_model_state", resume_checkpoint["model_state"])
+        )
+        optimizer_state = resume_checkpoint.get("optimizer_state")
+        if optimizer_state:
+            optimizer.load_state_dict(optimizer_state)
+        print(f"Resuming {model_id} from completed epoch {start_epoch}.")
 
-    best_val_accuracy = float("-inf")
-    best_epoch = 0
-    weight_path = checkpoint_path(model_id, weight_dir)
+    weight_path = checkpoint_path(model_id, weight_dir, experiment_id)
     weight_path.parent.mkdir(parents=True, exist_ok=True)
 
-    for epoch in range(epochs):
+    if start_epoch >= epochs:
+        model.load_state_dict(best_model_state)
+        print(f"Checkpoint already contains {start_epoch} completed epochs.")
+        return history
+
+    for epoch in range(start_epoch, epochs):
         model.train()
         running_loss = 0.0
         correct = 0
@@ -116,28 +151,35 @@ def train_model(
         if val_result["accuracy"] > best_val_accuracy:
             best_val_accuracy = val_result["accuracy"]
             best_epoch = epoch + 1
-            checkpoint = {
-                "format_version": 1,
-                "model_id": model_id,
-                "model_state": model.state_dict(),
-                "optimizer_state": optimizer.state_dict(),
-                "epoch": best_epoch,
-                "best_val_accuracy": best_val_accuracy,
-                "history": history,
-                "num_classes": 10,
-                "experiment_config": (
-                    experiment_config.to_dict()
-                    if hasattr(experiment_config, "to_dict")
-                    else experiment_config
-                ),
-            }
-            torch.save(checkpoint, weight_path)
-            print(f"  Saved best checkpoint: {weight_path}")
+            best_model_state = copy.deepcopy(model.state_dict())
+            print(f"  New best validation accuracy: {best_val_accuracy:.2f}%")
+
+        checkpoint = {
+            "format_version": 2,
+            "model_id": model_id,
+            "experiment_id": experiment_id,
+            "model_state": best_model_state,
+            "last_model_state": model.state_dict(),
+            "optimizer_state": optimizer.state_dict(),
+            "epoch": best_epoch,
+            "completed_epochs": epoch + 1,
+            "best_val_accuracy": best_val_accuracy,
+            "history": history,
+            "num_classes": (
+                experiment_config.num_classes
+                if hasattr(experiment_config, "num_classes")
+                else 10
+            ),
+            "experiment_config": (
+                experiment_config.to_dict()
+                if hasattr(experiment_config, "to_dict")
+                else experiment_config
+            ),
+        }
+        torch.save(checkpoint, weight_path)
+        print(f"  Saved checkpoint: {weight_path}")
 
     checkpoint = torch_load_compatible(weight_path, device)
-    checkpoint["history"] = history
-    checkpoint["completed_epochs"] = epochs
-    torch.save(checkpoint, weight_path)
     model.load_state_dict(checkpoint["model_state"])
 
     print(

@@ -10,6 +10,7 @@ def visualize_data_overview(
     testloader,
     classes,
     max_images=10,
+    show=True,
 ):
     split_names = ["Train", "Validation", "Test"]
     split_sizes = [
@@ -51,13 +52,15 @@ def visualize_data_overview(
 
     figure.suptitle("Step 1: split sizes and augmented train samples", fontsize=14)
     figure.tight_layout()
-    plt.show()
+    if show:
+        plt.show()
+    return figure
 
 
-def plot_training_history(history):
+def plot_training_history(history, show=True):
     if not history or not history.get("train_loss"):
         print("No training history is available.")
-        return
+        return None
 
     epochs = range(1, len(history["train_loss"]) + 1)
     figure, axes = plt.subplots(1, 2, figsize=(13, 4.5))
@@ -88,10 +91,12 @@ def plot_training_history(history):
 
     figure.suptitle("Step 2: training and validation progress", fontsize=14)
     figure.tight_layout()
-    plt.show()
+    if show:
+        plt.show()
+    return figure
 
 
-def plot_test_results(result, classes, normalize_confusion=True):
+def plot_test_results(result, classes, normalize_confusion=True, show=True):
     matrix = result["confusion_matrix"].float()
     if normalize_confusion:
         row_sums = matrix.sum(dim=1, keepdim=True).clamp_min(1)
@@ -132,4 +137,6 @@ def plot_test_results(result, classes, normalize_confusion=True):
         fontsize=14,
     )
     figure.tight_layout()
-    plt.show()
+    if show:
+        plt.show()
+    return figure

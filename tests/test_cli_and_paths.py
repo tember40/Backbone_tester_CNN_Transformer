@@ -63,6 +63,26 @@ class CliTests(unittest.TestCase):
         self.assertEqual(args.command, "download-data")
         self.assertEqual(args.data_dir, "datasets")
 
+    def test_compare_arguments(self):
+        args = build_parser().parse_args(
+            ["compare", "--models", "perceptron", "mlp", "--quick", "--resume"]
+        )
+        self.assertEqual(args.command, "compare")
+        self.assertEqual(args.models, ["perceptron", "mlp"])
+        self.assertTrue(args.quick)
+        self.assertTrue(args.resume)
+
+    def test_validation_and_cnn_visualization_arguments(self):
+        validate_args = build_parser().parse_args(
+            ["validate-models", "--models", "alexnet", "resnet18"]
+        )
+        visual_args = build_parser().parse_args(
+            ["visualize-cnn", "--model", "alexnet", "--max-layers", "4"]
+        )
+        self.assertEqual(validate_args.models, ["alexnet", "resnet18"])
+        self.assertEqual(visual_args.model, "alexnet")
+        self.assertEqual(visual_args.max_layers, 4)
+
 
 if __name__ == "__main__":
     unittest.main()
