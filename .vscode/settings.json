@@ -1,0 +1,9 @@
+{
+  "notebook.markup.fontSize": 13,
+  "notebook.output.fontSize": 12,
+  "notebook.output.lineHeight": 18,
+  "notebook.cellEditorOptionsCustomizations": {
+    "editor.fontSize": 12,
+    "editor.lineHeight": 18
+  }
+}
