@@ -28,6 +28,7 @@ classification
  │   ├── registry.py
  │   └── visualization.py
  ├── main.ipynb         # 메인 실행 노트북
+ ├── bootstrap.py       # 가상환경·의존성·데이터셋 자동 준비
  ├── pyproject.toml     # 패키지와 의존성 정의
  └── utils.py           # 이전 노트북 호환용 import 모듈
 ```
@@ -51,25 +52,31 @@ classification
 
 ## 빠른 시작
 
-Python 3.10 이상을 권장합니다. 프로젝트 폴더에서 가상환경을 만들고 노트북용 의존성을 설치합니다.
+Python 3.10 이상과 Git만 있으면 됩니다. `bootstrap.py`는 `.venv` 생성, 노트북 포함 의존성 설치, 실행 환경 검사, CIFAR-10 train/test 다운로드를 순서대로 수행합니다.
 
 ### Windows PowerShell
 
 ```powershell
-py -3 -m venv .venv
-.venv\Scripts\python -m pip install --upgrade pip
-.venv\Scripts\python -m pip install ".[notebook]"
+git clone https://github.com/tember40/Backbone_tester_CNN_Transformer.git
+cd Backbone_tester_CNN_Transformer
+py -3 bootstrap.py
+.venv\Scripts\Activate.ps1
+cifar10-lab train --model resnet18 --quick
 .venv\Scripts\python -m jupyter lab
 ```
 
 ### macOS / Linux
 
 ```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install --upgrade pip
-.venv/bin/python -m pip install ".[notebook]"
-.venv/bin/python -m jupyter lab
+git clone https://github.com/tember40/Backbone_tester_CNN_Transformer.git
+cd Backbone_tester_CNN_Transformer
+python3 bootstrap.py
+source .venv/bin/activate
+cifar10-lab train --model resnet18 --quick
+python -m jupyter lab
 ```
+
+`bootstrap.py` 실행 중에 PyTorch와 CIFAR-10을 받으므로 인터넷 연결과 수백 MB 이상의 저장 공간이 필요합니다. 노트북이 필요 없으면 `python bootstrap.py --minimal`, 데이터는 나중에 받으려면 `python bootstrap.py --skip-data`를 사용합니다.
 
 특정 CUDA 또는 ROCm용 PyTorch가 필요한 경우에는 운영체제와 가속기 버전에 맞는 PyTorch를 먼저 설치한 뒤 이 프로젝트를 설치합니다. 실행 시 CUDA, Apple MPS, CPU 순서로 자동 감지합니다. Windows에서는 노트북의 multiprocessing 멈춤을 피하기 위해 DataLoader worker 기본값을 0으로 설정합니다.
 
@@ -120,6 +127,9 @@ cifar10-lab doctor
 # 사용 가능한 모델 확인
 cifar10-lab list-models
 
+# CIFAR-10 train/test를 미리 다운로드
+cifar10-lab download-data
+
 # 적은 데이터와 1 epoch로 전체 흐름 확인
 cifar10-lab train --model resnet18 --quick
 
@@ -129,6 +139,8 @@ cifar10-lab train --model resnet18
 # 저장된 빠른 실행 체크포인트 평가
 cifar10-lab evaluate --model resnet18 --quick
 ```
+
+`train`이나 노트북을 먼저 실행해도 데이터가 없으면 CIFAR-10을 자동으로 다운로드합니다. 따라서 `download-data`는 데이터를 미리 준비하고 싶을 때만 사용하면 됩니다. 원하는 폴더에 받으려면 `cifar10-lab download-data --data-dir ./data`를 사용합니다.
 
 `python -m cifar10_lab`, `python -m cifar10_lab.train`, `python -m cifar10_lab.evaluate` 방식도 사용할 수 있습니다. 기존 체크포인트가 있으면 학습을 건너뛰며, 다시 학습하려면 `--retrain`을 추가합니다.
 

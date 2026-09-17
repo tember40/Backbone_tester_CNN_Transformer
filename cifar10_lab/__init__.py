@@ -2,7 +2,13 @@
 
 from .checkpoints import load_model_weights
 from .config import DataConfig, ExperimentConfig, TrainConfig
-from .data import CIFAR10_CLASSES, CIFAR10_MEAN, CIFAR10_STD, load_cifar10_data
+from .data import (
+    CIFAR10_CLASSES,
+    CIFAR10_MEAN,
+    CIFAR10_STD,
+    download_cifar10,
+    load_cifar10_data,
+)
 from .engine import evaluate_model, evaluate_model_detailed, train_model
 from .environment import (
     RuntimeEnvironment,
@@ -13,7 +19,7 @@ from .environment import (
 from .paths import LabPaths, get_lab_paths, resolve_checkpoint_dir, resolve_data_dir
 from .registry import MODEL_REGISTRY, create_model, format_model_catalog, list_models
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 __all__ = [
     "CIFAR10_CLASSES",
@@ -28,6 +34,7 @@ __all__ = [
     "create_model",
     "default_num_workers",
     "detect_environment",
+    "download_cifar10",
     "evaluate_model",
     "evaluate_model_detailed",
     "format_model_catalog",

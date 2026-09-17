@@ -10,7 +10,7 @@ import torch
 from . import __version__
 from .checkpoints import load_model_weights
 from .config import DataConfig, ExperimentConfig, TrainConfig
-from .data import load_cifar10_data
+from .data import download_cifar10, load_cifar10_data
 from .engine import evaluate_model_detailed, train_model
 from .environment import detect_environment
 from .paths import get_lab_paths, resolve_data_dir, resolve_results_dir
@@ -49,6 +49,12 @@ def build_parser():
 
     subparsers.add_parser("list-models", help="List registered CIFAR-10-ready models")
     subparsers.add_parser("doctor", help="Check the Python, PyTorch and device environment")
+
+    download_parser = subparsers.add_parser(
+        "download-data",
+        help="Download the CIFAR-10 train and test splits",
+    )
+    download_parser.add_argument("--data-dir")
 
     train_parser = subparsers.add_parser("train", help="Train and test a model")
     _add_experiment_arguments(train_parser, include_training=True)
@@ -241,6 +247,12 @@ def run_doctor():
     return 0
 
 
+def run_download_data(args):
+    data_dir = download_cifar10(args.data_dir)
+    print(f"CIFAR-10 is ready at: {data_dir}")
+    return 0
+
+
 def main(argv=None):
     args = build_parser().parse_args(argv)
     if args.command == "list-models":
@@ -248,6 +260,8 @@ def main(argv=None):
         return 0
     if args.command == "doctor":
         return run_doctor()
+    if args.command == "download-data":
+        return run_download_data(args)
     if args.command == "train":
         return run_train(args)
     if args.command == "evaluate":

@@ -14,6 +14,19 @@ CIFAR10_CLASSES = (
 )
 
 
+def download_cifar10(data_root=None):
+    """Download both official CIFAR-10 splits and return their storage path."""
+    resolved_data_root = resolve_data_dir(data_root)
+    resolved_data_root.mkdir(parents=True, exist_ok=True)
+    for train_split in (True, False):
+        torchvision.datasets.CIFAR10(
+            root=resolved_data_root,
+            train=train_split,
+            download=True,
+        )
+    return resolved_data_root
+
+
 def load_cifar10_data(
     batch_size=64,
     val_ratio=0.1,
