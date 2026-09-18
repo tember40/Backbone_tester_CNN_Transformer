@@ -124,9 +124,21 @@ class TinyMLP(nn.Module):
     def hidden_representation(self, features):
         return self.activation(self.hidden(features))
 
+    def forward_trace(self, features):
+        """Expose each forward-pass stage for instruction and visualization."""
+        hidden_linear = self.hidden(features)
+        hidden = self.activation(hidden_linear)
+        logits = self.output(hidden).squeeze(-1)
+        probabilities = torch.sigmoid(logits)
+        return {
+            "hidden_linear": hidden_linear,
+            "hidden": hidden,
+            "logits": logits,
+            "probabilities": probabilities,
+        }
+
     def forward(self, features):
-        hidden = self.hidden_representation(features)
-        return self.output(hidden).squeeze(-1)
+        return self.forward_trace(features)["logits"]
 
 
 def train_tiny_mlp(features, targets, epochs=500, learning_rate=0.05, seed=42):

@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="은닉층, 비선형 활성화, 순전파와 역전파를 실제 코드와 XOR 시각화로 이해하는 다층 퍼셉트론 학습 자료">
+  <title>3장. 다층 퍼셉트론 · Backbone Lab</title>
+  <link rel="stylesheet" href="../assets/css/site.css?v=20260918g">
+  <script src="../assets/js/multilayer-perceptron.js?v=20260918a" defer></script>
+</head>
+<body class="chapter-page">
+  <header class="site-header">
+    <a class="brand" href="../index.html" aria-label="Backbone Lab 홈">
+      <span class="brand-mark">KW</span>
+      <span><strong>인공지능 기초</strong><small><span lang="en">Backbone Lab</span> 학습 자료</small></span>
+    </a>
+    <div class="chapter-progress" aria-label="현재 과정">
+      <span>제1부 · 기초</span><div><i style="width: 100%"></i></div><strong>3 / 3</strong>
+    </div>
+    <nav class="header-actions">
+      <a href="../index.html#curriculum">전체 목차</a>
+      <a class="button button-small" href="https://github.com/tember40/Backbone_tester_CNN_Transformer/blob/main/cifar10_lab/foundations.py">실제 코드</a>
+    </nav>
+  </header>
+
+  <div class="chapter-layout">
+    <aside class="chapter-sidebar" aria-label="단원 목차">
+      <p class="sidebar-label">제3장 · 다층 퍼셉트론</p>
+      <nav>
+        <a class="is-current" href="#overview"><span>3.0</span>학습 안내</a>
+        <a href="#paper"><span>3.1</span>역사적 배경</a>
+        <a href="#anatomy"><span>3.2</span>은닉층 구조</a>
+        <a href="#forward"><span>3.3</span>순전파 추적</a>
+        <a href="#learning"><span>3.4</span>오차 역전파</a>
+        <a href="#code"><span>3.5</span>구현과 코드</a>
+        <a href="#lab"><span>3.6</span>XOR 학습</a>
+        <a href="#checkpoint"><span>3.7</span>연습문제</a>
+      </nav>
+    </aside>
+
+    <main class="chapter-content">
+      <article>
+        <header class="chapter-hero" id="overview">
+          <div class="chapter-kicker"><span>제1부</span><span>신경망의 기초</span><span>선수 지식: 1~2장</span></div>
+          <h1><small>제3장</small>다층 퍼셉트론</h1>
+          <p class="chapter-lead">
+            직선 하나로 풀 수 없는 문제를 여러 뉴런은 어떻게 해결할까요?
+            은닉층이 입력을 새로운 표현으로 바꾸고, 오차가 각 연결로 돌아가는 과정을 단계별로 확인합니다.
+          </p>
+          <div class="learning-objectives">
+            <h2>학습 목표</h2>
+            <ul>
+              <li>입력층, 은닉층, 출력층의 역할을 구분할 수 있습니다.</li>
+              <li>가중합과 활성화를 따라 순전파 값을 계산할 수 있습니다.</li>
+              <li>비선형 활성화 함수가 필요한 이유를 설명할 수 있습니다.</li>
+              <li>손실, 기울기, 가중치 갱신의 연결 관계를 추적할 수 있습니다.</li>
+            </ul>
+          </div>
+        </header>
+
+        <section class="lesson-section" id="paper">
+          <div class="section-number">3.1</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">역사적 배경</p>
+            <h2><span>3.1</span> 오차를 뒤로 보내 내부 표현을 학습하다</h2>
+          </div>
+          <div class="paper-card">
+            <div class="paper-meta">
+              <span lang="en">David E. Rumelhart · Geoffrey E. Hinton · Ronald J. Williams</span><span>1986</span><span lang="en">Nature 323</span>
+            </div>
+            <h3 lang="en">Learning Representations by Back-Propagating Errors</h3>
+            <p>출력 오차를 여러 층의 연결에 나누어 전달하며 가중치를 수정하는 학습 절차를 설명했습니다. 은닉 뉴런은 사람이 정답을 직접 지정하지 않은 중간 특징을 학습할 수 있습니다.</p>
+            <a class="text-link" href="https://doi.org/10.1038/323533a0">원 논문 정보 보기 <span aria-hidden="true">↗</span></a>
+          </div>
+          <div class="three-column-summary">
+            <div><span>문제</span><h3>은닉층의 정답은 알 수 없다</h3><p>출력의 정답은 있어도 각 은닉 뉴런이 무엇을 출력해야 하는지는 주어지지 않습니다.</p></div>
+            <div><span>아이디어</span><h3>미분으로 책임을 나눈다</h3><p>최종 오차에 각 연결이 미친 영향을 연쇄법칙으로 계산합니다.</p></div>
+            <div><span>의미</span><h3>표현 자체를 학습한다</h3><p>은닉층이 문제 해결에 필요한 중간 특징을 데이터에서 구성합니다.</p></div>
+          </div>
+          <aside class="callout callout-note">
+            <strong>용어를 구분해 읽기</strong>
+            <p>역전파는 기울기를 계산하는 방법이고, 경사하강법이나 Adam은 계산된 기울기로 파라미터를 실제 수정하는 최적화 방법입니다.</p>
+          </aside>
+        </section>
+
+        <section class="lesson-section" id="anatomy">
+          <div class="section-number">3.2</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">핵심 구조</p>
+            <h2><span>3.2</span> 입력 2개가 은닉 특징 4개를 거치는 과정</h2>
+            <p>프로젝트의 TinyMLP는 두 입력을 네 개의 은닉 특징으로 바꾼 뒤 하나의 출력 점수를 만듭니다.</p>
+          </div>
+          <div class="mlp-architecture" aria-label="TinyMLP의 계층 구조">
+            <div class="mlp-layer">
+              <span>입력층</span><strong>2</strong><p>x₁, x₂</p>
+            </div>
+            <b aria-hidden="true">→</b>
+            <div class="mlp-layer is-hidden">
+              <span>선형 변환</span><strong>4</strong><p>Wx + b</p>
+            </div>
+            <b aria-hidden="true">→</b>
+            <div class="mlp-layer is-activation">
+              <span>활성화</span><strong lang="en">Tanh</strong><p>비선형 변환</p>
+            </div>
+            <b aria-hidden="true">→</b>
+            <div class="mlp-layer is-output">
+              <span>출력층</span><strong>1</strong><p>logit</p>
+            </div>
+          </div>
+          <div class="parameter-count">
+            <div><span>입력 → 은닉</span><strong>2 × 4 + 4 = 12</strong><small>가중치 8개 + 편향 4개</small></div>
+            <div><span>은닉 → 출력</span><strong>4 × 1 + 1 = 5</strong><small>가중치 4개 + 편향 1개</small></div>
+            <div><span>전체 파라미터</span><strong>17개</strong><small>학습으로 수정되는 숫자</small></div>
+          </div>
+          <aside class="callout">
+            <strong>정의 3.1 · 은닉 표현</strong>
+            <p>입력이 은닉층을 통과한 뒤 얻는 중간 벡터입니다. 원래 좌표에서 섞여 있던 데이터가 이 공간에서는 더 쉽게 나뉠 수 있습니다.</p>
+          </aside>
+        </section>
+
+        <section class="lesson-section" id="forward">
+          <div class="section-number">3.3</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">예제 3.1 · 순전파 추적</p>
+            <h2><span>3.3</span> XOR 입력이 두 은닉 뉴런을 지나는 값</h2>
+            <p>설명을 위해 가중치를 고정한 작은 2-2-1 네트워크를 사용합니다. 입력과 활성화 함수를 바꿔 각 단계의 숫자를 확인하세요.</p>
+          </div>
+          <div class="forward-lab lab-panel">
+            <div class="forward-controls">
+              <div>
+                <p class="result-label">입력 선택</p>
+                <div class="input-choice" role="group" aria-label="XOR 입력 선택">
+                  <button type="button" data-input="0,0">0, 0</button>
+                  <button type="button" data-input="0,1">0, 1</button>
+                  <button type="button" data-input="1,0">1, 0</button>
+                  <button type="button" data-input="1,1">1, 1</button>
+                </div>
+              </div>
+              <label>활성화 함수<select id="activationMode"><option value="relu">ReLU</option><option value="linear">활성화 없음</option></select></label>
+            </div>
+            <div class="forward-network" aria-label="XOR 순전파 계산 흐름">
+              <div class="trace-stage">
+                <span>입력</span>
+                <div class="trace-node"><small>x₁</small><strong id="traceX1">0</strong></div>
+                <div class="trace-node"><small>x₂</small><strong id="traceX2">1</strong></div>
+              </div>
+              <b aria-hidden="true">→</b>
+              <div class="trace-stage">
+                <span>은닉 가중합</span>
+                <div class="trace-node"><small>z₁=x₁−x₂</small><strong id="traceZ1">−1</strong></div>
+                <div class="trace-node"><small>z₂=x₂−x₁</small><strong id="traceZ2">1</strong></div>
+              </div>
+              <b aria-hidden="true">→</b>
+              <div class="trace-stage is-active-stage">
+                <span>은닉 활성화</span>
+                <div class="trace-node"><small>h₁</small><strong id="traceH1">0</strong></div>
+                <div class="trace-node"><small>h₂</small><strong id="traceH2">1</strong></div>
+              </div>
+              <b aria-hidden="true">→</b>
+              <div class="trace-stage is-output-stage">
+                <span>출력</span>
+                <div class="trace-node"><small>h₁+h₂−0.5</small><strong id="traceScore">0.5</strong></div>
+                <div class="trace-node final"><small>예측</small><strong id="tracePrediction">1</strong></div>
+              </div>
+            </div>
+            <div class="forward-explanation" id="forwardExplanation" aria-live="polite"></div>
+          </div>
+          <div class="activation-compare">
+            <div><span>활성화 없음</span><strong>선형 + 선형 = 선형</strong><p>여러 층을 쌓아도 하나의 선형 변환으로 합쳐져 결정경계가 여전히 하나입니다.</p></div>
+            <div><span>비선형 활성화</span><strong>여러 경계를 조합</strong><p>ReLU나 Tanh가 중간 값을 꺾어 단일 직선으로 만들 수 없는 영역을 표현합니다.</p></div>
+          </div>
+        </section>
+
+        <section class="lesson-section" id="learning">
+          <div class="section-number">3.4</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">학습 원리</p>
+            <h2><span>3.4</span> 예측 오차가 가중치까지 돌아오는 길</h2>
+            <p>학습 한 번은 순전파, 손실 계산, 역전파, 파라미터 갱신의 네 단계로 이루어집니다.</p>
+          </div>
+          <ol class="backprop-flow">
+            <li><span>01</span><div><strong>순전파</strong><p>입력에서 출력 방향으로 계산해 예측 확률을 구합니다.</p><code>logits = model(features)</code></div></li>
+            <li><span>02</span><div><strong>손실 계산</strong><p>예측과 정답의 차이를 하나의 숫자로 요약합니다.</p><code>loss = criterion(logits, targets)</code></div></li>
+            <li><span>03</span><div><strong>역전파</strong><p>연쇄법칙으로 각 파라미터가 손실에 미친 영향을 계산합니다.</p><code>loss.backward()</code></div></li>
+            <li><span>04</span><div><strong>가중치 갱신</strong><p>손실이 감소하는 방향으로 optimizer가 파라미터를 이동합니다.</p><code>optimizer.step()</code></div></li>
+          </ol>
+          <div class="equation-card" aria-label="경사하강법의 가중치 갱신식">
+            <div><small>현재 가중치</small><p>w</p></div>
+            <div class="equation-arrow">→</div>
+            <div><small>갱신</small><p>w − η · ∂L/∂w</p></div>
+          </div>
+          <aside class="callout callout-question">
+            <strong>생각해 보기</strong>
+            <p>학습률 η가 지나치게 크면 손실이 줄어드는 지점을 건너뛸 수 있습니다. 반대로 너무 작으면 어떤 현상이 나타날까요?</p>
+          </aside>
+        </section>
+
+        <section class="lesson-section" id="code">
+          <div class="section-number">3.5</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">구현</p>
+            <h2><span>3.5</span> 실제 PyTorch 모델의 층별 값 읽기</h2>
+            <p>TinyMLP의 forward_trace는 은닉층 전후와 출력 확률을 모두 반환하므로 학습 과정의 내부 값을 직접 확인할 수 있습니다.</p>
+          </div>
+          <div class="code-study">
+            <div class="code-window">
+              <div class="code-toolbar"><span>cifar10_lab/foundations.py</span><button class="copy-button" type="button" data-copy-target="mlpCode">코드 복사</button></div>
+              <pre id="mlpCode" class="line-code"><code><span data-line="1">class TinyMLP(nn.Module):</span>
+<span data-line="2">    def __init__(self, hidden_features=4):</span>
+<span data-line="3">        super().__init__()</span>
+<span data-line="4">        self.hidden = nn.Linear(2, hidden_features)</span>
+<span data-line="5">        self.activation = nn.Tanh()</span>
+<span data-line="6">        self.output = nn.Linear(hidden_features, 1)</span>
+<span data-line="7"></span>
+<span data-line="8">    def forward_trace(self, features):</span>
+<span data-line="9">        hidden_linear = self.hidden(features)</span>
+<span data-line="10">        hidden = self.activation(hidden_linear)</span>
+<span data-line="11">        logits = self.output(hidden).squeeze(-1)</span>
+<span data-line="12">        probabilities = torch.sigmoid(logits)</span>
+<span data-line="13">        return {</span>
+<span data-line="14">            "hidden_linear": hidden_linear,</span>
+<span data-line="15">            "hidden": hidden,</span>
+<span data-line="16">            "logits": logits,</span>
+<span data-line="17">            "probabilities": probabilities,</span>
+<span data-line="18">        }</span>
+<span data-line="19"></span>
+<span data-line="20">    def forward(self, features):</span>
+<span data-line="21">        return self.forward_trace(features)["logits"]</span></code></pre>
+            </div>
+            <div class="code-notes" role="list" aria-label="코드 해설">
+              <button type="button" data-highlight="2-6"><span>① 층 정의</span><strong>2 → 4 → 1 구조</strong><small>두 선형층 사이에 Tanh 활성화를 배치합니다.</small></button>
+              <button type="button" data-highlight="9-9"><span>② 은닉 가중합</span><strong>활성화 전 값을 보존</strong><small>각 은닉 뉴런의 Wx+b를 계산합니다.</small></button>
+              <button type="button" data-highlight="10-10"><span>③ 비선형 변환</span><strong>Tanh로 표현을 변형</strong><small>값을 −1과 1 사이로 누르며 비선형성을 추가합니다.</small></button>
+              <button type="button" data-highlight="11-12"><span>④ 출력</span><strong>logit을 확률로 변환</strong><small>학습에는 logit을, 해석에는 sigmoid 확률을 사용합니다.</small></button>
+              <button type="button" data-highlight="13-21"><span>⑤ 추적과 기본 출력</span><strong>학습 코드와 시각화를 함께 지원</strong><small>forward는 logit만 반환하고 trace는 중간값 전체를 제공합니다.</small></button>
+            </div>
+          </div>
+          <aside class="callout callout-tip">
+            <strong>왜 학습에서는 확률보다 logit을 사용할까?</strong>
+            <p>`BCEWithLogitsLoss`는 sigmoid와 이진 교차엔트로피를 수치적으로 안정적인 한 연산으로 결합합니다.</p>
+          </aside>
+        </section>
+
+        <section class="lesson-section" id="lab">
+          <div class="section-number">3.6</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">실습 3.1 · 브라우저 학습</p>
+            <h2><span>3.6</span> 무작위 경계가 XOR 영역으로 변하는 과정</h2>
+            <p>네 개의 XOR 표본 전체로 작은 2-4-1 네트워크를 학습합니다. epoch를 조금씩 진행하며 손실과 결정 영역의 변화를 비교하세요.</p>
+          </div>
+          <div class="mlp-training-lab lab-panel">
+            <div class="training-toolbar">
+              <label>학습률<select id="mlpLearningRate"><option value="0.1">0.1</option><option value="0.3" selected>0.3</option><option value="0.5">0.5</option></select></label>
+              <div class="training-buttons">
+                <button class="button button-secondary" id="mlpReset" type="button">초기화</button>
+                <button class="button button-secondary" id="mlpStep" type="button">1 epoch</button>
+                <button class="button button-secondary" id="mlpHundred" type="button">100 epoch</button>
+                <button class="button" id="mlpAuto" type="button">자동 학습</button>
+              </div>
+            </div>
+            <div class="mlp-training-grid">
+              <div class="plot-card">
+                <div class="plot-heading"><strong>MLP 결정 영역</strong><span>초록: 예측 1 · 자주색: 예측 0</span></div>
+                <canvas id="mlpBoundaryCanvas" width="600" height="480" aria-label="다층 퍼셉트론의 XOR 결정 영역"></canvas>
+              </div>
+              <div class="mlp-training-side">
+                <div class="metric-strip">
+                  <div><span>epoch</span><strong id="mlpEpoch">0</strong></div>
+                  <div><span>loss</span><strong id="mlpLoss">—</strong></div>
+                  <div><span>accuracy</span><strong id="mlpAccuracy">—</strong></div>
+                </div>
+                <div class="loss-plot">
+                  <div class="plot-heading"><strong>손실 변화</strong><span>낮을수록 정답에 가까움</span></div>
+                  <canvas id="mlpLossCanvas" width="420" height="190" aria-label="epoch에 따른 XOR 손실 곡선"></canvas>
+                </div>
+                <div class="mlp-truth-results" id="mlpTruthResults"></div>
+                <div class="update-explanation" id="mlpStatusText" aria-live="polite"></div>
+              </div>
+            </div>
+          </div>
+          <aside class="callout callout-question">
+            <strong>관찰할 값</strong>
+            <p>초기에는 결정 영역이 단순하지만 학습이 진행되면 대각선에 놓인 두 개의 1 영역이 나타납니다. 정확도뿐 아니라 손실이 계속 줄어드는지도 함께 확인하세요.</p>
+          </aside>
+        </section>
+
+        <section class="lesson-section" id="checkpoint">
+          <div class="section-number">3.7</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">정리와 연습문제</p>
+            <h2><span>3.7</span> 표현, 예측, 학습을 하나의 흐름으로 연결하기</h2>
+          </div>
+          <div class="chapter-summary-box">
+            <h3>3장 핵심 정리</h3>
+            <ul>
+              <li>은닉층은 입력을 문제 해결에 유리한 새로운 표현으로 변환합니다.</li>
+              <li>활성화 함수가 없으면 여러 선형층도 하나의 선형 변환과 같아집니다.</li>
+              <li>역전파는 출력 오차가 각 파라미터에 미친 영향을 기울기로 계산합니다.</li>
+            </ul>
+          </div>
+          <dl class="key-terms">
+            <div><dt>은닉층</dt><dd>입력과 출력 사이에서 중간 특징을 만드는 층</dd></div>
+            <div><dt>활성화 함수</dt><dd>네트워크에 비선형 표현력을 추가하는 함수</dd></div>
+            <div><dt>역전파</dt><dd>연쇄법칙으로 각 파라미터의 기울기를 구하는 절차</dd></div>
+          </dl>
+          <div class="quiz-list chapter-quiz-spacing">
+            <fieldset class="quiz" data-answer="b">
+              <legend><span>Q1</span>활성화 함수가 없는 선형층을 여러 개 쌓으면?</legend>
+              <label><input type="radio" name="q1" value="a"> 자동으로 원형 결정경계가 만들어집니다.</label>
+              <label><input type="radio" name="q1" value="b"> 하나의 선형 변환으로 합칠 수 있습니다.</label>
+              <label><input type="radio" name="q1" value="c"> 항상 XOR을 해결합니다.</label>
+              <p class="quiz-feedback"></p>
+            </fieldset>
+            <fieldset class="quiz" data-answer="c">
+              <legend><span>Q2</span>역전파가 직접 계산하는 것은?</legend>
+              <label><input type="radio" name="q2" value="a"> 새로운 학습 데이터</label>
+              <label><input type="radio" name="q2" value="b"> 최종 클래스 이름</label>
+              <label><input type="radio" name="q2" value="c"> 손실에 대한 각 파라미터의 기울기</label>
+              <p class="quiz-feedback"></p>
+            </fieldset>
+            <fieldset class="quiz" data-answer="a">
+              <legend><span>Q3</span>TinyMLP의 전체 학습 파라미터 수는?</legend>
+              <label><input type="radio" name="q3" value="a"> 17개</label>
+              <label><input type="radio" name="q3" value="b"> 8개</label>
+              <label><input type="radio" name="q3" value="c"> 4개</label>
+              <p class="quiz-feedback"></p>
+            </fieldset>
+            <button class="button" id="checkQuiz" type="button">정답 확인</button>
+            <p class="quiz-score" id="quizScore" aria-live="polite"></p>
+          </div>
+        </section>
+
+        <section class="local-run-card">
+          <div><p class="eyebrow">노트북 실습</p><h2>PyTorch 학습 기록과 은닉 표현 확인하기</h2><p>같은 TinyMLP의 손실 곡선과 은닉 표현을 프로젝트 노트북에서 확인할 수 있습니다.</p></div>
+          <div class="command-block"><code>.\.venv\Scripts\python.exe -m jupyter lab foundations.ipynb</code><button class="copy-button" type="button" data-copy-text=".\.venv\Scripts\python.exe -m jupyter lab foundations.ipynb">복사</button></div>
+        </section>
+
+        <nav class="chapter-pagination" aria-label="단원 이동">
+          <a href="02-linear-separability.html"><small>이전</small><strong>2장 · 선형 분리와 XOR</strong></a>
+          <span class="disabled"><small>다음</small><strong>4장 · 합성곱과 필터</strong></span>
+        </nav>
+      </article>
+    </main>
+  </div>
+
+  <footer class="site-footer"><span>Backbone Lab · 실제 코드로 배우는 인공지능 기초</span><a href="https://github.com/tember40/Backbone_tester_CNN_Transformer">GitHub에서 보기</a></footer>
+</body>
+</html>

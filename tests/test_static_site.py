@@ -116,6 +116,14 @@ class StaticSiteTests(unittest.TestCase):
         )
         self.assertIn("target.hash = window.location.hash", second_chapter_entry)
 
+        third_chapter_entry = (
+            ROOT / "chapters" / "03-multilayer-perceptron.html"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "../docs/chapters/03-multilayer-perceptron.html", third_chapter_entry
+        )
+        self.assertIn("target.hash = window.location.hash", third_chapter_entry)
+
     def test_linear_separability_page_contains_the_lesson_contract(self):
         page = DOCS / "chapters" / "02-linear-separability.html"
         source = page.read_text(encoding="utf-8")
@@ -153,6 +161,34 @@ class StaticSiteTests(unittest.TestCase):
             "chapter-summary-box",
         ):
             self.assertIn(component, source)
+
+    def test_multilayer_perceptron_page_contains_the_lesson_contract(self):
+        page = DOCS / "chapters" / "03-multilayer-perceptron.html"
+        source = page.read_text(encoding="utf-8")
+        for section_id in (
+            "overview",
+            "paper",
+            "anatomy",
+            "forward",
+            "learning",
+            "code",
+            "lab",
+            "checkpoint",
+        ):
+            self.assertIn(f'id="{section_id}"', source)
+
+        implementation = (ROOT / "cifar10_lab" / "foundations.py").read_text(
+            encoding="utf-8"
+        )
+        for code_line in (
+            "hidden_linear = self.hidden(features)",
+            "hidden = self.activation(hidden_linear)",
+            "logits = self.output(hidden).squeeze(-1)",
+            "probabilities = torch.sigmoid(logits)",
+            'return self.forward_trace(features)["logits"]',
+        ):
+            self.assertIn(code_line, implementation)
+            self.assertIn(code_line, source)
 
     def test_kwangwoon_visual_tokens_and_background_exist(self):
         stylesheet = (DOCS / "assets" / "css" / "site.css").read_text(

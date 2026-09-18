@@ -28,6 +28,12 @@ class FoundationsTests(unittest.TestCase):
         self.assertTrue(torch.equal(predictions, targets.long()))
         self.assertEqual(history["accuracy"][-1], 100.0)
 
+        trace = model.forward_trace(features)
+        self.assertEqual(tuple(trace["hidden_linear"].shape), (4, 4))
+        self.assertEqual(tuple(trace["hidden"].shape), (4, 4))
+        self.assertEqual(tuple(trace["logits"].shape), (4,))
+        self.assertEqual(tuple(trace["probabilities"].shape), (4,))
+
     def test_one_linear_boundary_separates_and_but_not_xor(self):
         features, and_targets = make_logic_gate("AND")
         _, and_correct, and_accuracy = evaluate_linear_boundary(
