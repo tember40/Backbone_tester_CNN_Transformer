@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="결정경계, 선형 분리 가능성, XOR의 한계를 수식과 실제 코드, 대화형 실험으로 이해하는 학습 자료">
+  <title>2장. 선형 분리와 XOR · Backbone Lab</title>
+  <link rel="stylesheet" href="../assets/css/site.css?v=20260918e">
+  <script src="../assets/js/linear-separability.js?v=20260918a" defer></script>
+</head>
+<body class="chapter-page">
+  <header class="site-header">
+    <a class="brand" href="../index.html" aria-label="Backbone Lab 홈">
+      <span class="brand-mark">KW</span>
+      <span><strong>인공지능 기초</strong><small><span lang="en">Backbone Lab</span> 학습 자료</small></span>
+    </a>
+    <div class="chapter-progress" aria-label="현재 과정">
+      <span>제1부 · 기초</span><div><i style="width: 67%"></i></div><strong>2 / 3</strong>
+    </div>
+    <nav class="header-actions">
+      <a href="../index.html#curriculum">전체 목차</a>
+      <a class="button button-small" href="https://github.com/tember40/Backbone_tester_CNN_Transformer/blob/main/cifar10_lab/foundations.py">실제 코드</a>
+    </nav>
+  </header>
+
+  <div class="chapter-layout">
+    <aside class="chapter-sidebar" aria-label="단원 목차">
+      <p class="sidebar-label">제2장 · 선형 분리와 XOR</p>
+      <nav>
+        <a class="is-current" href="#overview"><span>2.0</span>학습 안내</a>
+        <a href="#paper"><span>2.1</span>역사적 맥락</a>
+        <a href="#geometry"><span>2.2</span>결정경계의 기하</a>
+        <a href="#xor"><span>2.3</span>XOR의 모순</a>
+        <a href="#code"><span>2.4</span>구현과 코드</a>
+        <a href="#lab"><span>2.5</span>경계 실험</a>
+        <a href="#bridge"><span>2.6</span>한계를 넘는 방법</a>
+        <a href="#checkpoint"><span>2.7</span>연습문제</a>
+      </nav>
+      <div class="sidebar-note">
+        <strong>이 장의 분량</strong>
+        <span>약 30분</span>
+        <small>개념 18분 · 실습 12분</small>
+      </div>
+    </aside>
+
+    <main class="chapter-content">
+      <article>
+        <header class="chapter-hero" id="overview">
+          <div class="chapter-kicker"><span>제1부</span><span>신경망의 기초</span><span>선수 지식: 1장</span></div>
+          <h1><small>제2장</small>선형 분리와 XOR</h1>
+          <p class="chapter-lead">
+            학습을 오래 해도 정답을 찾지 못한다면 학습 방법이 잘못된 걸까요?
+            이번 장에서는 데이터 배치와 모델의 표현력을 구분해 판단하는 법을 익힙니다.
+          </p>
+          <div class="learning-objectives">
+            <h2>학습 목표</h2>
+            <ul>
+              <li>결정경계를 입력 공간의 직선으로 해석할 수 있습니다.</li>
+              <li>선형 분리 가능 여부를 데이터 배치로 판단할 수 있습니다.</li>
+              <li>XOR을 직선 하나로 분리할 수 없는 이유를 부등식으로 설명할 수 있습니다.</li>
+              <li>실제 코드와 시각화 결과를 연결해 모델의 한계를 진단할 수 있습니다.</li>
+            </ul>
+          </div>
+        </header>
+
+        <section class="lesson-section" id="paper">
+          <div class="section-number">2.1</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">역사적 맥락</p>
+            <h2><span>2.1</span> 무엇을 학습할 수 없는가</h2>
+          </div>
+          <div class="paper-card">
+            <div class="paper-meta">
+              <span lang="en">Marvin Minsky · Seymour A. Papert</span><span>1969</span><span lang="en">The MIT Press</span>
+            </div>
+            <h3 lang="en">Perceptrons: An Introduction to Computational Geometry</h3>
+            <p>퍼셉트론 계열 계산 장치의 능력과 한계를 기하학적으로 분석했습니다. 중요한 질문은 “학습이 실패했는가”가 아니라 “이 구조가 애초에 원하는 경계를 표현할 수 있는가”입니다.</p>
+            <a class="text-link" href="https://mitpress.mit.edu/9780262130431/perceptrons/">출판 정보 보기 <span aria-hidden="true">↗</span></a>
+          </div>
+          <div class="three-column-summary">
+            <div><span>관찰</span><h3>정확도가 오르지 않는다</h3><p>같은 데이터를 반복해도 오답이 사라지지 않는 경우가 있습니다.</p></div>
+            <div><span>질문</span><h3>학습과 표현력을 구분한다</h3><p>좋은 파라미터를 못 찾은 것인지, 가능한 파라미터가 없는 것인지 확인해야 합니다.</p></div>
+            <div><span>의미</span><h3>모델 구조도 가설이다</h3><p>모델을 선택하는 순간 만들 수 있는 결정경계의 종류가 정해집니다.</p></div>
+          </div>
+          <aside class="callout callout-note">
+            <strong>역사를 지나치게 단순화하지 않기</strong>
+            <p>이 책 한 권이나 XOR 하나가 신경망 연구를 곧바로 중단시켰다고 설명하면 실제 연구사의 여러 요인을 놓치게 됩니다. 여기서는 역사적 논쟁 전체보다 단층 선형 분류기의 수학적 한계에 집중합니다.</p>
+          </aside>
+        </section>
+
+        <section class="lesson-section" id="geometry">
+          <div class="section-number">2.2</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">핵심 개념</p>
+            <h2><span>2.2</span> 수식을 직선으로 읽는 법</h2>
+            <p>입력이 두 개일 때 가중합이 0이 되는 점들을 모으면 하나의 직선이 됩니다.</p>
+          </div>
+          <div class="equation-card" aria-label="결정경계 수식">
+            <div><small>분류 점수</small><p>z = w₁x₁ + w₂x₂ + b</p></div>
+            <div class="equation-arrow">→</div>
+            <div><small>결정경계</small><p>w₁x₁ + w₂x₂ + b = 0</p></div>
+          </div>
+          <ol class="concept-steps boundary-reading-steps">
+            <li><span>1</span><div><strong>가중치는 직선의 방향을 정합니다.</strong><p>w₁과 w₂의 비율이 바뀌면 경계가 회전합니다.</p></div></li>
+            <li><span>2</span><div><strong>편향은 직선의 위치를 정합니다.</strong><p>가중치를 고정하고 b만 바꾸면 경계가 평행 이동합니다.</p></div></li>
+            <li><span>3</span><div><strong>직선의 양쪽이 서로 다른 예측 영역입니다.</strong><p>z가 0 이상인 쪽은 1, 0보다 작은 쪽은 0으로 분류합니다.</p></div></li>
+          </ol>
+          <div class="gate-patterns" aria-label="논리 게이트 데이터 배치 비교">
+            <article><span>AND</span><strong>한 점만 1</strong><p>(1, 1)을 나머지 세 점과 직선으로 분리할 수 있습니다.</p></article>
+            <article><span>OR</span><strong>한 점만 0</strong><p>(0, 0)을 나머지 세 점과 직선으로 분리할 수 있습니다.</p></article>
+            <article class="is-warning"><span>XOR</span><strong>같은 값이 대각선에 위치</strong><p>어느 직선을 그어도 적어도 한 점은 반대쪽에 남습니다.</p></article>
+          </div>
+          <aside class="callout">
+            <strong>정의 2.1 · 선형 분리 가능</strong>
+            <p>서로 다른 두 클래스를 하나의 직선, 평면 또는 고차원 초평면의 서로 반대쪽에 놓을 수 있는 상태입니다.</p>
+          </aside>
+        </section>
+
+        <section class="lesson-section" id="xor">
+          <div class="section-number">2.3</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">증명 따라가기</p>
+            <h2><span>2.3</span> XOR에서 생기는 네 부등식</h2>
+            <p>네 점을 모두 맞히는 가중치가 있다고 가정하고, 그 가정이 스스로 모순을 만드는지 확인합니다.</p>
+          </div>
+          <div class="inequality-proof">
+            <div class="proof-column">
+              <p class="result-label">출력이 1인 두 점</p>
+              <p><strong>(1, 0)</strong> → w₁ + b ≥ 0</p>
+              <p><strong>(0, 1)</strong> → w₂ + b ≥ 0</p>
+              <small>두 식을 더하면 w₁ + w₂ + 2b ≥ 0입니다.</small>
+            </div>
+            <div class="proof-column">
+              <p class="result-label">출력이 0인 두 점</p>
+              <p><strong>(0, 0)</strong> → b &lt; 0</p>
+              <p><strong>(1, 1)</strong> → w₁ + w₂ + b &lt; 0</p>
+              <small>b &lt; 0이므로 첫 두 식은 w₁ + w₂ + b &gt; 0을 요구합니다.</small>
+            </div>
+            <div class="proof-conclusion">
+              <span>모순</span>
+              <strong>w₁ + w₂ + b가 동시에 0보다 커야 하고 작아야 합니다.</strong>
+              <p>따라서 네 점을 모두 맞히는 단일 직선은 존재하지 않습니다.</p>
+            </div>
+          </div>
+          <aside class="callout callout-question">
+            <strong>생각해 보기</strong>
+            <p>정확도가 75%인 XOR 분류기는 네 점 중 몇 점을 맞힌 것일까요? 학습을 더 오래 하면 이 한계를 넘을 수 있을까요?</p>
+          </aside>
+        </section>
+
+        <section class="lesson-section" id="code">
+          <div class="section-number">2.4</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">구현</p>
+            <h2><span>2.4</span> 하나의 경계를 코드로 평가하기</h2>
+            <p>프로젝트의 실제 함수는 각 점의 점수와 예측을 계산한 뒤 정답 여부와 전체 정확도를 함께 반환합니다.</p>
+          </div>
+          <div class="code-study">
+            <div class="code-window">
+              <div class="code-toolbar"><span>cifar10_lab/foundations.py</span><button class="copy-button" type="button" data-copy-target="boundaryCode">코드 복사</button></div>
+              <pre id="boundaryCode" class="line-code"><code><span data-line="1">def evaluate_linear_boundary(features, targets, weights, bias):</span>
+<span data-line="2">    """Return predictions, correctness, and accuracy for one line."""</span>
+<span data-line="3">    feature_tensor = torch.as_tensor(features, dtype=torch.float32)</span>
+<span data-line="4">    target_tensor = torch.as_tensor(targets, dtype=torch.long)</span>
+<span data-line="5">    weight_tensor = torch.as_tensor(weights, dtype=torch.float32)</span>
+<span data-line="6"></span>
+<span data-line="7">    scores = feature_tensor @ weight_tensor + float(bias)</span>
+<span data-line="8">    predictions = (scores &gt;= 0).to(torch.long)</span>
+<span data-line="9">    correct = predictions.eq(target_tensor)</span>
+<span data-line="10">    accuracy = correct.float().mean().item()</span>
+<span data-line="11">    return predictions, correct, accuracy</span></code></pre>
+            </div>
+            <div class="code-notes" role="list" aria-label="코드 해설">
+              <button type="button" data-highlight="1-5"><span>① 입력 정리</span><strong>같은 자료형의 텐서로 변환</strong><small>특징, 정답, 가중치를 계산 가능한 형태로 맞춥니다.</small></button>
+              <button type="button" data-highlight="7-7"><span>② 점수</span><strong>모든 점의 가중합을 한 번에 계산</strong><small>@ 연산이 각 표본과 가중치의 내적을 구합니다.</small></button>
+              <button type="button" data-highlight="8-8"><span>③ 예측</span><strong>경계의 어느 쪽인지 판정</strong><small>점수가 0 이상이면 1, 아니면 0입니다.</small></button>
+              <button type="button" data-highlight="9-11"><span>④ 평가</span><strong>점별 정답과 전체 정확도</strong><small>XOR에서는 어떤 직선을 넣어도 모든 값이 True가 되지 않습니다.</small></button>
+            </div>
+          </div>
+          <aside class="callout callout-tip">
+            <strong>코드와 수식 연결하기</strong>
+            <p>`feature_tensor @ weight_tensor + bias`가 모든 점에 대해 w₁x₁ + w₂x₂ + b를 계산합니다. 아래 실험의 각도는 가중치 방향을, 위치는 편향을 바꿉니다.</p>
+          </aside>
+        </section>
+
+        <section class="lesson-section" id="lab">
+          <div class="section-number">2.5</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">실습 2.1 · 결정경계 탐색</p>
+            <h2><span>2.5</span> 직선을 움직여 네 점 분류하기</h2>
+            <p>먼저 직접 각도와 위치를 바꿔 보세요. 그다음 ‘가장 좋은 직선 찾기’로 단일 경계가 낼 수 있는 최고 정확도를 확인합니다.</p>
+          </div>
+          <div class="boundary-lab lab-panel">
+            <div class="training-toolbar">
+              <label>분류 문제<select id="boundaryGate"><option>AND</option><option>OR</option><option selected>XOR</option></select></label>
+              <label class="range-control">경계 각도 <output id="angleValue">45°</output><input id="boundaryAngle" type="range" min="0" max="359" value="45" step="1"></label>
+              <label class="range-control">경계 위치 <output id="offsetValue">−0.70</output><input id="boundaryOffset" type="range" min="-1.8" max="1.8" value="-0.7" step="0.02"></label>
+              <div class="training-buttons">
+                <button class="button button-secondary" id="boundaryReset" type="button">초기화</button>
+                <button class="button" id="findBestBoundary" type="button">가장 좋은 직선 찾기</button>
+              </div>
+            </div>
+            <div class="training-stage">
+              <div class="plot-card">
+                <div class="plot-heading"><strong>입력 공간과 결정경계</strong><span id="boundaryEquation">경계식을 계산하는 중입니다.</span></div>
+                <canvas id="separabilityCanvas" width="600" height="480" aria-label="논리 게이트 데이터와 사용자가 조절하는 선형 결정경계"></canvas>
+              </div>
+              <div class="training-status">
+                <p class="result-label">현재 경계의 평가</p>
+                <div class="boundary-score" id="boundaryScore"><strong>0%</strong><span>정확도</span></div>
+                <div class="point-results" id="pointResults" aria-live="polite"></div>
+                <div class="update-explanation" id="boundaryExplanation"></div>
+              </div>
+            </div>
+          </div>
+          <div class="interpretation-grid">
+            <div><span class="state-dot success"></span><strong>AND·OR</strong><p>네 점을 모두 맞히는 각도와 위치가 존재합니다.</p></div>
+            <div><span class="state-dot warning"></span><strong>XOR</strong><p>직선을 아무리 움직여도 최고 정확도는 75%입니다.</p></div>
+          </div>
+        </section>
+
+        <section class="lesson-section" id="bridge">
+          <div class="section-number">2.6</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">다음 모델로 연결</p>
+            <h2><span>2.6</span> 직선 하나가 부족하면 무엇을 바꿀까</h2>
+            <p>학습 횟수를 늘리는 대신, 여러 경계와 비선형 변환을 조합할 수 있는 모델이 필요합니다.</p>
+          </div>
+          <div class="representation-flow" aria-label="XOR을 해결하기 위한 표현 확장 흐름">
+            <div><span>입력 공간</span><strong>대각선으로 섞인 XOR</strong><p>직선 하나로는 분리할 수 없습니다.</p></div>
+            <b aria-hidden="true">→</b>
+            <div><span>은닉층</span><strong>여러 경계를 조합</strong><p>서로 다른 중간 특징을 만듭니다.</p></div>
+            <b aria-hidden="true">→</b>
+            <div><span>출력층</span><strong>새 공간에서 분리</strong><p>중간 특징을 이용해 최종 클래스를 나눕니다.</p></div>
+          </div>
+          <div class="next-model-card">
+            <div><span>다음 장</span><strong>다층 퍼셉트론</strong></div>
+            <p>은닉층과 비선형 활성화 함수가 XOR의 표현을 어떻게 바꾸는지 층별로 확인합니다.</p>
+            <button class="button button-disabled" type="button" disabled>3장 준비 중</button>
+          </div>
+          <div class="chapter-summary-box">
+            <h3>2장 핵심 정리</h3>
+            <ul>
+              <li>두 입력을 받는 단층 퍼셉트론의 결정경계는 하나의 직선입니다.</li>
+              <li>AND와 OR은 선형 분리가 가능하지만 XOR은 같은 클래스가 대각선에 있어 선형 분리가 불가능합니다.</li>
+              <li>표현력 부족은 학습 시간이나 학습률만 조정해서 해결할 수 없습니다.</li>
+            </ul>
+          </div>
+          <dl class="key-terms">
+            <div><dt>선형 분리</dt><dd>한 초평면으로 두 클래스를 나눌 수 있는 상태</dd></div>
+            <div><dt>표현력</dt><dd>모델이 만들 수 있는 함수와 경계의 범위</dd></div>
+            <div><dt>XOR</dt><dd>두 입력이 서로 다를 때만 1인 논리 연산</dd></div>
+          </dl>
+        </section>
+
+        <section class="lesson-section" id="checkpoint">
+          <div class="section-number">2.7</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">연습문제</p>
+            <h2><span>2.7</span> 학습 실패와 표현력 구분하기</h2>
+          </div>
+          <div class="quiz-list">
+            <fieldset class="quiz" data-answer="b">
+              <legend><span>Q1</span>가중치를 고정하고 편향만 바꾸면?</legend>
+              <label><input type="radio" name="q1" value="a"> 결정경계가 회전합니다.</label>
+              <label><input type="radio" name="q1" value="b"> 결정경계가 평행 이동합니다.</label>
+              <label><input type="radio" name="q1" value="c"> 입력 데이터가 이동합니다.</label>
+              <p class="quiz-feedback"></p>
+            </fieldset>
+            <fieldset class="quiz" data-answer="c">
+              <legend><span>Q2</span>XOR에서 단일 직선의 최고 정확도는?</legend>
+              <label><input type="radio" name="q2" value="a"> 50%</label>
+              <label><input type="radio" name="q2" value="b"> 100%</label>
+              <label><input type="radio" name="q2" value="c"> 75%</label>
+              <p class="quiz-feedback"></p>
+            </fieldset>
+            <fieldset class="quiz" data-answer="a">
+              <legend><span>Q3</span>표현력 부족을 해결하는 가장 적절한 방법은?</legend>
+              <label><input type="radio" name="q3" value="a"> 은닉층과 비선형 활성화를 추가합니다.</label>
+              <label><input type="radio" name="q3" value="b"> 같은 단층 모델의 epoch만 무한히 늘립니다.</label>
+              <label><input type="radio" name="q3" value="c"> 정답 레이블을 무작위로 바꿉니다.</label>
+              <p class="quiz-feedback"></p>
+            </fieldset>
+            <button class="button" id="checkQuiz" type="button">정답 확인</button>
+            <p class="quiz-score" id="quizScore" aria-live="polite"></p>
+          </div>
+        </section>
+
+        <section class="local-run-card">
+          <div><p class="eyebrow">노트북 실습</p><h2>Python에서도 같은 실험 실행하기</h2><p>프로젝트의 실제 PyTorch 함수와 결정경계 그림은 기초 노트북에서 확인할 수 있습니다.</p></div>
+          <div class="command-block"><code>.\.venv\Scripts\python.exe -m jupyter lab foundations.ipynb</code><button class="copy-button" type="button" data-copy-text=".\.venv\Scripts\python.exe -m jupyter lab foundations.ipynb">복사</button></div>
+        </section>
+
+        <nav class="chapter-pagination" aria-label="단원 이동">
+          <a href="01-perceptron.html"><small>이전</small><strong>1장 · 퍼셉트론</strong></a>
+          <span class="disabled"><small>다음</small><strong>3장 · 다층 퍼셉트론</strong></span>
+        </nav>
+      </article>
+    </main>
+  </div>
+
+  <footer class="site-footer"><span>Backbone Lab · 실제 코드로 배우는 인공지능 기초</span><a href="https://github.com/tember40/Backbone_tester_CNN_Transformer">GitHub에서 보기</a></footer>
+</body>
+</html>

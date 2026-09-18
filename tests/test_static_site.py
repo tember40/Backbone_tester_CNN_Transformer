@@ -108,6 +108,41 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("../docs/chapters/01-perceptron.html", chapter_entry)
         self.assertIn("target.hash = window.location.hash", chapter_entry)
 
+        second_chapter_entry = (
+            ROOT / "chapters" / "02-linear-separability.html"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "../docs/chapters/02-linear-separability.html", second_chapter_entry
+        )
+        self.assertIn("target.hash = window.location.hash", second_chapter_entry)
+
+    def test_linear_separability_page_contains_the_lesson_contract(self):
+        page = DOCS / "chapters" / "02-linear-separability.html"
+        source = page.read_text(encoding="utf-8")
+        for section_id in (
+            "overview",
+            "paper",
+            "geometry",
+            "xor",
+            "code",
+            "lab",
+            "bridge",
+            "checkpoint",
+        ):
+            self.assertIn(f'id="{section_id}"', source)
+
+        implementation = (ROOT / "cifar10_lab" / "foundations.py").read_text(
+            encoding="utf-8"
+        )
+        for code_line in (
+            "scores = feature_tensor @ weight_tensor + float(bias)",
+            "predictions = (scores >= 0).to(torch.long)",
+            "correct = predictions.eq(target_tensor)",
+            "accuracy = correct.float().mean().item()",
+        ):
+            self.assertIn(code_line, implementation)
+            self.assertIn(code_line.replace(">", "&gt;"), source)
+
     def test_reusable_chapter_template_exists(self):
         template = DOCS / "templates" / "chapter-template.html"
         source = template.read_text(encoding="utf-8")

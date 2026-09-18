@@ -16,7 +16,13 @@ from .environment import (
     detect_environment,
     select_device,
 )
-from .foundations import ClassicPerceptron, TinyMLP, make_logic_gate, train_tiny_mlp
+from .foundations import (
+    ClassicPerceptron,
+    TinyMLP,
+    evaluate_linear_boundary,
+    make_logic_gate,
+    train_tiny_mlp,
+)
 from .experiments import experiment_fingerprint, experiment_id, set_global_seed
 from .paths import LabPaths, get_lab_paths, resolve_checkpoint_dir, resolve_data_dir
 from .registry import MODEL_REGISTRY, create_model, format_model_catalog, list_models
@@ -41,6 +47,7 @@ __all__ = [
     "download_cifar10",
     "evaluate_model",
     "evaluate_model_detailed",
+    "evaluate_linear_boundary",
     "experiment_fingerprint",
     "experiment_id",
     "format_model_catalog",

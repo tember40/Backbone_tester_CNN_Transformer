@@ -28,6 +28,26 @@ def make_logic_gate(name="AND"):
     return features, targets
 
 
+def evaluate_linear_boundary(features, targets, weights, bias):
+    """Return predictions, per-sample correctness, and accuracy for one line."""
+    feature_tensor = torch.as_tensor(features, dtype=torch.float32)
+    target_tensor = torch.as_tensor(targets, dtype=torch.long)
+    weight_tensor = torch.as_tensor(weights, dtype=torch.float32)
+
+    if feature_tensor.ndim != 2:
+        raise ValueError("features must have shape [samples, input_features].")
+    if weight_tensor.ndim != 1 or feature_tensor.shape[1] != len(weight_tensor):
+        raise ValueError("weights must match the number of input features.")
+    if len(feature_tensor) != len(target_tensor):
+        raise ValueError("features and targets must contain the same number of samples.")
+
+    scores = feature_tensor @ weight_tensor + float(bias)
+    predictions = (scores >= 0).to(torch.long)
+    correct = predictions.eq(target_tensor)
+    accuracy = correct.float().mean().item()
+    return predictions, correct, accuracy
+
+
 @dataclass(frozen=True)
 class PerceptronSnapshot:
     step: int

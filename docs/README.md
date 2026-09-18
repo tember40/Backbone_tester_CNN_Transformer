@@ -26,4 +26,9 @@ docs/
 
 새 장은 `templates/chapter-template.html`을 복사하고 `STYLE_GUIDE.md`의 구성 원칙에 맞춰 작성합니다.
 
+현재 완성된 장:
+
+- `01-perceptron.html`: 퍼셉트론의 계산과 학습 규칙
+- `02-linear-separability.html`: 결정경계, 선형 분리 가능성, XOR 실험
+
 `main` 브랜치의 `docs/` 변경은 GitHub Actions가 GitHub Pages에 자동 배포합니다.
