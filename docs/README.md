@@ -1,6 +1,6 @@
-# Backbone Lab 웹 교재
+# Backbone Lab 웹 학습 자료
 
-이 폴더는 별도 Python 서버 없이 동작하는 정적 웹 교재입니다.
+이 폴더는 별도 Python 서버 없이 동작하는 정적 웹 학습 자료입니다.
 
 ## 로컬 미리보기
 
@@ -17,9 +17,9 @@
 
 ```text
 docs/
-├── index.html                  # 교재 홈과 전체 목차
-├── chapters/                   # 장별 교재 페이지
-├── templates/chapter-template.html # 새 단원 작성용 전공 교재 템플릿
+├── index.html                  # 학습 자료 홈과 전체 목차
+├── chapters/                   # 장별 학습 페이지
+├── templates/chapter-template.html # 새 단원 작성용 전공 학습 자료 템플릿
 ├── assets/css/site.css         # 모든 장이 공유하는 디자인
 └── assets/js/                  # 서버 없이 실행되는 장별 실험
 ```

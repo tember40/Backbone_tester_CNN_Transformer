@@ -1,4 +1,4 @@
-"""Textbook-style plots for perceptron and MLP learning concepts."""
+"""Instructional plots for perceptron and MLP learning concepts."""
 
 import math
 

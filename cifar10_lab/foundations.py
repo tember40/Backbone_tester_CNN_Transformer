@@ -41,7 +41,7 @@ class PerceptronSnapshot:
 
 
 class ClassicPerceptron:
-    """The textbook binary perceptron with a hard step activation."""
+    """A classic binary perceptron with a hard step activation."""
 
     def __init__(self, input_features=2, learning_rate=0.1):
         if input_features < 1:

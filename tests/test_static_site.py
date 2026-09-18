@@ -97,7 +97,7 @@ class StaticSiteTests(unittest.TestCase):
             self.assertIn(code_line, implementation)
             self.assertIn(code_line, source)
 
-    def test_repository_page_redirects_to_textbook(self):
+    def test_repository_page_redirects_to_learning_site(self):
         entry = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn('content="0; url=docs/"', entry)
         self.assertIn('window.location.replace("docs/"', entry)
@@ -123,6 +123,21 @@ class StaticSiteTests(unittest.TestCase):
         monoline = DOCS / "assets" / "img" / "kw-monoline.svg"
         self.assertTrue(monoline.exists())
         self.assertIn("#C6BFAA", monoline.read_text(encoding="utf-8"))
+
+    def test_chapter_navigation_stays_visible_and_layout_is_balanced(self):
+        stylesheet = (DOCS / "assets" / "css" / "site.css").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(".site-header {\n  position: fixed;", stylesheet)
+        self.assertIn(".chapter-sidebar { position: fixed;", stylesheet)
+        self.assertIn(
+            "grid-template-columns: var(--sidebar) minmax(0, 1fr) var(--sidebar)",
+            stylesheet,
+        )
+
+    def test_user_facing_pages_avoid_book_authorship_wording(self):
+        for page in DOCS.rglob("*.html"):
+            self.assertNotIn("교재", page.read_text(encoding="utf-8"), str(page))
 
 
 if __name__ == "__main__":

@@ -3,18 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="입력, 가중치, 편향, 학습 규칙과 결정경계를 실제 코드로 이해하는 퍼셉트론 교재">
+  <meta name="description" content="입력, 가중치, 편향, 학습 규칙과 결정경계를 실제 코드로 이해하는 퍼셉트론 학습 자료">
   <title>1장. 퍼셉트론 · Backbone Lab</title>
-  <link rel="stylesheet" href="../assets/css/site.css">
-  <script src="../assets/js/perceptron.js" defer></script>
+  <link rel="stylesheet" href="../assets/css/site.css?v=20260918a">
+  <script src="../assets/js/perceptron.js?v=20260918a" defer></script>
 </head>
 <body class="chapter-page">
   <header class="site-header">
     <a class="brand" href="../index.html" aria-label="Backbone Lab 홈">
       <span class="brand-mark">KW</span>
-      <span><strong>인공지능 기초</strong><small>Backbone Lab 교재</small></span>
+      <span><strong>인공지능 기초</strong><small><span lang="en">Backbone Lab</span> 학습 자료</small></span>
     </a>
-    <div class="chapter-progress" aria-label="현재 학습 진행">
+    <div class="chapter-progress" aria-label="현재 과정">
       <span>제1부 · 기초</span><div><i style="width: 33%"></i></div><strong>1 / 3</strong>
     </div>
     <nav class="header-actions">
@@ -71,9 +71,9 @@
           </div>
           <div class="paper-card">
             <div class="paper-meta">
-              <span>Frank Rosenblatt</span><span>1958</span><span>Psychological Review 65(6)</span>
+              <span lang="en">Frank Rosenblatt</span><span>1958</span><span lang="en">Psychological Review 65(6)</span>
             </div>
-            <h3>The Perceptron: A Probabilistic Model for Information Storage and Organization in the Brain</h3>
+            <h3 lang="en">The Perceptron: A Probabilistic Model for Information Storage and Organization in the Brain</h3>
             <p>뇌의 정보 저장과 인식 과정을 단순한 계산 구조로 설명하고, 경험을 통해 연결 강도가 바뀌는 학습 시스템을 제안한 초기 연구입니다.</p>
             <a class="text-link" href="https://doi.org/10.1037/h0042519">원 논문 정보 보기 <span aria-hidden="true">↗</span></a>
           </div>
@@ -83,8 +83,8 @@
             <div><span>의미</span><h3>데이터에서 규칙을 학습한다</h3><p>정답 예시로부터 결정경계를 만드는 지도학습의 기본 형태를 보여 줍니다.</p></div>
           </div>
           <aside class="callout callout-note">
-            <strong>이 교재에서 다루는 범위</strong>
-            <p>원 논문의 생물학적·확률적 모델 전체가 아니라, 오늘날 교과서에서 사용하는 이진 선형 분류기와 퍼셉트론 학습 규칙에 집중합니다.</p>
+            <strong>이 자료에서 다루는 범위</strong>
+            <p>원 논문의 생물학적·확률적 모델 전체가 아니라, 오늘날 널리 사용하는 이진 선형 분류기와 퍼셉트론 학습 규칙에 집중합니다.</p>
           </aside>
         </section>
 
@@ -171,7 +171,7 @@
             <div class="code-window">
               <div class="code-toolbar"><span>cifar10_lab/foundations.py</span><button class="copy-button" type="button" data-copy-target="perceptronCode">코드 복사</button></div>
               <pre id="perceptronCode" class="line-code"><code><span data-line="1">class ClassicPerceptron:</span>
-<span data-line="2">    """The textbook binary perceptron with a hard step activation."""</span>
+<span data-line="2">    """A classic binary perceptron with a hard step activation."""</span>
 <span data-line="3"></span>
 <span data-line="4">    def __init__(self, input_features=2, learning_rate=0.1):</span>
 <span data-line="5">        if input_features &lt; 1:</span>
