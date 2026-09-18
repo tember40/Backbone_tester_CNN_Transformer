@@ -2,7 +2,11 @@ import unittest
 
 import torch
 
-from cifar10_lab.cnn_visualization import collect_feature_maps, receptive_field_stages
+from cifar10_lab.cnn_visualization import (
+    collect_feature_maps,
+    receptive_field_stages,
+    trace_single_channel_convolution,
+)
 from cifar10_lab.model_validation import validate_registered_models
 from cifar10_lab.registry import create_model
 
@@ -42,6 +46,28 @@ class ModelFamilyTests(unittest.TestCase):
         self.assertEqual(len(records), 4)
         self.assertGreater(len(stages), 4)
         self.assertGreater(stages[-1]["receptive_field"], stages[0]["receptive_field"])
+
+    def test_convolution_trace_matches_expected_edge_map(self):
+        image = torch.tensor(
+            [
+                [0, 0, 1, 1],
+                [0, 0, 1, 1],
+                [0, 0, 1, 1],
+                [0, 0, 1, 1],
+            ],
+            dtype=torch.float32,
+        )
+        kernel = torch.tensor(
+            [[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]], dtype=torch.float32
+        )
+
+        output, steps = trace_single_channel_convolution(image, kernel)
+
+        self.assertEqual(tuple(output.shape), (2, 2))
+        self.assertTrue(torch.equal(output, torch.tensor([[3.0, 3.0], [3.0, 3.0]])))
+        self.assertEqual(len(steps), 4)
+        self.assertEqual(steps[0]["output_position"], (0, 0))
+        self.assertEqual(steps[0]["sum"], 3.0)
 
 
 if __name__ == "__main__":

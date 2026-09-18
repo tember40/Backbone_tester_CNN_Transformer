@@ -31,5 +31,6 @@ docs/
 - `01-perceptron.html`: 퍼셉트론의 계산과 학습 규칙
 - `02-linear-separability.html`: 결정경계, 선형 분리 가능성, XOR 실험
 - `03-multilayer-perceptron.html`: 은닉층, 순전파·역전파, XOR 학습 실험
+- `04-convolution-filters.html`: 합성곱 계산, 출력 크기, 필터별 특징맵 실험
 
 `main` 브랜치의 `docs/` 변경은 GitHub Actions가 GitHub Pages에 자동 배포합니다.

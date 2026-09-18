@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="합성곱 필터가 이미지의 작은 영역을 읽어 특징맵을 만드는 과정을 실제 코드와 단계별 시각화로 이해하는 학습 자료">
+  <title>4장. 합성곱과 필터 · Backbone Lab</title>
+  <link rel="stylesheet" href="../assets/css/site.css?v=20260918h">
+  <script src="../assets/js/convolution-filters.js?v=20260918a" defer></script>
+</head>
+<body class="chapter-page">
+  <header class="site-header">
+    <a class="brand" href="../index.html" aria-label="Backbone Lab 홈">
+      <span class="brand-mark">KW</span>
+      <span><strong>인공지능 기초</strong><small><span lang="en">Backbone Lab</span> 학습 자료</small></span>
+    </a>
+    <div class="chapter-progress" aria-label="현재 과정">
+      <span>제2부 · CNN 원리</span><div><i style="width: 100%"></i></div><strong>4 / 4</strong>
+    </div>
+    <nav class="header-actions">
+      <a href="../index.html#curriculum">전체 목차</a>
+      <a class="button button-small" href="https://github.com/tember40/Backbone_tester_CNN_Transformer/blob/main/cifar10_lab/cnn_visualization.py">실제 코드</a>
+    </nav>
+  </header>
+
+  <div class="chapter-layout">
+    <aside class="chapter-sidebar" aria-label="단원 목차">
+      <p class="sidebar-label">제4장 · 합성곱과 필터</p>
+      <nav>
+        <a class="is-current" href="#overview"><span>4.0</span>학습 안내</a>
+        <a href="#paper"><span>4.1</span>역사적 배경</a>
+        <a href="#principles"><span>4.2</span>합성곱 원리</a>
+        <a href="#calculation"><span>4.3</span>필터 계산</a>
+        <a href="#geometry"><span>4.4</span>출력 크기</a>
+        <a href="#code"><span>4.5</span>구현과 코드</a>
+        <a href="#lab"><span>4.6</span>특징맵 실험</a>
+        <a href="#checkpoint"><span>4.7</span>연습문제</a>
+      </nav>
+    </aside>
+
+    <main class="chapter-content">
+      <article>
+        <header class="chapter-hero" id="overview">
+          <div class="chapter-kicker"><span>제2부</span><span>CNN 원리</span><span>선수 지식: 1~3장</span></div>
+          <h1><small>제4장</small>합성곱과 필터</h1>
+          <p class="chapter-lead">
+            사진의 모든 픽셀을 한꺼번에 연결하지 않고도 모서리와 무늬를 찾을 수 있을까요?
+            작은 필터가 이미지를 이동하며 같은 규칙을 반복 적용하는 과정을 숫자 하나씩 따라갑니다.
+          </p>
+          <div class="learning-objectives">
+            <h2>학습 목표</h2>
+            <ul>
+              <li>국소 연결과 가중치 공유가 필요한 이유를 설명할 수 있습니다.</li>
+              <li>이미지 패치와 필터의 원소별 곱을 계산할 수 있습니다.</li>
+              <li>커널 크기, 보폭, 패딩으로 출력 크기를 구할 수 있습니다.</li>
+              <li>서로 다른 필터가 만드는 특징맵을 비교할 수 있습니다.</li>
+            </ul>
+          </div>
+        </header>
+
+        <section class="lesson-section" id="paper">
+          <div class="section-number">4.1</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">역사적 배경</p>
+            <h2><span>4.1</span> 위치가 달라도 같은 특징은 같은 방법으로 찾는다</h2>
+          </div>
+          <div class="paper-card">
+            <div class="paper-meta"><span lang="en">Yann LeCun 외</span><span>1998</span><span lang="en">Proceedings of the IEEE 86(11)</span></div>
+            <h3 lang="en">Gradient-Based Learning Applied to Document Recognition</h3>
+            <p>손글씨처럼 위치와 모양이 조금씩 달라지는 2차원 패턴을 다루기 위해, 가까운 픽셀만 보는 연결과 여러 위치에서 공유하는 가중치를 사용했습니다. 이 구조는 이미지의 공간적 이웃 관계를 모델 안에 반영합니다.</p>
+            <a class="text-link" href="https://doi.org/10.1109/5.726791">원 논문 정보 보기 <span aria-hidden="true">↗</span></a>
+          </div>
+          <div class="three-column-summary">
+            <div><span>관찰</span><h3>가까운 픽셀은 함께 의미를 만든다</h3><p>선과 모서리는 서로 이웃한 픽셀 값의 변화로 나타납니다.</p></div>
+            <div><span>아이디어</span><h3>작은 필터를 반복 사용한다</h3><p>같은 숫자 묶음을 여러 위치에 적용해 같은 특징을 찾습니다.</p></div>
+            <div><span>결과</span><h3>위치를 보존한 특징맵을 얻는다</h3><p>어떤 특징이 어디에서 강하게 나타났는지 2차원 배열로 남깁니다.</p></div>
+          </div>
+          <aside class="callout callout-note">
+            <strong>용어를 구분해 읽기</strong>
+            <p>커널 또는 필터는 이동하는 작은 가중치 배열이고, 특징맵은 그 필터가 각 위치에서 계산한 결과 배열입니다.</p>
+          </aside>
+        </section>
+
+        <section class="lesson-section" id="principles">
+          <div class="section-number">4.2</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">핵심 원리</p>
+            <h2><span>4.2</span> 합성곱을 만드는 세 가지 생각</h2>
+            <p>합성곱층은 작은 영역을 보고, 같은 필터를 이동하며, 여러 필터의 응답을 채널로 쌓습니다.</p>
+          </div>
+          <ol class="conv-principles">
+            <li><span>01</span><div><strong>국소 연결</strong><p>한 출력 값은 입력 전체가 아니라 커널 크기만큼의 작은 영역만 봅니다.</p></div><small>무엇을 보는가</small></li>
+            <li><span>02</span><div><strong>가중치 공유</strong><p>하나의 필터를 모든 위치에서 재사용하므로 위치마다 별도 가중치를 둘 필요가 없습니다.</p></div><small>어떻게 반복하는가</small></li>
+            <li><span>03</span><div><strong>다중 필터</strong><p>서로 다른 필터가 세로선, 가로선, 질감처럼 서로 다른 특징맵을 만듭니다.</p></div><small>무엇을 남기는가</small></li>
+          </ol>
+          <div class="weight-sharing-strip" aria-label="필터가 이미지 위를 이동하는 흐름">
+            <div><span>입력 이미지</span><strong>5 × 5</strong><p>공간 구조를 유지한 픽셀</p></div>
+            <b aria-hidden="true">→</b>
+            <div><span>공유 필터</span><strong>3 × 3</strong><p>모든 위치에서 같은 9개 가중치</p></div>
+            <b aria-hidden="true">→</b>
+            <div><span>특징맵</span><strong>3 × 3</strong><p>각 위치의 특징 응답</p></div>
+          </div>
+          <aside class="callout">
+            <strong>정의 4.1 · 가중치 공유</strong>
+            <p>필터가 왼쪽 위에 있든 오른쪽 아래에 있든 같은 가중치를 사용하는 규칙입니다. 덕분에 모델은 같은 모양을 위치와 무관하게 탐지할 수 있고 파라미터 수도 줄어듭니다.</p>
+          </aside>
+        </section>
+
+        <section class="lesson-section" id="calculation">
+          <div class="section-number">4.3</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">예제 4.1 · 한 칸씩 계산하기</p>
+            <h2><span>4.3</span> 아홉 번 곱해 하나의 출력 값 만들기</h2>
+            <p>입력 무늬와 필터를 고른 뒤 계산 위치를 이동하세요. 강조된 3×3 패치와 필터를 원소별로 곱하고 모두 더한 값이 특징맵 한 칸이 됩니다.</p>
+          </div>
+          <div class="convolution-trace lab-panel">
+            <div class="conv-toolbar">
+              <div><p class="result-label">입력 무늬</p><div class="input-choice" id="convPatterns"><button type="button" data-pattern="vertical">세로 경계</button><button type="button" data-pattern="horizontal">가로 경계</button><button type="button" data-pattern="cross">십자선</button></div></div>
+              <label>필터<select id="convKernel"><option value="vertical">세로선 탐지</option><option value="horizontal">가로선 탐지</option><option value="blur">평균 흐림</option></select></label>
+            </div>
+            <div class="conv-stage">
+              <div class="matrix-panel"><span>입력 5×5</span><div class="number-grid image-grid" id="convImageGrid" aria-label="합성곱 입력 행렬"></div></div>
+              <b aria-hidden="true">×</b>
+              <div class="matrix-panel"><span>필터 3×3</span><div class="number-grid kernel-grid" id="convKernelGrid" aria-label="합성곱 필터"></div></div>
+              <b aria-hidden="true">=</b>
+              <div class="matrix-panel"><span>원소별 곱</span><div class="number-grid product-grid" id="convProductGrid" aria-label="입력 패치와 필터의 원소별 곱"></div></div>
+              <b aria-hidden="true">→</b>
+              <div class="matrix-panel"><span>특징맵 3×3</span><div class="number-grid output-grid" id="convOutputGrid" aria-label="합성곱 출력 특징맵"></div></div>
+            </div>
+            <div class="conv-step-control">
+              <label for="convStep">계산 위치 <output id="convStepValue">1 / 9</output></label>
+              <input id="convStep" type="range" min="0" max="8" value="0">
+              <button class="button button-secondary" id="convPlay" type="button">자동 진행</button>
+            </div>
+            <div class="conv-equation" id="convEquation" aria-live="polite"></div>
+          </div>
+          <aside class="callout callout-note">
+            <strong>수학의 합성곱과 딥러닝의 표기</strong>
+            <p>엄밀한 수학적 합성곱은 커널을 뒤집지만, PyTorch의 `Conv2d`를 비롯한 딥러닝 구현은 커널을 그대로 미는 상호상관을 계산합니다. 필터가 학습되기 때문에 실무에서는 이를 관례적으로 합성곱이라 부릅니다.</p>
+          </aside>
+          <aside class="callout callout-question">
+            <strong>먼저 예상해 보기</strong>
+            <p>세로 경계 입력에 세로선 탐지 필터를 적용하면 특징맵의 어느 열에서 큰 양수가 나타날까요? 입력과 필터의 방향을 바꾸어 확인해 보세요.</p>
+          </aside>
+        </section>
+
+        <section class="lesson-section" id="geometry">
+          <div class="section-number">4.4</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">공간 크기</p>
+            <h2><span>4.4</span> 필터가 몇 번 놓이는지 계산하는 법</h2>
+            <p>입력 크기 N, 커널 K, 패딩 P, 보폭 S가 정해지면 한 축의 출력 크기는 아래 식으로 결정됩니다.</p>
+          </div>
+          <div class="output-size-formula" aria-label="합성곱 출력 크기 공식">
+            <span>출력 크기</span><strong>⌊(N + 2P − K) / S⌋ + 1</strong>
+          </div>
+          <div class="shape-calculator lab-panel">
+            <div class="shape-controls">
+              <label>입력 크기 N<input id="shapeInput" type="range" min="5" max="64" value="32"><output id="shapeInputValue">32</output></label>
+              <label>커널 K<select id="shapeKernel"><option value="1">1</option><option value="3" selected>3</option><option value="5">5</option><option value="7">7</option></select></label>
+              <label>패딩 P<select id="shapePadding"><option value="0">0</option><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option></select></label>
+              <label>보폭 S<select id="shapeStride"><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option></select></label>
+            </div>
+            <div class="shape-result">
+              <div><span>입력</span><strong id="shapeInputLabel">32 × 32</strong></div><b aria-hidden="true">→</b><div><span>출력</span><strong id="shapeOutput">32 × 32</strong></div>
+              <p id="shapeSubstitution">⌊(32 + 2×1 − 3) / 1⌋ + 1 = 32</p>
+              <small id="shapeInterpretation">3×3 필터와 패딩 1, 보폭 1은 가로·세로 크기를 유지합니다.</small>
+            </div>
+          </div>
+          <div class="geometry-notes">
+            <div><span>패딩</span><strong>가장자리 밖에 값을 덧댐</strong><p>가장자리 픽셀도 중심 픽셀처럼 여러 번 계산에 참여하게 합니다.</p></div>
+            <div><span>보폭</span><strong>필터가 이동하는 간격</strong><p>보폭이 커지면 계산 위치와 출력 해상도가 함께 줄어듭니다.</p></div>
+          </div>
+        </section>
+
+        <section class="lesson-section" id="code">
+          <div class="section-number">4.5</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">구현</p>
+            <h2><span>4.5</span> 실제 Python 함수에서 이동 창 찾기</h2>
+            <p>프로젝트의 추적 함수는 각 위치의 패치, 원소별 곱, 합계를 모두 보존합니다. 앞의 시각화가 어떤 반복문으로 만들어지는지 줄별로 연결해 보세요.</p>
+          </div>
+          <div class="code-study">
+            <div class="code-window">
+              <div class="code-toolbar"><span>cifar10_lab/cnn_visualization.py · 핵심 부분 발췌</span><button class="copy-button" type="button" data-copy-target="convCode">코드 복사</button></div>
+              <pre id="convCode" class="line-code"><code><span data-line="1">def trace_single_channel_convolution(image, kernel, stride=1, padding=0):</span>
+<span data-line="2">    image_tensor = torch.as_tensor(image, dtype=torch.float32)</span>
+<span data-line="3">    kernel_tensor = torch.as_tensor(kernel, dtype=torch.float32)</span>
+<span data-line="4">    padded = functional.pad(</span>
+<span data-line="5">        image_tensor, (padding, padding, padding, padding)</span>
+<span data-line="6">    )</span>
+<span data-line="7">    kernel_height, kernel_width = kernel_tensor.shape</span>
+<span data-line="8">    output_height = (padded.shape[0] - kernel_height) // stride + 1</span>
+<span data-line="9">    output_width = (padded.shape[1] - kernel_width) // stride + 1</span>
+<span data-line="10">    output = torch.empty((output_height, output_width), dtype=torch.float32)</span>
+<span data-line="11">    steps = []</span>
+<span data-line="12">    for output_row in range(output_height):</span>
+<span data-line="13">        for output_column in range(output_width):</span>
+<span data-line="14">            image_row = output_row * stride</span>
+<span data-line="15">            image_column = output_column * stride</span>
+<span data-line="16">            patch = padded[</span>
+<span data-line="17">                image_row:image_row + kernel_height,</span>
+<span data-line="18">                image_column:image_column + kernel_width,</span>
+<span data-line="19">            ]</span>
+<span data-line="20">            products = patch * kernel_tensor</span>
+<span data-line="21">            value = products.sum()</span>
+<span data-line="22">            output[output_row, output_column] = value</span></code></pre>
+            </div>
+            <div class="code-notes" role="list" aria-label="코드 해설">
+              <button type="button" data-highlight="2-6"><span>① 입력과 패딩</span><strong>계산할 행렬 준비</strong><small>입력과 필터를 실수 텐서로 만들고 가장자리에 패딩을 추가합니다.</small></button>
+              <button type="button" data-highlight="7-10"><span>② 출력 크기</span><strong>필터를 놓을 수 있는 횟수</strong><small>앞 절의 출력 크기 공식을 가로와 세로에 각각 적용합니다.</small></button>
+              <button type="button" data-highlight="12-19"><span>③ 이동 창</span><strong>현재 3×3 패치 선택</strong><small>출력 좌표와 보폭으로 입력에서 읽을 시작 위치를 구합니다.</small></button>
+              <button type="button" data-highlight="20-22"><span>④ 곱하고 더하기</span><strong>특징맵 한 칸 기록</strong><small>패치와 필터를 원소별로 곱한 뒤 합계를 출력 좌표에 저장합니다.</small></button>
+            </div>
+          </div>
+          <aside class="callout callout-tip">
+            <strong>실제 모델에서는 어떻게 계산할까?</strong>
+            <p>`torch.nn.Conv2d`가 여러 입력 채널과 여러 필터를 한 번에 효율적으로 계산합니다. 이 함수는 같은 원리를 한 채널씩 펼쳐 보여 주기 위한 학습용 구현입니다.</p>
+          </aside>
+        </section>
+
+        <section class="lesson-section" id="lab">
+          <div class="section-number">4.6</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">실습 4.1 · 필터 비교</p>
+            <h2><span>4.6</span> 하나의 입력에서 서로 다른 특징맵 꺼내기</h2>
+            <p>같은 입력을 네 필터에 통과시켜 보세요. 밝은 영역은 해당 필터가 찾는 변화가 강한 위치이고, 어두운 영역은 반대 방향 또는 약한 응답입니다.</p>
+          </div>
+          <div class="filter-gallery lab-panel">
+            <div class="training-toolbar">
+              <label>입력 무늬<select id="galleryPattern"><option value="vertical">세로 막대</option><option value="horizontal">가로 막대</option><option value="cross" selected>십자</option><option value="diagonal">대각선</option><option value="box">사각형</option></select></label>
+              <p id="galleryObservation">십자의 세로 부분과 가로 부분이 서로 다른 필터에서 강조됩니다.</p>
+            </div>
+            <div class="filter-gallery-grid">
+              <figure class="input-feature"><figcaption><strong>입력</strong><span>16 × 16</span></figcaption><canvas id="galleryInput" width="256" height="256" aria-label="선택한 입력 무늬"></canvas></figure>
+              <figure><figcaption><strong>세로선 필터</strong><span>왼쪽↔오른쪽 변화</span></figcaption><canvas data-filter="vertical" width="256" height="256" aria-label="세로선 특징맵"></canvas></figure>
+              <figure><figcaption><strong>가로선 필터</strong><span>위↕아래 변화</span></figcaption><canvas data-filter="horizontal" width="256" height="256" aria-label="가로선 특징맵"></canvas></figure>
+              <figure><figcaption><strong>흐림 필터</strong><span>주변 평균</span></figcaption><canvas data-filter="blur" width="256" height="256" aria-label="평균 흐림 특징맵"></canvas></figure>
+              <figure><figcaption><strong>선명화 필터</strong><span>중심과 주변 차이</span></figcaption><canvas data-filter="sharpen" width="256" height="256" aria-label="선명화 특징맵"></canvas></figure>
+            </div>
+          </div>
+          <aside class="callout callout-question">
+            <strong>관찰할 값</strong>
+            <p>입력에 없는 특징을 필터가 새로 만드는 것은 아닙니다. 같은 픽셀 배열을 서로 다른 기준으로 비교해 특정 방향의 변화나 주변 평균을 두드러지게 표현합니다.</p>
+          </aside>
+        </section>
+
+        <section class="lesson-section" id="checkpoint">
+          <div class="section-number">4.7</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">정리와 연습문제</p>
+            <h2><span>4.7</span> 패치, 필터, 특징맵을 하나의 계산으로 연결하기</h2>
+          </div>
+          <div class="chapter-summary-box">
+            <h3>4장 핵심 정리</h3>
+            <ul>
+              <li>합성곱은 작은 필터를 입력의 여러 위치에 반복 적용합니다.</li>
+              <li>한 출력 값은 입력 패치와 필터의 원소별 곱을 모두 더해 만듭니다.</li>
+              <li>패딩은 가장자리를 보완하고, 보폭은 필터의 이동 간격을 정합니다.</li>
+              <li>여러 필터는 같은 입력에서 서로 다른 특징맵 채널을 만듭니다.</li>
+            </ul>
+          </div>
+          <dl class="key-terms">
+            <div><dt>커널·필터</dt><dd>이미지 위를 이동하며 특징을 검사하는 작은 가중치 배열</dd></div>
+            <div><dt>특징맵</dt><dd>필터가 각 위치에서 계산한 응답을 모은 배열</dd></div>
+            <div><dt>가중치 공유</dt><dd>모든 위치에서 같은 필터 가중치를 재사용하는 규칙</dd></div>
+          </dl>
+          <div class="quiz-list chapter-quiz-spacing">
+            <fieldset class="quiz" data-answer="b"><legend><span>Q1</span>특징맵의 한 값은 어떻게 계산할까요?</legend><label><input type="radio" name="q1" value="a"> 이미지 전체 픽셀을 단순히 더합니다.</label><label><input type="radio" name="q1" value="b"> 입력 패치와 필터를 원소별로 곱한 뒤 더합니다.</label><label><input type="radio" name="q1" value="c"> 가장 큰 픽셀 하나만 선택합니다.</label><p class="quiz-feedback"></p></fieldset>
+            <fieldset class="quiz" data-answer="c"><legend><span>Q2</span>가중치 공유의 의미는?</legend><label><input type="radio" name="q2" value="a"> 모든 필터 값을 같은 숫자로 만듭니다.</label><label><input type="radio" name="q2" value="b"> 이미지의 모든 픽셀 값을 같게 만듭니다.</label><label><input type="radio" name="q2" value="c"> 같은 필터를 입력의 여러 위치에서 재사용합니다.</label><p class="quiz-feedback"></p></fieldset>
+            <fieldset class="quiz" data-answer="a"><legend><span>Q3</span>N=32, K=3, P=1, S=1일 때 출력 크기는?</legend><label><input type="radio" name="q3" value="a"> 32 × 32</label><label><input type="radio" name="q3" value="b"> 30 × 30</label><label><input type="radio" name="q3" value="c"> 34 × 34</label><p class="quiz-feedback"></p></fieldset>
+            <button class="button" id="checkQuiz" type="button">정답 확인</button>
+            <p class="quiz-score" id="quizScore" aria-live="polite"></p>
+          </div>
+        </section>
+
+        <section class="local-run-card">
+          <div><p class="eyebrow">노트북 실습</p><h2>실제 AlexNet 특징맵으로 이어가기</h2><p>프로젝트의 CIFAR-10 이미지로 특징맵, pooling, 수용영역을 층별로 확인할 수 있습니다.</p></div>
+          <div class="command-block"><code>.\.venv\Scripts\python.exe -m jupyter lab cnn_internals.ipynb</code><button class="copy-button" type="button" data-copy-text=".\.venv\Scripts\python.exe -m jupyter lab cnn_internals.ipynb">복사</button></div>
+        </section>
+
+        <nav class="chapter-pagination" aria-label="단원 이동">
+          <a href="03-multilayer-perceptron.html"><small>이전</small><strong>3장 · 다층 퍼셉트론</strong></a>
+          <span class="disabled"><small>다음</small><strong>5장 · 특징맵과 활성화</strong></span>
+        </nav>
+      </article>
+    </main>
+  </div>
+
+  <footer class="site-footer"><span>Backbone Lab · 실제 코드로 배우는 인공지능 기초</span><a href="https://github.com/tember40/Backbone_tester_CNN_Transformer">GitHub에서 보기</a></footer>
+</body>
+</html>

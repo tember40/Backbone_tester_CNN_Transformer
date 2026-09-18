@@ -124,6 +124,14 @@ class StaticSiteTests(unittest.TestCase):
         )
         self.assertIn("target.hash = window.location.hash", third_chapter_entry)
 
+        fourth_chapter_entry = (
+            ROOT / "chapters" / "04-convolution-filters.html"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "../docs/chapters/04-convolution-filters.html", fourth_chapter_entry
+        )
+        self.assertIn("target.hash = window.location.hash", fourth_chapter_entry)
+
     def test_linear_separability_page_contains_the_lesson_contract(self):
         page = DOCS / "chapters" / "02-linear-separability.html"
         source = page.read_text(encoding="utf-8")
@@ -200,6 +208,34 @@ class StaticSiteTests(unittest.TestCase):
         monoline = DOCS / "assets" / "img" / "kw-monoline.svg"
         self.assertTrue(monoline.exists())
         self.assertIn("#C6BFAA", monoline.read_text(encoding="utf-8"))
+
+    def test_convolution_page_contains_the_lesson_contract(self):
+        page = DOCS / "chapters" / "04-convolution-filters.html"
+        source = page.read_text(encoding="utf-8")
+        for section_id in (
+            "overview",
+            "paper",
+            "principles",
+            "calculation",
+            "geometry",
+            "code",
+            "lab",
+            "checkpoint",
+        ):
+            self.assertIn(f'id="{section_id}"', source)
+
+        implementation = (
+            ROOT / "cifar10_lab" / "cnn_visualization.py"
+        ).read_text(encoding="utf-8")
+        for code_line in (
+            "image_row = output_row * stride",
+            "image_column = output_column * stride",
+            "products = patch * kernel_tensor",
+            "value = products.sum()",
+            "output[output_row, output_column] = value",
+        ):
+            self.assertIn(code_line, implementation)
+            self.assertIn(code_line, source)
 
     def test_chapter_navigation_stays_visible_and_layout_is_balanced(self):
         stylesheet = (DOCS / "assets" / "css" / "site.css").read_text(

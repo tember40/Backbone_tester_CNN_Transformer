@@ -10,6 +10,52 @@ import torch.nn.functional as functional
 from .data import CIFAR10_MEAN, CIFAR10_STD
 
 
+def trace_single_channel_convolution(image, kernel, stride=1, padding=0):
+    """Apply one 2D filter and retain every patch and element-wise product."""
+    image_tensor = torch.as_tensor(image, dtype=torch.float32)
+    kernel_tensor = torch.as_tensor(kernel, dtype=torch.float32)
+    if image_tensor.ndim != 2 or kernel_tensor.ndim != 2:
+        raise ValueError("image and kernel must both be two-dimensional.")
+    if stride < 1:
+        raise ValueError("stride must be at least 1.")
+    if padding < 0:
+        raise ValueError("padding cannot be negative.")
+
+    padded = functional.pad(
+        image_tensor,
+        (padding, padding, padding, padding),
+    )
+    kernel_height, kernel_width = kernel_tensor.shape
+    output_height = (padded.shape[0] - kernel_height) // stride + 1
+    output_width = (padded.shape[1] - kernel_width) // stride + 1
+    if output_height < 1 or output_width < 1:
+        raise ValueError("kernel cannot be larger than the padded image.")
+
+    output = torch.empty((output_height, output_width), dtype=torch.float32)
+    steps = []
+    for output_row in range(output_height):
+        for output_column in range(output_width):
+            image_row = output_row * stride
+            image_column = output_column * stride
+            patch = padded[
+                image_row : image_row + kernel_height,
+                image_column : image_column + kernel_width,
+            ]
+            products = patch * kernel_tensor
+            value = products.sum()
+            output[output_row, output_column] = value
+            steps.append(
+                {
+                    "output_position": (output_row, output_column),
+                    "image_position": (image_row, image_column),
+                    "patch": patch.clone(),
+                    "products": products.clone(),
+                    "sum": float(value.item()),
+                }
+            )
+    return output, steps
+
+
 def collect_feature_maps(model, image, max_layers=6):
     """Capture early Conv2d and pooling outputs from one forward pass."""
     records = []
