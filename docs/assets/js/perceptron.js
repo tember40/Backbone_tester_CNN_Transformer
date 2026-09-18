@@ -278,13 +278,13 @@
     for (let y = margin; y < height - margin; y += 8) {
       for (let x = margin; x < width - margin; x += 8) {
         const prediction = predict([fromX(x), fromY(y)]);
-        context.fillStyle = prediction ? "rgba(35,133,109,.075)" : "rgba(193,70,79,.055)";
+        context.fillStyle = prediction ? "rgba(57,115,95,.075)" : "rgba(124,25,45,.055)";
         context.fillRect(x, y, 8, 8);
       }
     }
     context.restore();
 
-    context.strokeStyle = "#dce2e7";
+    context.strokeStyle = "#dfdbd0";
     context.lineWidth = 1;
     [0, 0.5, 1].forEach((tick) => {
       context.beginPath(); context.moveTo(toX(tick), margin); context.lineTo(toX(tick), height - margin); context.stroke();
@@ -292,7 +292,7 @@
     });
 
     const [w1, w2] = weights;
-    context.strokeStyle = "#172f49";
+    context.strokeStyle = "#7c192d";
     context.lineWidth = 4;
     context.beginPath();
     if (Math.abs(w2) > 1e-9) {
@@ -318,24 +318,24 @@
       const correct = predict(sample) === targets[index];
       context.beginPath();
       context.arc(x, y, index === currentSample ? 15 : 12, 0, Math.PI * 2);
-      context.fillStyle = targets[index] ? "#23856d" : "#c1464f";
+      context.fillStyle = targets[index] ? "#39735f" : "#7c192d";
       context.fill();
       context.lineWidth = index === currentSample ? 5 : 3;
-      context.strokeStyle = correct ? "#ffffff" : "#f0a13e";
+      context.strokeStyle = correct ? "#ffffff" : "#fbae40";
       context.stroke();
-      context.fillStyle = "#172033";
+      context.fillStyle = "#2b2524";
       context.font = "bold 15px Segoe UI";
       context.textAlign = "center";
       context.fillText(`(${sample.join(",")})`, x, y - 21);
     });
 
-    context.fillStyle = "#667085";
+    context.fillStyle = "#6f625f";
     context.font = "12px Segoe UI";
     context.textAlign = "center";
     [0, 0.5, 1].forEach((tick) => context.fillText(tick.toFixed(1), toX(tick), height - margin + 25));
     context.textAlign = "right";
     [0, 0.5, 1].forEach((tick) => context.fillText(tick.toFixed(1), margin - 12, toY(tick) + 4));
-    context.fillStyle = "#172033";
+    context.fillStyle = "#2b2524";
     context.font = "bold 13px Segoe UI";
     context.textAlign = "right";
     context.fillText("x₁", width - margin, height - 17);

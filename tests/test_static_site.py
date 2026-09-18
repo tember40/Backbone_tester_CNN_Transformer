@@ -113,6 +113,17 @@ class StaticSiteTests(unittest.TestCase):
         ):
             self.assertIn(component, source)
 
+    def test_kwangwoon_visual_tokens_and_background_exist(self):
+        stylesheet = (DOCS / "assets" / "css" / "site.css").read_text(
+            encoding="utf-8"
+        )
+        for color in ("#7c192d", "#f7f6f3", "#fbf4ef", "#c6bfaa", "#fbae40"):
+            self.assertIn(color, stylesheet.lower())
+
+        monoline = DOCS / "assets" / "img" / "kw-monoline.svg"
+        self.assertTrue(monoline.exists())
+        self.assertIn("#C6BFAA", monoline.read_text(encoding="utf-8"))
+
 
 if __name__ == "__main__":
     unittest.main()
