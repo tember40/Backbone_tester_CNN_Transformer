@@ -2,6 +2,26 @@
 
 이 프로젝트는 CIFAR-10 데이터셋을 활용하여 퍼셉트론과 MLP의 기초부터 AlexNet, 현대 CNN, Vision Transformer까지 직접 실행·비교하는 교육용 이미지 분류 프레임워크입니다.
 
+## 웹 교재
+
+[웹 교재 바로가기](https://tember40.github.io/Backbone_tester_CNN_Transformer/)에서 설치 없이 개념 설명, 실제 프로젝트 코드, 단계별 계산, 결정경계 시각화와 확인 문제를 사용할 수 있습니다.
+
+현재 공개된 1장 **퍼셉트론**은 이후 단원의 기준 형식입니다. 논문이 제기한 문제부터 코드 한 줄씩의 의미, AND·OR·NAND·XOR 학습 실험, 모델의 한계까지 한 흐름으로 구성했습니다. 웹 실험은 브라우저에서 가볍게 실행하고, 실제 PyTorch 실습은 노트북으로 이어집니다.
+
+저장소를 내려받은 뒤 웹 교재를 로컬에서 확인하려면 별도 패키지 설치 없이 다음 명령만 실행합니다.
+
+```powershell
+# Windows PowerShell
+py -3 -m http.server 8000 --directory docs
+```
+
+```bash
+# macOS / Linux
+python3 -m http.server 8000 --directory docs
+```
+
+브라우저에서 `http://localhost:8000`을 열면 됩니다. `main` 브랜치의 `docs/` 변경 사항은 GitHub Pages 배포 작업을 통해 자동으로 반영됩니다.
+
 ## 프로젝트 구조
 
 ```
@@ -30,6 +50,7 @@ classification
  ├── foundations.ipynb  # 퍼셉트론→MLP→AlexNet 교과서형 실습
  ├── cnn_internals.ipynb # AlexNet 특징맵·pooling·수용영역 실습
  ├── main.ipynb         # 메인 실행 노트북
+ ├── docs/               # 설치 없이 사용하는 정적 웹 교재
  ├── bootstrap.py       # 가상환경·의존성·데이터셋 자동 준비
  ├── pyproject.toml     # 패키지와 의존성 정의
  └── utils.py           # 이전 노트북 호환용 import 모듈
@@ -38,7 +59,7 @@ classification
 ## 지원되는 백본 모델
 
 ### 신경망 기초
-*   단층 퍼셉트론 (`perceptron`): 펼 픽셀에 하나의 선형 변환을 적용하는 기준선
+*   단층 퍼셉트론 (`perceptron`): 모든 픽셀에 하나의 선형 변환을 적용하는 기준선
 *   다층 퍼셉트론 (`mlp`, `mlp_deep`): 은닉층과 ReLU로 비선형 표현을 학습하는 기준선
 
 ### CNN 계열

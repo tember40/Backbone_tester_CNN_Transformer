@@ -1,0 +1,26 @@
+# Backbone Lab 웹 교재
+
+이 폴더는 별도 Python 서버 없이 동작하는 정적 웹 교재입니다.
+
+## 로컬 미리보기
+
+저장소 루트에서 다음 명령을 실행합니다.
+
+```powershell
+.\.venv\Scripts\python.exe -m http.server 8000 --directory docs
+```
+
+브라우저에서 `http://localhost:8000`을 엽니다. 단순히 HTML 파일을 직접 열 수도 있지만,
+브라우저 보안 정책과 실제 GitHub Pages 경로를 동일하게 확인하려면 로컬 서버 사용을 권장합니다.
+
+## 구조
+
+```text
+docs/
+├── index.html                  # 교재 홈과 전체 목차
+├── chapters/                   # 장별 교재 페이지
+├── assets/css/site.css         # 모든 장이 공유하는 디자인
+└── assets/js/                  # 서버 없이 실행되는 장별 실험
+```
+
+`main` 브랜치의 `docs/` 변경은 GitHub Actions가 GitHub Pages에 자동 배포합니다.

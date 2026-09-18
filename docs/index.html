@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="퍼셉트론에서 ConvNeXt까지, 실제 코드와 실험으로 배우는 인공지능 기초 교재">
+  <title>Backbone Lab · 인공지능 기초</title>
+  <link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body class="landing-page">
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-label="Backbone Lab 홈">
+      <span class="brand-mark">BL</span>
+      <span><strong>Backbone Lab</strong><small>AI Fundamentals</small></span>
+    </a>
+    <nav class="header-actions" aria-label="주요 메뉴">
+      <a href="#curriculum">학습 목차</a>
+      <a href="https://github.com/tember40/Backbone_tester_CNN_Transformer#빠른-시작">설치 안내</a>
+      <a class="button button-small" href="https://github.com/tember40/Backbone_tester_CNN_Transformer">GitHub</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="landing-hero">
+      <div class="hero-copy">
+        <p class="eyebrow">코드로 읽는 인공지능 발전사</p>
+        <h1>하나의 뉴런에서<br><span>ConvNeXt</span>까지</h1>
+        <p class="hero-summary">
+          수식만 외우지 않습니다. 실제 프로젝트 코드가 어떤 계산을 수행하는지 읽고,
+          값을 바꾸고, 결과가 움직이는 과정을 직접 확인합니다.
+        </p>
+        <div class="hero-actions">
+          <a class="button" href="chapters/01-perceptron.html">1장 퍼셉트론 시작하기</a>
+          <a class="text-link" href="#learning-method">학습 방법 보기 <span aria-hidden="true">→</span></a>
+        </div>
+        <dl class="hero-stats" aria-label="교재 구성">
+          <div><dt>49</dt><dd>등록 모델</dd></div>
+          <div><dt>11</dt><dd>모델 계열</dd></div>
+          <div><dt>26</dt><dd>예정 단원</dd></div>
+        </dl>
+      </div>
+      <div class="hero-visual" aria-label="인공지능 모델 발전 흐름">
+        <div class="timeline-card is-active">
+          <span>1958</span><strong>Perceptron</strong><small>하나의 선형 경계</small>
+        </div>
+        <div class="timeline-connector"></div>
+        <div class="timeline-card"><span>1980s</span><strong>MLP</strong><small>비선형 표현</small></div>
+        <div class="timeline-connector"></div>
+        <div class="timeline-card"><span>2012</span><strong>AlexNet</strong><small>깊은 CNN의 도약</small></div>
+        <div class="timeline-connector"></div>
+        <div class="timeline-card"><span>2022</span><strong>ConvNeXt</strong><small>현대화된 CNN</small></div>
+      </div>
+    </section>
+
+    <section class="method-section" id="learning-method">
+      <div class="section-heading">
+        <p class="eyebrow">HOW TO LEARN</p>
+        <h2>모든 장은 같은 순서로 학습합니다</h2>
+        <p>새로운 모델이 등장한 이유부터 실제 코드와 실험 결과까지 한 흐름으로 연결합니다.</p>
+      </div>
+      <ol class="method-grid">
+        <li><span>01</span><strong>문제 발견</strong><p>이전 모델이 해결하지 못한 문제를 확인합니다.</p></li>
+        <li><span>02</span><strong>논문 아이디어</strong><p>핵심 기여를 쉬운 그림과 짧은 수식으로 정리합니다.</p></li>
+        <li><span>03</span><strong>실제 코드</strong><p>프로젝트에서 실행되는 코드와 줄별 해설을 읽습니다.</p></li>
+        <li><span>04</span><strong>직접 실험</strong><p>값을 바꾸며 중간 계산과 결과 변화를 관찰합니다.</p></li>
+        <li><span>05</span><strong>결과 해석</strong><p>정확도 하나가 아니라 그래프와 실패 사례를 읽습니다.</p></li>
+      </ol>
+    </section>
+
+    <section class="curriculum-section" id="curriculum">
+      <div class="section-heading">
+        <p class="eyebrow">CURRICULUM</p>
+        <h2>전체 학습 목차</h2>
+      </div>
+      <div class="curriculum-grid">
+        <article class="curriculum-card available">
+          <p>PART 01 · 기초</p>
+          <h3>퍼셉트론과 MLP</h3>
+          <ul>
+            <li><a href="chapters/01-perceptron.html"><strong>1장. 퍼셉트론</strong><span>학습 가능</span></a></li>
+            <li>2장. 선형 분리와 XOR</li>
+            <li>3장. 다층 퍼셉트론</li>
+          </ul>
+        </article>
+        <article class="curriculum-card">
+          <p>PART 02 · CNN 원리</p>
+          <h3>이미지의 공간 구조</h3>
+          <ul><li>합성곱과 필터</li><li>특징맵과 활성화</li><li>Pooling과 수용영역</li></ul>
+        </article>
+        <article class="curriculum-card">
+          <p>PART 03 · 고전 CNN</p>
+          <h3>깊이의 시대</h3>
+          <ul><li>AlexNet</li><li>VGG</li><li>ResNet과 확장 모델</li></ul>
+        </article>
+        <article class="curriculum-card">
+          <p>PART 04 · 효율</p>
+          <h3>작고 빠른 CNN</h3>
+          <ul><li>SENet</li><li>MobileNetV2</li><li>EfficientNet</li></ul>
+        </article>
+        <article class="curriculum-card">
+          <p>PART 05 · Transformer</p>
+          <h3>이미지를 토큰으로</h3>
+          <ul><li>Attention 기초</li><li>Vision Transformer</li><li>PVT</li></ul>
+        </article>
+        <article class="curriculum-card">
+          <p>PART 06 · 현대 CNN</p>
+          <h3>ConvNeXt와 종합 비교</h3>
+          <ul><li>ConvNeXt</li><li>CNN과 Transformer</li><li>백본 선택과 실패 분석</li></ul>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Backbone Lab · 실제 코드로 배우는 인공지능 기초</p>
+    <a href="https://github.com/tember40/Backbone_tester_CNN_Transformer">소스 코드 보기</a>
+  </footer>
+</body>
+</html>

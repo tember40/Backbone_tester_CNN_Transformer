@@ -1,0 +1,102 @@
+import unittest
+from html.parser import HTMLParser
+from pathlib import Path
+from urllib.parse import unquote, urlparse
+
+
+ROOT = Path(__file__).resolve().parents[1]
+DOCS = ROOT / "docs"
+
+
+class PageParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.ids = set()
+        self.links = []
+        self.scripts = []
+        self.stylesheets = []
+
+    def handle_starttag(self, tag, attrs):
+        attributes = dict(attrs)
+        if attributes.get("id"):
+            self.ids.add(attributes["id"])
+        if tag == "a" and attributes.get("href"):
+            self.links.append(attributes["href"])
+        if tag == "script" and attributes.get("src"):
+            self.scripts.append(attributes["src"])
+        if (
+            tag == "link"
+            and attributes.get("rel") == "stylesheet"
+            and attributes.get("href")
+        ):
+            self.stylesheets.append(attributes["href"])
+
+
+def parse_page(path):
+    parser = PageParser()
+    parser.feed(path.read_text(encoding="utf-8"))
+    return parser
+
+
+def local_target(page, reference):
+    parsed = urlparse(reference)
+    if parsed.scheme or parsed.netloc or reference.startswith("mailto:"):
+        return None
+    if not parsed.path:
+        return page
+    return (page.parent / unquote(parsed.path)).resolve()
+
+
+class StaticSiteTests(unittest.TestCase):
+    def test_internal_links_and_assets_exist(self):
+        html_pages = sorted(DOCS.rglob("*.html"))
+        self.assertGreaterEqual(len(html_pages), 2)
+
+        for page in html_pages:
+            parser = parse_page(page)
+            references = parser.links + parser.scripts + parser.stylesheets
+            for reference in references:
+                target = local_target(page, reference)
+                if target is None:
+                    continue
+                self.assertTrue(target.exists(), f"{page}: missing {reference}")
+
+                fragment = urlparse(reference).fragment
+                if fragment and target.suffix == ".html":
+                    self.assertIn(
+                        fragment,
+                        parse_page(target).ids,
+                        f"{page}: missing fragment {reference}",
+                    )
+
+    def test_perceptron_page_contains_the_lesson_contract(self):
+        page = DOCS / "chapters" / "01-perceptron.html"
+        source = page.read_text(encoding="utf-8")
+        for section_id in (
+            "overview",
+            "paper",
+            "anatomy",
+            "calculator",
+            "code",
+            "learning",
+            "limits",
+            "checkpoint",
+        ):
+            self.assertIn(f'id="{section_id}"', source)
+
+        implementation = (ROOT / "cifar10_lab" / "foundations.py").read_text(
+            encoding="utf-8"
+        )
+        for code_line in (
+            "return features @ self.weights + self.bias",
+            "error = target_value - prediction",
+            "self.weights += self.learning_rate * error * sample",
+            "self.bias += self.learning_rate * error",
+            "return self.history",
+        ):
+            self.assertIn(code_line, implementation)
+            self.assertIn(code_line, source)
+
+
+if __name__ == "__main__":
+    unittest.main()
