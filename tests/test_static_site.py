@@ -175,6 +175,15 @@ class StaticSiteTests(unittest.TestCase):
             "grid-template-columns: var(--sidebar) minmax(0, 1fr) var(--sidebar)",
             stylesheet,
         )
+        self.assertIn(
+            ".chapter-page .site-footer { width: calc(100% - (var(--sidebar) * 2)); margin-left: var(--sidebar); }",
+            stylesheet,
+        )
+
+        for page in (DOCS / "chapters").glob("*.html"):
+            source = page.read_text(encoding="utf-8")
+            self.assertNotIn("sidebar-note", source, str(page))
+            self.assertNotIn("이 장의 분량", source, str(page))
 
     def test_user_facing_pages_avoid_book_authorship_wording(self):
         for page in DOCS.rglob("*.html"):

@@ -150,11 +150,6 @@ code, pre { font-family: var(--mono); }
 .chapter-sidebar nav a span { color: #9099a4; font-family: var(--serif); }
 .chapter-sidebar nav a:hover, .chapter-sidebar nav a.is-current { transform: translateX(3px); border-left-color: var(--blue); background: #f3e4e1; color: var(--blue-dark); font-weight: 700; }
 .chapter-sidebar nav a.is-current span { color: var(--blue); }
-.sidebar-note { margin-top: 34px; padding: 14px 0 0; border: 0; border-top: 1px solid var(--line-dark); background: transparent; }
-.sidebar-note strong, .sidebar-note span, .sidebar-note small { display: block; }
-.sidebar-note strong { color: var(--muted); font-size: 16.25px; }
-.sidebar-note span { margin-top: 2px; font-family: var(--serif); font-size: 24.7px; }
-.sidebar-note small { margin-top: 3px; color: var(--faint); font-size: 16.25px; }
 .chapter-content { grid-column: 2; min-width: 0; padding: 0 clamp(30px, 3vw, 58px) 90px; background: #fff; }
 .chapter-content article { max-width: var(--content); margin: 0 auto; }
 .chapter-hero { position: relative; isolation: isolate; padding: 72px 0 58px; border-bottom: 2px solid var(--ink); }
@@ -401,6 +396,7 @@ code, pre { font-family: var(--mono); }
 .chapter-pagination .disabled { opacity: .45; text-align: right; }
 .site-footer { min-height: 80px; padding: 25px clamp(20px, 5vw, 65px); display: flex; justify-content: space-between; align-items: center; border-top: 3px solid var(--kw-brown); background: var(--kw-brown-deep); color: #eadedb; font-size: 16.9px; }
 .site-footer a { color: #fff; font-weight: 700; }
+.chapter-page .site-footer { width: calc(100% - (var(--sidebar) * 2)); margin-left: var(--sidebar); }
 
 @media (max-width: 1040px) {
   .chapter-layout { grid-template-columns: 1fr; }
@@ -410,6 +406,7 @@ code, pre { font-family: var(--mono); }
   .section-number { display: none; }
   .code-study { grid-template-columns: 1fr; }
   .code-notes { grid-template-columns: repeat(2, 1fr); border-left: 1px solid var(--line); }
+  .chapter-page .site-footer { width: 100%; margin-left: 0; }
 }
 @media (max-width: 820px) {
   .landing-hero { grid-template-columns: 1fr; padding-top: 58px; }
