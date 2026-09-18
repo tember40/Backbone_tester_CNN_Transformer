@@ -97,6 +97,22 @@ class StaticSiteTests(unittest.TestCase):
             self.assertIn(code_line, implementation)
             self.assertIn(code_line, source)
 
+    def test_repository_page_redirects_to_textbook(self):
+        entry = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn('content="0; url=docs/"', entry)
+        self.assertIn('window.location.replace("docs/"', entry)
+
+    def test_reusable_chapter_template_exists(self):
+        template = DOCS / "templates" / "chapter-template.html"
+        source = template.read_text(encoding="utf-8")
+        for component in (
+            "learning-objectives",
+            "equation-card",
+            "callout-question",
+            "chapter-summary-box",
+        ):
+            self.assertIn(component, source)
+
 
 if __name__ == "__main__":
     unittest.main()

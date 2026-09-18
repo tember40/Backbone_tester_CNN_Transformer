@@ -19,8 +19,11 @@
 docs/
 ├── index.html                  # 교재 홈과 전체 목차
 ├── chapters/                   # 장별 교재 페이지
+├── templates/chapter-template.html # 새 단원 작성용 전공 교재 템플릿
 ├── assets/css/site.css         # 모든 장이 공유하는 디자인
 └── assets/js/                  # 서버 없이 실행되는 장별 실험
 ```
+
+새 장은 `templates/chapter-template.html`을 복사하고 `STYLE_GUIDE.md`의 구성 원칙에 맞춰 작성합니다.
 
 `main` 브랜치의 `docs/` 변경은 GitHub Actions가 GitHub Pages에 자동 배포합니다.
