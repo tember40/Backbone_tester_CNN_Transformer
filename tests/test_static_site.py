@@ -102,6 +102,12 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('content="0; url=docs/"', entry)
         self.assertIn('window.location.replace("docs/"', entry)
 
+        chapter_entry = (ROOT / "chapters" / "01-perceptron.html").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("../docs/chapters/01-perceptron.html", chapter_entry)
+        self.assertIn("target.hash = window.location.hash", chapter_entry)
+
     def test_reusable_chapter_template_exists(self):
         template = DOCS / "templates" / "chapter-template.html"
         source = template.read_text(encoding="utf-8")
