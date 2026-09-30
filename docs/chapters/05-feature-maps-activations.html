@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="CNN 특징맵의 채널 구조와 ReLU 활성화 전후 변화를 실제 코드와 대화형 시각화로 이해하는 학습 자료">
+  <title>5장. 특징맵과 활성화 · Backbone Lab</title>
+  <link rel="stylesheet" href="../assets/css/site.css?v=20260919a">
+  <script src="../assets/js/feature-maps-activations.js?v=20260919a" defer></script>
+</head>
+<body class="chapter-page">
+  <header class="site-header">
+    <a class="brand" href="../index.html" aria-label="Backbone Lab 홈">
+      <span class="brand-mark">KW</span>
+      <span><strong>인공지능 기초</strong><small><span lang="en">Backbone Lab</span> 학습 자료</small></span>
+    </a>
+    <div class="chapter-progress" aria-label="현재 과정">
+      <span>제2부 · CNN 원리</span><div><i style="width: 100%"></i></div><strong>5 / 5</strong>
+    </div>
+    <nav class="header-actions">
+      <a href="../index.html#curriculum">전체 목차</a>
+      <a class="button button-small" href="https://github.com/tember40/Backbone_tester_CNN_Transformer/blob/main/cifar10_lab/cnn_visualization.py">실제 코드</a>
+    </nav>
+  </header>
+
+  <div class="chapter-layout">
+    <aside class="chapter-sidebar" aria-label="단원 목차">
+      <p class="sidebar-label">제5장 · 특징맵과 활성화</p>
+      <nav>
+        <a class="is-current" href="#overview"><span>5.0</span>학습 안내</a>
+        <a href="#paper"><span>5.1</span>시각화의 의미</a>
+        <a href="#tensor"><span>5.2</span>텐서 차원</a>
+        <a href="#channels"><span>5.3</span>채널과 특징맵</a>
+        <a href="#activation"><span>5.4</span>활성화 함수</a>
+        <a href="#code"><span>5.5</span>구현과 코드</a>
+        <a href="#lab"><span>5.6</span>채널 탐색</a>
+        <a href="#checkpoint"><span>5.7</span>연습문제</a>
+      </nav>
+    </aside>
+
+    <main class="chapter-content">
+      <article>
+        <header class="chapter-hero" id="overview">
+          <div class="chapter-kicker"><span>제2부</span><span>CNN 원리</span><span>선수 지식: 4장</span></div>
+          <h1><small>제5장</small>특징맵과 활성화</h1>
+          <p class="chapter-lead">
+            필터가 만든 숫자 배열은 다음 층에서 어떻게 사용될까요?
+            여러 특징맵이 채널로 쌓이고, 활성화 함수가 남길 신호를 선택하는 과정을 내부 값으로 확인합니다.
+          </p>
+          <div class="learning-objectives">
+            <h2>학습 목표</h2>
+            <ul>
+              <li>CNN 텐서의 N, C, H, W 차원을 읽을 수 있습니다.</li>
+              <li>필터 수와 출력 특징맵 채널 수의 관계를 설명할 수 있습니다.</li>
+              <li>ReLU 적용 전후의 값과 0의 비율을 비교할 수 있습니다.</li>
+              <li>코드로 중간 특징맵을 수집하고 해석할 수 있습니다.</li>
+            </ul>
+          </div>
+        </header>
+
+        <section class="lesson-section" id="paper">
+          <div class="section-number">5.1</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">시각화의 의미</p>
+            <h2><span>5.1</span> 정확도만 보지 말고 내부 반응을 들여다보다</h2>
+          </div>
+          <div class="paper-card">
+            <div class="paper-meta"><span lang="en">Matthew D. Zeiler · Rob Fergus</span><span>2014</span><span lang="en">ECCV</span></div>
+            <h3 lang="en">Visualizing and Understanding Convolutional Networks</h3>
+            <p>중간 계층의 활성화가 입력의 어떤 구조에 반응하는지 시각화해 CNN 내부를 분석했습니다. 모델이 틀렸을 때도 결과 숫자만 보는 대신 어느 층과 특징이 문제인지 살펴볼 수 있다는 관점을 보여 줍니다.</p>
+            <a class="text-link" href="https://doi.org/10.1007/978-3-319-10590-1_53">원 논문 정보 보기 <span aria-hidden="true">↗</span></a>
+          </div>
+          <div class="three-column-summary">
+            <div><span>질문</span><h3>각 층은 무엇을 보고 있을까</h3><p>높은 정확도만으로는 내부 특징이 적절한지 판단하기 어렵습니다.</p></div>
+            <div><span>방법</span><h3>강한 활성화를 입력으로 되비춘다</h3><p>특정 특징맵이 반응한 원인을 원래 이미지 공간에서 확인합니다.</p></div>
+            <div><span>활용</span><h3>구조와 학습의 문제를 진단한다</h3><p>죽은 특징, 과도한 불변성, 데이터 편향을 찾는 단서가 됩니다.</p></div>
+          </div>
+          <aside class="callout callout-note">
+            <strong>특징맵은 완성된 의미 지도가 아니다</strong>
+            <p>초기 층은 선이나 색 변화처럼 비교적 단순한 패턴에 반응하지만, 한 채널을 사람이 붙인 개념 하나와 항상 동일시할 수는 없습니다. 여러 채널과 공간 위치를 함께 해석해야 합니다.</p>
+          </aside>
+        </section>
+
+        <section class="lesson-section" id="tensor">
+          <div class="section-number">5.2</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">텐서 읽기</p>
+            <h2><span>5.2</span> N × C × H × W를 그림으로 펼치기</h2>
+            <p>PyTorch의 이미지 배치는 표본 수, 채널 수, 높이, 너비 순서입니다. 값을 바꾸어 전체 원소 수와 한 표본의 구조가 어떻게 달라지는지 확인하세요.</p>
+          </div>
+          <div class="tensor-explorer lab-panel">
+            <div class="tensor-controls">
+              <label>배치 N<select id="tensorBatch"><option value="1" selected>1</option><option value="4">4</option><option value="16">16</option><option value="32">32</option></select></label>
+              <label>채널 C<input id="tensorChannels" type="range" min="1" max="8" value="4"><output id="tensorChannelsValue">4</output></label>
+              <label>높이 H<select id="tensorHeight"><option value="8">8</option><option value="16">16</option><option value="32" selected>32</option></select></label>
+              <label>너비 W<select id="tensorWidth"><option value="8">8</option><option value="16">16</option><option value="32" selected>32</option></select></label>
+            </div>
+            <div class="tensor-visual">
+              <div class="tensor-stack" id="tensorStack" aria-label="채널이 쌓인 특징맵"></div>
+              <div class="tensor-readout">
+                <span>텐서 shape</span><strong id="tensorShape">[1, 4, 32, 32]</strong>
+                <p id="tensorCount">전체 4,096개 값 · 표본당 4개 특징맵</p>
+              </div>
+            </div>
+          </div>
+          <div class="dimension-legend">
+            <div><strong>N</strong><span>한 번에 처리하는 이미지 수</span></div>
+            <div><strong>C</strong><span>서로 다른 특징맵 수</span></div>
+            <div><strong>H</strong><span>특징맵의 세로 위치 수</span></div>
+            <div><strong>W</strong><span>특징맵의 가로 위치 수</span></div>
+          </div>
+        </section>
+
+        <section class="lesson-section" id="channels">
+          <div class="section-number">5.3</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">채널의 생성</p>
+            <h2><span>5.3</span> 필터 하나가 특징맵 하나를 만든다</h2>
+            <p>입력 채널 전체를 보는 필터 묶음 하나가 출력 채널 하나를 만듭니다. 따라서 출력 채널 수는 입력 채널 수가 아니라 필터 묶음의 개수로 정해집니다.</p>
+          </div>
+          <div class="channel-equation" aria-label="입력 채널과 출력 특징맵의 관계">
+            <div><span>입력</span><strong>3 × 32 × 32</strong><p>RGB 채널 3개</p></div>
+            <b aria-hidden="true">×</b>
+            <div><span>필터 묶음</span><strong>64 × 3 × 3 × 3</strong><p>출력 64개 × 입력 3개 × 3×3</p></div>
+            <b aria-hidden="true">→</b>
+            <div><span>출력</span><strong>64 × 32 × 32</strong><p>특징맵 64개</p></div>
+          </div>
+          <div class="channel-parameter-note">
+            <span>학습 파라미터</span><strong>(3 × 3 × 3 + 편향 1) × 64 = 1,792개</strong><p>공간 위치마다 새 가중치를 만들지 않고 같은 필터를 공유합니다.</p>
+          </div>
+          <aside class="callout">
+            <strong>정의 5.1 · 출력 채널</strong>
+            <p>서로 다른 필터 묶음이 만든 특징맵의 개수입니다. `nn.Conv2d(3, 64, 3)`의 64가 출력 채널 수이며, 각 필터는 RGB 세 채널을 모두 읽습니다.</p>
+          </aside>
+        </section>
+
+        <section class="lesson-section" id="activation">
+          <div class="section-number">5.4</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">예제 5.1 · 활성화 전후</p>
+            <h2><span>5.4</span> 음수 응답을 지우면 무엇이 남을까</h2>
+            <p>필터 응답에는 양수와 음수가 모두 있습니다. 활성화 함수와 편향을 바꾸어 어떤 값이 남고, 전체 특징맵에서 0이 차지하는 비율이 어떻게 달라지는지 확인하세요.</p>
+          </div>
+          <div class="activation-lab lab-panel">
+            <div class="activation-toolbar">
+              <label>활성화 함수<select id="activationFunction"><option value="relu" selected>ReLU</option><option value="leaky">Leaky ReLU</option><option value="identity">적용 안 함</option></select></label>
+              <label>편향 이동<input id="activationBias" type="range" min="-2" max="2" step="0.25" value="0"><output id="activationBiasValue">0.00</output></label>
+            </div>
+            <div class="activation-maps">
+              <div class="activation-map-panel"><span>활성화 전 z</span><div class="activation-grid" id="rawActivationGrid" aria-label="활성화 전 특징맵"></div></div>
+              <div class="activation-arrow" aria-hidden="true">→</div>
+              <div class="activation-function-card"><small id="activationName">ReLU</small><strong id="activationFormula">max(0, z)</strong><p>값을 원소별로 변환</p></div>
+              <div class="activation-arrow" aria-hidden="true">→</div>
+              <div class="activation-map-panel"><span>활성화 후 a</span><div class="activation-grid" id="afterActivationGrid" aria-label="활성화 후 특징맵"></div></div>
+            </div>
+            <div class="activation-stats">
+              <div><span>양수 비율</span><strong id="positiveRatio">—</strong></div>
+              <div><span>0의 비율</span><strong id="zeroRatio">—</strong></div>
+              <div><span>출력 범위</span><strong id="activationRange">—</strong></div>
+              <p id="activationInterpretation">ReLU는 음수 응답을 0으로 바꾸고 양수 응답은 그대로 유지합니다.</p>
+            </div>
+          </div>
+          <div class="relu-reading">
+            <div><span>z &lt; 0</span><strong>0으로 차단</strong><p>현재 필터와 반대 방향이거나 약한 반응을 다음 층에 전달하지 않습니다.</p></div>
+            <div><span>z &gt; 0</span><strong>값을 그대로 전달</strong><p>양수 구간의 기울기가 1이어서 깊은 네트워크의 학습을 단순하게 만듭니다.</p></div>
+          </div>
+          <aside class="callout callout-question">
+            <strong>0이 많으면 항상 좋은가?</strong>
+            <p>희소한 표현은 불필요한 반응을 줄일 수 있지만, 모든 입력에서 한 뉴런의 출력이 계속 0이면 기울기도 전달되지 않는 ‘죽은 ReLU’가 될 수 있습니다.</p>
+          </aside>
+        </section>
+
+        <section class="lesson-section" id="code">
+          <div class="section-number">5.5</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">구현</p>
+            <h2><span>5.5</span> 특징맵을 숫자로 요약하는 실제 코드</h2>
+            <p>특징맵을 그림으로만 보지 않고 shape, 최솟값, 최댓값, 평균, 양수와 0의 비율을 함께 기록하면 층별 활성화 상태를 비교할 수 있습니다.</p>
+          </div>
+          <div class="code-study">
+            <div class="code-window">
+              <div class="code-toolbar"><span>cifar10_lab/cnn_visualization.py</span><button class="copy-button" type="button" data-copy-target="activationCode">코드 복사</button></div>
+              <pre id="activationCode" class="line-code"><code><span data-line="1">def summarize_activations(features):</span>
+<span data-line="2">    """Return compact statistics for a feature-map tensor before or after activation."""</span>
+<span data-line="3">    feature_tensor = torch.as_tensor(features, dtype=torch.float32)</span>
+<span data-line="4">    if feature_tensor.ndim not in (3, 4):</span>
+<span data-line="5">        raise ValueError("features must have shape [C, H, W] or [N, C, H, W].")</span>
+<span data-line="6">    return {</span>
+<span data-line="7">        "shape": tuple(feature_tensor.shape),</span>
+<span data-line="8">        "minimum": float(feature_tensor.min().item()),</span>
+<span data-line="9">        "maximum": float(feature_tensor.max().item()),</span>
+<span data-line="10">        "mean": float(feature_tensor.mean().item()),</span>
+<span data-line="11">        "positive_ratio": float((feature_tensor &gt; 0).float().mean().item()),</span>
+<span data-line="12">        "zero_ratio": float((feature_tensor == 0).float().mean().item()),</span>
+<span data-line="13">    }</span></code></pre>
+            </div>
+            <div class="code-notes" role="list" aria-label="코드 해설">
+              <button type="button" data-highlight="1-3"><span>① 입력 정리</span><strong>같은 자료형으로 비교</strong><small>목록이나 텐서를 float32 텐서로 통일합니다.</small></button>
+              <button type="button" data-highlight="4-5"><span>② shape 검사</span><strong>채널 또는 배치 텐서만 허용</strong><small>[C,H,W]와 [N,C,H,W] 형식을 벗어나면 명확한 오류를 냅니다.</small></button>
+              <button type="button" data-highlight="7-10"><span>③ 분포 범위</span><strong>크기와 기본 통계</strong><small>특징맵의 차원, 최솟값, 최댓값, 평균을 기록합니다.</small></button>
+              <button type="button" data-highlight="11-12"><span>④ 활성화 상태</span><strong>양수와 0의 비율</strong><small>ReLU 전후의 신호 통과율과 희소성을 비교합니다.</small></button>
+            </div>
+          </div>
+          <aside class="callout callout-tip">
+            <strong>그림과 통계를 함께 보는 이유</strong>
+            <p>특징맵 그림은 공간 패턴을 보여 주고, 통계는 채널 전체의 포화·희소성·값 범위를 수치로 비교하게 해 줍니다. 둘 중 하나만 보면 중요한 이상을 놓칠 수 있습니다.</p>
+          </aside>
+        </section>
+
+        <section class="lesson-section" id="lab">
+          <div class="section-number">5.6</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">실습 5.1 · 채널 탐색</p>
+            <h2><span>5.6</span> 같은 입력을 보는 여섯 개의 채널 비교</h2>
+            <p>입력 무늬와 활성화 표시를 바꾸어 각 채널이 서로 다른 위치에 반응하는지 비교하세요. 이 실험은 학습된 필터의 동작을 설명하기 위한 작은 모의 특징맵입니다.</p>
+          </div>
+          <div class="channel-lab lab-panel">
+            <div class="training-toolbar">
+              <label>입력 무늬<select id="channelPattern"><option value="house" selected>집 모양</option><option value="cross">십자</option><option value="box">사각형</option><option value="diagonal">대각선</option></select></label>
+              <label>표시 값<select id="channelActivation"><option value="relu" selected>ReLU 이후</option><option value="raw">활성화 전</option></select></label>
+              <p id="channelObservation">방향별 경계와 중심 영역이 서로 다른 채널로 분리됩니다.</p>
+            </div>
+            <div class="channel-lab-grid">
+              <figure class="channel-input-card"><figcaption><strong>입력</strong><span>18 × 18</span></figcaption><canvas id="channelInput" width="252" height="252" aria-label="채널 실험 입력"></canvas></figure>
+              <div class="channel-map-list" id="channelMapList" aria-label="여섯 개 특징맵"></div>
+            </div>
+            <div class="channel-summary" id="channelSummary" aria-live="polite"></div>
+          </div>
+          <aside class="callout callout-question">
+            <strong>관찰할 값</strong>
+            <p>같은 공간 크기의 특징맵이라도 밝은 위치는 채널마다 다릅니다. 다음 층은 이 채널들을 함께 읽어 선과 모서리의 조합을 더 복잡한 특징으로 만듭니다.</p>
+          </aside>
+        </section>
+
+        <section class="lesson-section" id="checkpoint">
+          <div class="section-number">5.7</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">정리와 연습문제</p>
+            <h2><span>5.7</span> 텐서 shape에서 내부 표현까지 읽기</h2>
+          </div>
+          <div class="chapter-summary-box">
+            <h3>5장 핵심 정리</h3>
+            <ul>
+              <li>PyTorch의 CNN 텐서는 일반적으로 [N, C, H, W] 순서입니다.</li>
+              <li>출력 필터 묶음 하나가 특징맵 채널 하나를 만듭니다.</li>
+              <li>ReLU는 음수를 0으로 바꾸고 양수를 유지해 비선형성과 희소성을 만듭니다.</li>
+              <li>특징맵은 공간 그림과 분포 통계를 함께 보아야 정확히 해석할 수 있습니다.</li>
+            </ul>
+          </div>
+          <dl class="key-terms">
+            <div><dt>특징맵</dt><dd>필터 응답을 공간 위치별로 기록한 한 채널의 배열</dd></div>
+            <div><dt>활성화</dt><dd>필터 출력을 원소별로 변환해 다음 층에 전달하는 연산</dd></div>
+            <div><dt>희소성</dt><dd>특징 텐서에서 0이 차지하는 비율이 높은 성질</dd></div>
+          </dl>
+          <div class="quiz-list chapter-quiz-spacing">
+            <fieldset class="quiz" data-answer="b"><legend><span>Q1</span>[8, 64, 16, 16]에서 특징맵 채널 수는?</legend><label><input type="radio" name="q1" value="a"> 8</label><label><input type="radio" name="q1" value="b"> 64</label><label><input type="radio" name="q1" value="c"> 16</label><p class="quiz-feedback"></p></fieldset>
+            <fieldset class="quiz" data-answer="c"><legend><span>Q2</span>ReLU(-2.5)의 출력은?</legend><label><input type="radio" name="q2" value="a"> -2.5</label><label><input type="radio" name="q2" value="b"> 2.5</label><label><input type="radio" name="q2" value="c"> 0</label><p class="quiz-feedback"></p></fieldset>
+            <fieldset class="quiz" data-answer="a"><legend><span>Q3</span>`nn.Conv2d(3, 64, 3)`의 출력 채널 수는?</legend><label><input type="radio" name="q3" value="a"> 64</label><label><input type="radio" name="q3" value="b"> 3</label><label><input type="radio" name="q3" value="c"> 9</label><p class="quiz-feedback"></p></fieldset>
+            <button class="button" id="checkQuiz" type="button">정답 확인</button>
+            <p class="quiz-score" id="quizScore" aria-live="polite"></p>
+          </div>
+        </section>
+
+        <section class="local-run-card">
+          <div><p class="eyebrow">노트북 실습</p><h2>실제 AlexNet 중간 특징맵 확인하기</h2><p>CIFAR-10 이미지가 AlexNet의 합성곱과 활성화 층을 지나며 어떻게 변하는지 채널별로 확인할 수 있습니다.</p></div>
+          <div class="command-block"><code>.\.venv\Scripts\python.exe -m jupyter lab cnn_internals.ipynb</code><button class="copy-button" type="button" data-copy-text=".\.venv\Scripts\python.exe -m jupyter lab cnn_internals.ipynb">복사</button></div>
+        </section>
+
+        <nav class="chapter-pagination" aria-label="단원 이동">
+          <a href="04-convolution-filters.html"><small>이전</small><strong>4장 · 합성곱과 필터</strong></a>
+          <span class="disabled"><small>다음</small><strong>6장 · Pooling과 수용영역</strong></span>
+        </nav>
+      </article>
+    </main>
+  </div>
+
+  <footer class="site-footer"><span>Backbone Lab · 실제 코드로 배우는 인공지능 기초</span><a href="https://github.com/tember40/Backbone_tester_CNN_Transformer">GitHub에서 보기</a></footer>
+</body>
+</html>

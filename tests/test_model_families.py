@@ -5,6 +5,7 @@ import torch
 from cifar10_lab.cnn_visualization import (
     collect_feature_maps,
     receptive_field_stages,
+    summarize_activations,
     trace_single_channel_convolution,
 )
 from cifar10_lab.model_validation import validate_registered_models
@@ -68,6 +69,18 @@ class ModelFamilyTests(unittest.TestCase):
         self.assertEqual(len(steps), 4)
         self.assertEqual(steps[0]["output_position"], (0, 0))
         self.assertEqual(steps[0]["sum"], 3.0)
+
+    def test_activation_summary_reports_relu_sparsity(self):
+        features = torch.tensor([[[-2.0, 0.0], [1.0, 3.0]]])
+
+        before = summarize_activations(features)
+        after = summarize_activations(torch.relu(features))
+
+        self.assertEqual(before["shape"], (1, 2, 2))
+        self.assertEqual(before["minimum"], -2.0)
+        self.assertEqual(before["positive_ratio"], 0.5)
+        self.assertEqual(after["minimum"], 0.0)
+        self.assertEqual(after["zero_ratio"], 0.5)
 
 
 if __name__ == "__main__":

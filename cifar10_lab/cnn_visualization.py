@@ -56,6 +56,21 @@ def trace_single_channel_convolution(image, kernel, stride=1, padding=0):
     return output, steps
 
 
+def summarize_activations(features):
+    """Return compact statistics for a feature-map tensor before or after activation."""
+    feature_tensor = torch.as_tensor(features, dtype=torch.float32)
+    if feature_tensor.ndim not in (3, 4):
+        raise ValueError("features must have shape [C, H, W] or [N, C, H, W].")
+    return {
+        "shape": tuple(feature_tensor.shape),
+        "minimum": float(feature_tensor.min().item()),
+        "maximum": float(feature_tensor.max().item()),
+        "mean": float(feature_tensor.mean().item()),
+        "positive_ratio": float((feature_tensor > 0).float().mean().item()),
+        "zero_ratio": float((feature_tensor == 0).float().mean().item()),
+    }
+
+
 def collect_feature_maps(model, image, max_layers=6):
     """Capture early Conv2d and pooling outputs from one forward pass."""
     records = []

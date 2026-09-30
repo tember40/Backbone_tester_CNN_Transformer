@@ -132,6 +132,15 @@ class StaticSiteTests(unittest.TestCase):
         )
         self.assertIn("target.hash = window.location.hash", fourth_chapter_entry)
 
+        fifth_chapter_entry = (
+            ROOT / "chapters" / "05-feature-maps-activations.html"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "../docs/chapters/05-feature-maps-activations.html",
+            fifth_chapter_entry,
+        )
+        self.assertIn("target.hash = window.location.hash", fifth_chapter_entry)
+
     def test_linear_separability_page_contains_the_lesson_contract(self):
         page = DOCS / "chapters" / "02-linear-separability.html"
         source = page.read_text(encoding="utf-8")
@@ -256,6 +265,34 @@ class StaticSiteTests(unittest.TestCase):
             source = page.read_text(encoding="utf-8")
             self.assertNotIn("sidebar-note", source, str(page))
             self.assertNotIn("이 장의 분량", source, str(page))
+
+    def test_feature_maps_page_contains_the_lesson_contract(self):
+        page = DOCS / "chapters" / "05-feature-maps-activations.html"
+        source = page.read_text(encoding="utf-8")
+        for section_id in (
+            "overview",
+            "paper",
+            "tensor",
+            "channels",
+            "activation",
+            "code",
+            "lab",
+            "checkpoint",
+        ):
+            self.assertIn(f'id="{section_id}"', source)
+
+        implementation = (
+            ROOT / "cifar10_lab" / "cnn_visualization.py"
+        ).read_text(encoding="utf-8")
+        for code_line in (
+            '"shape": tuple(feature_tensor.shape)',
+            '"minimum": float(feature_tensor.min().item())',
+            '"maximum": float(feature_tensor.max().item())',
+            '"positive_ratio": float((feature_tensor > 0).float().mean().item())',
+            '"zero_ratio": float((feature_tensor == 0).float().mean().item())',
+        ):
+            self.assertIn(code_line, implementation)
+            self.assertIn(code_line.replace(">", "&gt;"), source)
 
     def test_user_facing_pages_avoid_book_authorship_wording(self):
         for page in DOCS.rglob("*.html"):
