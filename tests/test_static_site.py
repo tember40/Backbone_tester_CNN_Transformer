@@ -407,6 +407,23 @@ class StaticSiteTests(unittest.TestCase):
         )
         self.assertIn('href="08-vgg.html"', alexnet)
 
+    def test_home_page_timeline_and_private_curriculum_states(self):
+        home = (DOCS / "index.html").read_text(encoding="utf-8")
+        self.assertEqual(home.count('data-year="'), 8)
+        self.assertIn('src="assets/js/home.js?', home)
+        self.assertIn('id="timelineDescription"', home)
+        self.assertIn('id="timelineSource"', home)
+        self.assertIn('id="timelineChapter"', home)
+        self.assertNotIn("학습 가능", home)
+        self.assertEqual(home.count('class="is-locked"'), 10)
+        self.assertIn("제작 중인 비공개 단원", home)
+
+        script = (DOCS / "assets" / "js" / "home.js").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('card.addEventListener("pointerenter"', script)
+        self.assertIn('card.addEventListener("focus"', script)
+
     def test_user_facing_pages_avoid_book_authorship_wording(self):
         for page in DOCS.rglob("*.html"):
             self.assertNotIn("교재", page.read_text(encoding="utf-8"), str(page))
