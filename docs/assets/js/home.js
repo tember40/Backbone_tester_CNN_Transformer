@@ -13,6 +13,7 @@
     for (const item of cards) {
       const active = item === card;
       item.classList.toggle("is-active", active);
+      item.closest(".timeline-step")?.classList.toggle("is-active", active);
       if (active) item.setAttribute("aria-current", "step");
       else item.removeAttribute("aria-current");
     }

@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="퍼셉트론에서 ConvNeXt까지, 실제 코드와 실험으로 배우는 인공지능 기초 학습 자료">
   <title>Backbone Lab · 인공지능 기초</title>
-  <link rel="stylesheet" href="assets/css/site.css?v=20261001e">
-  <script src="assets/js/home.js?v=20261001d" defer></script>
+  <link rel="stylesheet" href="assets/css/site.css?v=20261001f">
+  <script src="assets/js/home.js?v=20261001e" defer></script>
 </head>
 <body class="landing-page">
   <header class="site-header">
@@ -44,14 +44,14 @@
         <p class="visual-title">전체 흐름</p>
         <p class="visual-hint">항목에 마우스를 올리거나 선택해 전환점을 살펴보세요.</p>
         <div class="timeline-list" aria-label="인공지능 모델의 주요 발전">
-          <button class="timeline-card is-active" type="button" aria-current="step" data-year="1958" data-title="퍼셉트론" data-detail="Rosenblatt는 입력의 가중합으로 분류 경계를 학습하는 퍼셉트론을 발표했습니다. 하나의 선형 경계만 만들 수 있어 XOR 같은 문제는 해결하지 못합니다." data-source="https://doi.org/10.1037/h0042519" data-chapter="chapters/01-perceptron.html"><span>1958</span><strong lang="en">Perceptron</strong><small>선형 경계의 학습</small></button>
-          <button class="timeline-card" type="button" data-year="1986" data-title="역전파와 MLP" data-detail="Rumelhart, Hinton, Williams는 출력 오차를 은닉층까지 전달해 가중치를 조정하는 학습 절차를 설명했습니다. 여러 층이 내부 특징을 학습하는 길이 열렸습니다." data-source="https://doi.org/10.1038/323533a0" data-chapter="chapters/03-multilayer-perceptron.html"><span>1986</span><strong lang="en">MLP</strong><small>역전파로 은닉층 학습</small></button>
-          <button class="timeline-card" type="button" data-year="1998" data-title="LeNet-5" data-detail="LeCun과 동료들은 합성곱과 서브샘플링으로 이미지의 공간 구조를 활용해 손글씨 문자를 인식했습니다. 이후 CNN 구조를 이해하는 중요한 사례입니다." data-source="https://leon.bottou.org/papers/lecun-98h"><span>1998</span><strong lang="en">LeNet-5</strong><small>공간 구조를 이용한 CNN</small></button>
-          <button class="timeline-card" type="button" data-year="2012" data-title="AlexNet" data-detail="Krizhevsky와 동료들은 대규모 ImageNet 데이터, GPU 학습, ReLU와 데이터 증강 등을 결합해 깊은 CNN의 성능을 보여주었습니다." data-source="https://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks" data-chapter="chapters/07-alexnet.html"><span>2012</span><strong lang="en">AlexNet</strong><small>대규모 이미지 인식</small></button>
-          <button class="timeline-card" type="button" data-year="2014" data-title="VGG" data-detail="Simonyan과 Zisserman은 작은 3×3 합성곱을 반복하면서 11~19개 가중치 층의 구조를 비교했습니다. 깊이의 효과를 단순하고 일정한 설계로 살펴보았습니다." data-source="https://arxiv.org/abs/1409.1556" data-chapter="chapters/08-vgg.html"><span>2014</span><strong lang="en">VGG</strong><small>작은 필터와 깊이</small></button>
-          <button class="timeline-card" type="button" data-year="2015" data-title="ResNet" data-detail="He와 동료들은 입력을 뒤쪽 층으로 바로 전달하는 잔차 연결을 제안했습니다. 매우 깊은 네트워크를 학습할 때 나타나는 성능 저하 문제를 다루었습니다." data-source="https://arxiv.org/abs/1512.03385"><span>2015</span><strong lang="en">ResNet</strong><small>잔차 연결</small></button>
-          <button class="timeline-card" type="button" data-year="2020" data-title="Vision Transformer" data-detail="Dosovitskiy와 동료들은 이미지를 작은 패치로 나누고 Transformer에 입력했습니다. 이미지 분류에서 합성곱 이외의 구조를 본격적으로 비교하는 계기가 됐습니다." data-source="https://arxiv.org/abs/2010.11929"><span>2020</span><strong lang="en">ViT</strong><small>이미지 패치</small></button>
-          <button class="timeline-card" type="button" data-year="2022" data-title="ConvNeXt" data-detail="Liu와 동료들은 ResNet 계열 CNN을 현대적인 학습·설계 방식으로 수정했습니다. Transformer 시대에도 합성곱 구조가 어떻게 경쟁력을 유지하는지 비교했습니다." data-source="https://arxiv.org/abs/2201.03545"><span>2022</span><strong lang="en">ConvNeXt</strong><small>현대적인 CNN 설계</small></button>
+          <div class="timeline-step is-active"><button class="timeline-card is-active" type="button" aria-current="step" data-year="1958" data-title="퍼셉트론" data-detail="Rosenblatt는 입력의 가중합으로 분류 경계를 학습하는 퍼셉트론을 발표했습니다. 하나의 선형 경계만 만들 수 있어 XOR 같은 문제는 해결하지 못합니다." data-source="https://doi.org/10.1037/h0042519" data-chapter="chapters/01-perceptron.html"><span>1958</span><strong lang="en">Perceptron</strong><small>선형 경계의 학습</small></button></div>
+          <div class="timeline-step"><button class="timeline-card" type="button" data-year="1986" data-title="역전파와 MLP" data-detail="Rumelhart, Hinton, Williams는 출력 오차를 은닉층까지 전달해 가중치를 조정하는 학습 절차를 설명했습니다. 여러 층이 내부 특징을 학습하는 길이 열렸습니다." data-source="https://doi.org/10.1038/323533a0" data-chapter="chapters/03-multilayer-perceptron.html"><span>1986</span><strong lang="en">MLP</strong><small>역전파로 은닉층 학습</small></button></div>
+          <div class="timeline-step"><button class="timeline-card" type="button" data-year="1998" data-title="LeNet-5" data-detail="LeCun과 동료들은 합성곱과 서브샘플링으로 이미지의 공간 구조를 활용해 손글씨 문자를 인식했습니다. 이후 CNN 구조를 이해하는 중요한 사례입니다." data-source="https://leon.bottou.org/papers/lecun-98h"><span>1998</span><strong lang="en">LeNet-5</strong><small>공간 구조를 이용한 CNN</small></button></div>
+          <div class="timeline-step"><button class="timeline-card" type="button" data-year="2012" data-title="AlexNet" data-detail="Krizhevsky와 동료들은 대규모 ImageNet 데이터, GPU 학습, ReLU와 데이터 증강 등을 결합해 깊은 CNN의 성능을 보여주었습니다." data-source="https://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks" data-chapter="chapters/07-alexnet.html"><span>2012</span><strong lang="en">AlexNet</strong><small>대규모 이미지 인식</small></button></div>
+          <div class="timeline-step"><button class="timeline-card" type="button" data-year="2014" data-title="VGG" data-detail="Simonyan과 Zisserman은 작은 3×3 합성곱을 반복하면서 11~19개 가중치 층의 구조를 비교했습니다. 깊이의 효과를 단순하고 일정한 설계로 살펴보았습니다." data-source="https://arxiv.org/abs/1409.1556" data-chapter="chapters/08-vgg.html"><span>2014</span><strong lang="en">VGG</strong><small>작은 필터와 깊이</small></button></div>
+          <div class="timeline-step"><button class="timeline-card" type="button" data-year="2015" data-title="ResNet" data-detail="He와 동료들은 입력을 뒤쪽 층으로 바로 전달하는 잔차 연결을 제안했습니다. 매우 깊은 네트워크를 학습할 때 나타나는 성능 저하 문제를 다루었습니다." data-source="https://arxiv.org/abs/1512.03385"><span>2015</span><strong lang="en">ResNet</strong><small>잔차 연결</small></button></div>
+          <div class="timeline-step"><button class="timeline-card" type="button" data-year="2020" data-title="Vision Transformer" data-detail="Dosovitskiy와 동료들은 이미지를 작은 패치로 나누고 Transformer에 입력했습니다. 이미지 분류에서 합성곱 이외의 구조를 본격적으로 비교하는 계기가 됐습니다." data-source="https://arxiv.org/abs/2010.11929"><span>2020</span><strong lang="en">ViT</strong><small>이미지 패치</small></button></div>
+          <div class="timeline-step"><button class="timeline-card" type="button" data-year="2022" data-title="ConvNeXt" data-detail="Liu와 동료들은 ResNet 계열 CNN을 현대적인 학습·설계 방식으로 수정했습니다. Transformer 시대에도 합성곱 구조가 어떻게 경쟁력을 유지하는지 비교했습니다." data-source="https://arxiv.org/abs/2201.03545"><span>2022</span><strong lang="en">ConvNeXt</strong><small>현대적인 CNN 설계</small></button></div>
         </div>
         <div class="timeline-detail" aria-live="polite">
           <p class="timeline-detail-kicker" id="timelineYear">1958 · 역사적 전환점</p>
@@ -81,7 +81,7 @@
       <div class="section-heading">
         <p class="eyebrow">목차</p>
         <h2>전체 과정</h2>
-        <p class="curriculum-legend"><span class="lock-icon" aria-hidden="true"></span> 자물쇠 표시는 제작 중인 비공개 단원입니다.</p>
+        <p class="curriculum-legend">‘비공개’ 표시는 아직 제작 중인 단원입니다.</p>
       </div>
       <div class="curriculum-grid">
         <article class="curriculum-card available">
@@ -101,22 +101,22 @@
         <article class="curriculum-card available">
           <p>PART 03 · 고전 CNN</p>
           <h3>깊이의 시대</h3>
-          <ul><li><a href="chapters/07-alexnet.html"><strong>7장. AlexNet</strong></a></li><li><a href="chapters/08-vgg.html"><strong>8장. VGG</strong></a></li><li class="is-locked"><span>9장. ResNet과 확장 모델</span><span class="lock-icon" aria-hidden="true"></span><span class="sr-only">제작 중 · 비공개</span></li></ul>
+          <ul><li><a href="chapters/07-alexnet.html"><strong>7장. AlexNet</strong></a></li><li><a href="chapters/08-vgg.html"><strong>8장. VGG</strong></a></li><li class="is-locked"><span>9장. ResNet과 확장 모델</span><span class="private-label">비공개</span></li></ul>
         </article>
         <article class="curriculum-card">
           <p>PART 04 · 효율</p>
           <h3>작고 빠른 CNN</h3>
-          <ul><li class="is-locked"><span>SENet</span><span class="lock-icon" aria-hidden="true"></span><span class="sr-only">제작 중 · 비공개</span></li><li class="is-locked"><span>MobileNetV2</span><span class="lock-icon" aria-hidden="true"></span><span class="sr-only">제작 중 · 비공개</span></li><li class="is-locked"><span>EfficientNet</span><span class="lock-icon" aria-hidden="true"></span><span class="sr-only">제작 중 · 비공개</span></li></ul>
+          <ul><li class="is-locked"><span>SENet</span><span class="private-label">비공개</span></li><li class="is-locked"><span>MobileNetV2</span><span class="private-label">비공개</span></li><li class="is-locked"><span>EfficientNet</span><span class="private-label">비공개</span></li></ul>
         </article>
         <article class="curriculum-card">
           <p>PART 05 · Transformer</p>
           <h3>이미지를 토큰으로</h3>
-          <ul><li class="is-locked"><span>Attention 기초</span><span class="lock-icon" aria-hidden="true"></span><span class="sr-only">제작 중 · 비공개</span></li><li class="is-locked"><span>Vision Transformer</span><span class="lock-icon" aria-hidden="true"></span><span class="sr-only">제작 중 · 비공개</span></li><li class="is-locked"><span>PVT</span><span class="lock-icon" aria-hidden="true"></span><span class="sr-only">제작 중 · 비공개</span></li></ul>
+          <ul><li class="is-locked"><span>Attention 기초</span><span class="private-label">비공개</span></li><li class="is-locked"><span>Vision Transformer</span><span class="private-label">비공개</span></li><li class="is-locked"><span>PVT</span><span class="private-label">비공개</span></li></ul>
         </article>
         <article class="curriculum-card">
           <p>PART 06 · 현대 CNN</p>
           <h3>ConvNeXt와 종합 비교</h3>
-          <ul><li class="is-locked"><span>ConvNeXt</span><span class="lock-icon" aria-hidden="true"></span><span class="sr-only">제작 중 · 비공개</span></li><li class="is-locked"><span>CNN과 Transformer</span><span class="lock-icon" aria-hidden="true"></span><span class="sr-only">제작 중 · 비공개</span></li><li class="is-locked"><span>백본 선택과 실패 분석</span><span class="lock-icon" aria-hidden="true"></span><span class="sr-only">제작 중 · 비공개</span></li></ul>
+          <ul><li class="is-locked"><span>ConvNeXt</span><span class="private-label">비공개</span></li><li class="is-locked"><span>CNN과 Transformer</span><span class="private-label">비공개</span></li><li class="is-locked"><span>백본 선택과 실패 분석</span><span class="private-label">비공개</span></li></ul>
         </article>
       </div>
     </section>

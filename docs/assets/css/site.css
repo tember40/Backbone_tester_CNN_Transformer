@@ -107,13 +107,22 @@ code, pre { font-family: var(--mono); }
 .hero-visual { position: relative; min-width: 0; padding: 21px 23px 23px; border: 1px solid var(--line-dark); border-top: 4px solid var(--kw-brown); background: rgba(255,255,255,.97); box-shadow: 14px 14px 0 var(--kw-ivory); }
 .visual-title { margin: 0; padding-bottom: 7px; border-bottom: 2px solid var(--ink); font-family: var(--serif); font-size: 23.4px; font-weight: 700; }
 .visual-hint { margin: 9px 0 13px; color: var(--muted); font-size: 14.5px; line-height: 1.5; }
-.timeline-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--line); }
-.timeline-card { display: grid; grid-template-columns: 1fr; align-content: center; width: 100%; min-height: 68px; padding: 7px 10px; border: 0; border-bottom: 1px solid var(--line); border-left: 3px solid transparent; background: #fff; color: var(--ink); text-align: left; transition: padding-left .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease; }
-.timeline-card:nth-child(odd) { border-right: 1px solid var(--line); }
+.timeline-list { position: relative; display: grid; gap: 2px; padding: 9px 0 11px; }
+.timeline-list::before { content: ""; position: absolute; top: 12px; bottom: 12px; left: calc(50% - 1px); width: 2px; background: var(--line-dark); }
+.timeline-step { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 26px minmax(0, 1fr); align-items: center; min-height: 57px; }
+.timeline-step::before { content: ""; position: absolute; z-index: 1; top: calc(50% - 5px); left: calc(50% - 5px); width: 10px; height: 10px; border: 2px solid var(--kw-rose); border-radius: 50%; background: #fff; transition: transform .18s ease, background .18s ease, border-color .18s ease; }
+.timeline-step::after { content: ""; position: absolute; top: calc(50% - 1px); right: calc(50% + 4px); width: 19px; height: 2px; background: var(--line-dark); transition: background .18s ease; }
+.timeline-step:nth-child(even)::after { right: auto; left: calc(50% + 4px); }
+.timeline-step:hover::before, .timeline-step:focus-within::before, .timeline-step.is-active::before { transform: scale(1.35); border-color: var(--blue); background: var(--blue); }
+.timeline-step:hover::after, .timeline-step:focus-within::after, .timeline-step.is-active::after { background: var(--blue); }
+.timeline-card { position: relative; z-index: 2; display: grid; align-content: center; grid-column: 1; width: 100%; min-height: 54px; padding: 5px 9px; border: 0; border-radius: 3px; background: transparent; color: var(--ink); text-align: right; transition: transform .18s ease, background .18s ease, color .18s ease; }
+.timeline-step:nth-child(even) .timeline-card { grid-column: 3; text-align: left; }
 .timeline-card span { color: var(--faint); font-family: var(--serif); font-size: 13px; line-height: 1.15; }
-.timeline-card strong { margin-top: 2px; font-size: 17px; line-height: 1.2; overflow-wrap: anywhere; }
+.timeline-card strong { margin-top: 1px; font-size: 17px; line-height: 1.2; overflow-wrap: anywhere; }
 .timeline-card small { color: var(--muted); font-size: 12.5px; line-height: 1.3; }
-.timeline-card:hover, .timeline-card:focus-visible, .timeline-card.is-active { padding-left: 16px; border-left-color: var(--blue); background: var(--blue-soft); }
+.timeline-card:hover, .timeline-card:focus-visible, .timeline-card.is-active { background: var(--blue-soft); }
+.timeline-step:nth-child(odd) .timeline-card:hover { transform: translateX(-3px); }
+.timeline-step:nth-child(even) .timeline-card:hover { transform: translateX(3px); }
 .timeline-card:hover strong, .timeline-card:focus-visible strong, .timeline-card.is-active strong { color: var(--blue-dark); }
 .timeline-card.is-active span { color: var(--blue); }
 .timeline-detail { min-height: 178px; padding: 16px 13px 3px; border-top: 2px solid var(--kw-brown); background: linear-gradient(180deg, #fff9f7, #fff); }
@@ -153,11 +162,8 @@ code, pre { font-family: var(--mono); }
 .curriculum-card a:hover, .curriculum-card a:focus-visible { padding-left: 12px; background: #f4e8e7; color: var(--blue); }
 .curriculum-card a:hover::after, .curriculum-card a:focus-visible::after { opacity: 1; transform: translate(0, 0); }
 .curriculum-card li.is-locked { color: #8c8581; }
-.curriculum-card li.is-locked .lock-icon { flex: none; margin-right: 6px; }
-.curriculum-legend { display: flex; align-items: center; gap: 8px; font-size: 16px; }
-.lock-icon { position: relative; display: inline-block; width: 17px; height: 18px; color: #867a75; }
-.lock-icon::before { content: ""; position: absolute; top: 1px; left: 4px; width: 9px; height: 10px; border: 2px solid currentColor; border-bottom: 0; border-radius: 6px 6px 0 0; }
-.lock-icon::after { content: ""; position: absolute; bottom: 0; left: 2px; width: 13px; height: 10px; border-radius: 2px; background: currentColor; }
+.curriculum-card li.is-locked .private-label { flex: none; padding: 3px 6px; border: 1px solid #d7ceca; border-radius: 2px; color: #786e69; font-size: 12.5px; font-weight: 700; line-height: 1.2; white-space: nowrap; }
+.curriculum-legend { font-size: 16px; }
 
 /* Chapter shell */
 .chapter-page { background: var(--paper); }
@@ -1047,6 +1053,12 @@ code, pre { font-family: var(--mono); }
   .hero-actions { align-items: flex-start; flex-direction: column; gap: 14px; }
   .hero-stats { flex-wrap: wrap; }
   .hero-stats div { min-width: 105px; padding-right: 16px; }
+  .timeline-list::before { left: 11px; }
+  .timeline-step { grid-template-columns: 26px minmax(0, 1fr); min-height: 61px; }
+  .timeline-step::before { left: 6px; }
+  .timeline-step::after, .timeline-step:nth-child(even)::after { right: auto; left: 13px; width: 19px; }
+  .timeline-step .timeline-card, .timeline-step:nth-child(even) .timeline-card { grid-column: 2; text-align: left; }
+  .timeline-step:nth-child(odd) .timeline-card:hover { transform: translateX(3px); }
   .method-section, .curriculum-section { padding: 58px 20px; }
   .method-grid, .curriculum-grid { grid-template-columns: 1fr; }
   .method-grid li, .curriculum-card, .curriculum-card:nth-child(n) { border: 0; border-bottom: 1px solid var(--line); }
