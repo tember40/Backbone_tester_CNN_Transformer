@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="AlexNet 논문의 핵심 기여와 CIFAR-10용 구조, 특징맵 변화, 파라미터 분포, Dropout을 실제 코드와 시각화로 이해하는 학습 자료">
+  <title>7장. AlexNet · Backbone Lab</title>
+  <link rel="stylesheet" href="../assets/css/site.css?v=20261001b">
+  <script src="../assets/js/alexnet.js?v=20261001b" defer></script>
+</head>
+<body class="chapter-page">
+  <header class="site-header">
+    <a class="brand" href="../index.html" aria-label="Backbone Lab 홈">
+      <span class="brand-mark">KW</span>
+      <span><strong>인공지능 기초</strong><small><span lang="en">Backbone Lab</span> 학습 자료</small></span>
+    </a>
+    <div class="chapter-progress" aria-label="현재 과정">
+      <span>제3부 · 고전 CNN</span><div><i style="width: 33%"></i></div><strong>1 / 3</strong>
+    </div>
+    <nav class="header-actions">
+      <a href="../index.html#curriculum">전체 목차</a>
+      <a class="button button-small" href="https://github.com/tember40/Backbone_tester_CNN_Transformer/blob/main/backbone/AlexNet.py">실제 코드</a>
+    </nav>
+  </header>
+
+  <div class="chapter-layout">
+    <aside class="chapter-sidebar" aria-label="단원 목차">
+      <p class="sidebar-label">제7장 · AlexNet</p>
+      <nav>
+        <a class="is-current" href="#overview"><span>7.0</span>학습 안내</a>
+        <a href="#paper"><span>7.1</span>전환점이 된 논문</a>
+        <a href="#breakthrough"><span>7.2</span>성공의 조건</a>
+        <a href="#architecture"><span>7.3</span>구조 추적</a>
+        <a href="#adaptation"><span>7.4</span>CIFAR-10 변형</a>
+        <a href="#code"><span>7.5</span>구현과 코드</a>
+        <a href="#lab"><span>7.6</span>Dropout 실험</a>
+        <a href="#checkpoint"><span>7.7</span>연습문제</a>
+      </nav>
+    </aside>
+
+    <main class="chapter-content">
+      <article>
+        <header class="chapter-hero" id="overview">
+          <div class="chapter-kicker"><span>제3부</span><span>고전 CNN</span><span>선수 지식: 4–6장</span></div>
+          <h1><small>제7장</small><span lang="en">AlexNet</span></h1>
+          <p class="chapter-lead">
+            깊은 합성곱 신경망이 대규모 이미지 인식의 중심으로 올라선 전환점을 살펴봅니다.
+            논문의 아이디어를 외우는 데서 그치지 않고, CIFAR-10용 구현의 각 층을 지나며 shape과 파라미터가 어떻게 달라지는지 추적합니다.
+          </p>
+          <div class="learning-objectives">
+            <h2>학습 목표</h2>
+            <ul>
+              <li><span lang="en">AlexNet</span>이 주목받은 기술적·데이터적 배경을 설명할 수 있습니다.</li>
+              <li>합성곱부와 분류기의 역할을 shape 변화로 구분할 수 있습니다.</li>
+              <li>원 논문 구조와 CIFAR-10 변형의 차이를 설명할 수 있습니다.</li>
+              <li><span lang="en">Dropout</span>이 학습 중 뉴런을 다루는 방식을 해석할 수 있습니다.</li>
+            </ul>
+          </div>
+        </header>
+
+        <section class="lesson-section" id="paper">
+          <div class="section-number">7.1</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">전환점이 된 논문</p>
+            <h2><span>7.1</span> 더 큰 데이터와 계산으로 깊은 CNN을 학습하다</h2>
+          </div>
+          <div class="paper-card">
+            <div class="paper-meta"><span lang="en">Alex Krizhevsky · Ilya Sutskever · Geoffrey E. Hinton</span><span>2012</span><span lang="en">NeurIPS</span></div>
+            <h3 lang="en">ImageNet Classification with Deep Convolutional Neural Networks</h3>
+            <p>대규모 <span lang="en">ImageNet</span> 데이터에서 깊은 CNN을 두 GPU로 학습하고, 2012년 분류 대회에서 기존 방법보다 큰 폭으로 낮은 오류를 기록했습니다. 네트워크 구조뿐 아니라 데이터, 연산 장치, 최적화 기법이 함께 성능을 만든 사례입니다.</p>
+            <a class="text-link" href="https://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks">원 논문 보기 <span aria-hidden="true">↗</span></a>
+          </div>
+          <div class="alex-paper-numbers">
+            <div><span>학습 이미지</span><strong>약 120만 장</strong><p>1,000개 범주의 대규모 분류 문제</p></div>
+            <div><span>Top-5 오류</span><strong>15.3%</strong><p>당시 2위 26.2%와 큰 차이</p></div>
+            <div><span>모델 규모</span><strong>약 6천만</strong><p>논문에 보고된 학습 파라미터</p></div>
+          </div>
+          <aside class="callout callout-note">
+            <strong>AlexNet이 CNN을 처음 만든 것은 아니다</strong>
+            <p>합성곱 신경망의 계보는 훨씬 앞선 연구로 이어집니다. <span lang="en">AlexNet</span>의 의미는 기존 CNN 아이디어를 대규모 데이터와 GPU 계산에 결합해 일반 이미지 인식에서 압도적인 결과를 보였다는 데 있습니다.</p>
+          </aside>
+        </section>
+
+        <section class="lesson-section" id="breakthrough">
+          <div class="section-number">7.2</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">성공의 조건</p>
+            <h2><span>7.2</span> 하나의 기법이 아니라 여러 선택이 맞물리다</h2>
+            <p>항목을 선택해 각 요소가 학습 속도, 모델 규모, 일반화에 어떤 역할을 했는지 확인하세요.</p>
+          </div>
+          <div class="innovation-reader">
+            <div class="innovation-list" role="list" aria-label="AlexNet 핵심 선택">
+              <button type="button" data-innovation="relu"><span>01</span><strong lang="en">ReLU</strong><small>빠른 비선형 학습</small></button>
+              <button type="button" data-innovation="gpu"><span>02</span><strong>두 GPU</strong><small>메모리와 연산 분담</small></button>
+              <button type="button" data-innovation="augment"><span>03</span><strong>데이터 증강</strong><small>입력 다양성 확대</small></button>
+              <button type="button" data-innovation="dropout"><span>04</span><strong lang="en">Dropout</strong><small>과적합 완화</small></button>
+            </div>
+            <div class="innovation-detail"><span>선택한 요소</span><h3 id="innovationTitle">ReLU</h3><p id="innovationDescription">—</p></div>
+          </div>
+          <div class="alex-historical-notes">
+            <div><strong lang="en">LRN</strong><p>원 논문은 인접 채널의 반응을 정규화했습니다. 현재는 <span lang="en">BatchNorm</span> 등 다른 방법이 더 널리 쓰이지만 프로젝트 기본 AlexNet은 역사적 흐름을 볼 수 있도록 LRN을 포함합니다.</p></div>
+            <div><strong>겹치는 풀링</strong><p>원 구조는 3×3 창을 보폭 2로 이동했습니다. 창이 서로 겹치므로 단순한 2×2·보폭 2 풀링과 정보 요약 방식이 다릅니다.</p></div>
+          </div>
+        </section>
+
+        <section class="lesson-section" id="architecture">
+          <div class="section-number">7.3</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">실습 7.1 · 구조 추적</p>
+            <h2><span>7.3</span> 32×32 이미지가 열 개의 점수가 되기까지</h2>
+            <p>슬라이더나 층 버튼을 선택해 채널 수, 공간 크기, 해당 층의 파라미터와 수용영역 변화를 순서대로 읽으세요.</p>
+          </div>
+          <div class="alex-architecture lab-panel">
+            <div class="alex-architecture-toolbar"><label>현재 단계<input id="alexStage" type="range" min="0" max="9" value="0"><output id="alexStageValue">0 / 9</output></label></div>
+            <div class="alex-architecture-main">
+              <div class="alex-feature-visual"><div class="alex-feature-stack" id="alexFeatureStack" aria-label="현재 특징맵 채널 묶음"></div></div>
+              <div class="alex-stage-readout">
+                <span id="alexLayerName">입력</span><strong id="alexLayerShape">[3, 32, 32]</strong>
+                <div><p>이 층의 파라미터</p><b id="alexLayerParams">0</b></div>
+                <div><p>이론적 수용영역</p><b id="alexLayerRF">1 × 1</b></div>
+                <small id="alexLayerNote">RGB 이미지 세 채널이 모델로 들어옵니다.</small>
+              </div>
+            </div>
+            <div class="alex-stage-list" id="alexStageList" aria-label="AlexNet 단계 목록"></div>
+          </div>
+
+          <div class="parameter-explorer lab-panel">
+            <div class="parameter-toolbar"><label>자세히 볼 층<select id="parameterLayer"></select></label><p>전체 <strong id="parameterTotal">—</strong>개</p></div>
+            <div class="parameter-chart" id="parameterChart" aria-label="층별 파라미터 비교"></div>
+            <div class="parameter-readout"><div><span>선택한 층</span><strong id="parameterSelected">—</strong></div><div><span>파라미터</span><strong id="parameterCount">—</strong></div><div><span>전체 비율</span><strong id="parameterShare">—</strong></div><p id="parameterInterpretation">—</p></div>
+          </div>
+          <aside class="callout callout-question">
+            <strong>특징 추출과 분류 중 어디가 더 무거울까?</strong>
+            <p>이 CIFAR-10 구현의 전체 파라미터 약 3,605만 개 중 약 3,360만 개가 완전연결 분류기에 있습니다. 뒤에서 살펴볼 현대 CNN은 이 비용을 줄이는 방향으로 구조를 바꿉니다.</p>
+          </aside>
+        </section>
+
+        <section class="lesson-section" id="adaptation">
+          <div class="section-number">7.4</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">원 논문과 프로젝트 구현</p>
+            <h2><span>7.4</span> 큰 ImageNet 구조를 32×32 입력에 맞추기</h2>
+            <p>원 논문의 첫 11×11·보폭 4 합성곱을 작은 이미지에 그대로 적용하면 공간 정보가 너무 빠르게 줄어듭니다. 두 버전을 전환해 차이를 확인하세요.</p>
+          </div>
+          <div class="adaptation-lab lab-panel">
+            <div class="adaptation-switch" role="radiogroup" aria-label="AlexNet 버전">
+              <label><input type="radio" name="alexVersion" value="original"> 논문 구조</label>
+              <label><input type="radio" name="alexVersion" value="cifar" checked> 프로젝트 CIFAR-10 구조</label>
+            </div>
+            <div class="adaptation-title"><span>현재 비교</span><strong id="adaptationLabel">프로젝트 AlexNet</strong><p id="adaptationMessage">—</p></div>
+            <div class="adaptation-flow">
+              <div><span>입력</span><strong id="adaptationInput">—</strong></div><b aria-hidden="true">→</b>
+              <div><span>첫 합성곱</span><strong id="adaptationFirst">—</strong><small id="adaptationFirstOutput">—</small></div><b aria-hidden="true">→</b>
+              <div><span>풀링</span><strong id="adaptationPools">—</strong></div><b aria-hidden="true">→</b>
+              <div><span>최종 특징</span><strong id="adaptationFinal">—</strong></div><b aria-hidden="true">→</b>
+              <div><span>출력</span><strong id="adaptationClasses">—</strong></div>
+            </div>
+          </div>
+          <div class="adaptation-principles">
+            <div><span>유지</span><strong>5개 합성곱과 3개 풀링의 흐름</strong><p>얕은 특징에서 깊은 특징으로 진행하는 전체 단계는 보존합니다.</p></div>
+            <div><span>변경</span><strong>입력에 맞는 필터·보폭·출력 수</strong><p>공간 해상도와 분류 대상 수는 데이터셋에 맞게 조정합니다.</p></div>
+          </div>
+        </section>
+
+        <section class="lesson-section" id="code">
+          <div class="section-number">7.5</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">실제 순전파 코드</p>
+            <h2><span>7.5</span> 특징 추출부와 분류기를 연결하기</h2>
+            <p>프로젝트의 `forward`는 네 단계로 읽을 수 있습니다. 합성곱 특징을 만들고, 크기를 고정하고, 한 줄로 펼친 뒤 완전연결 분류기에 전달합니다.</p>
+          </div>
+          <div class="code-study">
+            <div class="code-window">
+              <div class="code-toolbar"><span>backbone/AlexNet.py</span><button class="copy-button" type="button" data-copy-target="alexnetCode">코드 복사</button></div>
+              <pre id="alexnetCode" class="line-code"><code><span data-line="1">def forward(self, x):</span>
+<span data-line="2">    x = self.features(x)</span>
+<span data-line="3">    x = self.avgpool(x)</span>
+<span data-line="4">    x = torch.flatten(x, 1)</span>
+<span data-line="5">    x = self.classifier(x)</span>
+<span data-line="6">    return x</span></code></pre>
+            </div>
+            <div class="code-notes" role="list" aria-label="코드 해설">
+              <button type="button" data-highlight="1-2"><span>① 특징 추출</span><strong>Conv·ReLU·LRN·Pool</strong><small>입력을 256×4×4 특징 텐서로 변환합니다.</small></button>
+              <button type="button" data-highlight="3-3"><span>② 크기 고정</span><strong>AdaptiveAvgPool 4×4</strong><small>분류기가 받을 공간 크기를 일정하게 맞춥니다.</small></button>
+              <button type="button" data-highlight="4-4"><span>③ 펼치기</span><strong>256×4×4 → 4096</strong><small>공간과 채널 축을 하나의 벡터로 합칩니다.</small></button>
+              <button type="button" data-highlight="5-6"><span>④ 분류</span><strong>4096 → 4096 → 10</strong><small>Dropout이 포함된 분류기가 클래스 점수를 냅니다.</small></button>
+            </div>
+          </div>
+          <aside class="callout callout-tip">
+            <strong>출력은 확률이 아니라 logits</strong>
+            <p>마지막 선형층의 열 개 값은 정규화되지 않은 점수입니다. 학습 손실인 `CrossEntropyLoss`가 내부에서 필요한 확률 변환을 함께 처리하므로 모델 끝에 softmax를 중복해서 넣지 않습니다.</p>
+          </aside>
+        </section>
+
+        <section class="lesson-section" id="lab">
+          <div class="section-number">7.6</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">실습 7.2 · Dropout</p>
+            <h2><span>7.6</span> 학습할 때마다 다른 경로를 사용하기</h2>
+            <p>Dropout 확률을 바꾸고 다시 표본화해 어떤 뉴런이 남는지 확인하세요. 실제 AlexNet 분류기는 두 은닉층에서 `p=0.5`를 사용합니다.</p>
+          </div>
+          <div class="dropout-lab lab-panel">
+            <div class="dropout-toolbar">
+              <label>Dropout 확률 p<input id="dropoutProbability" type="range" min="0" max="0.8" step="0.1" value="0.5"><output id="dropoutProbabilityValue">0.5</output></label>
+              <button class="button" id="resampleDropout" type="button">다시 표본화</button>
+            </div>
+            <div class="dropout-main">
+              <div class="dropout-units" id="dropoutUnits" aria-label="Dropout이 적용된 뉴런"></div>
+              <div class="dropout-readout"><div><span>활성 뉴런</span><strong id="dropoutActive">—</strong></div><div><span>학습 중 출력 보정</span><strong id="dropoutScale">—</strong></div><p id="dropoutMessage">—</p></div>
+            </div>
+          </div>
+          <div class="dropout-phases">
+            <div><span>학습 모드</span><strong>`model.train()`</strong><p>확률 p로 뉴런을 끄고 남은 값을 1/(1−p)배 보정합니다.</p></div>
+            <div><span>평가 모드</span><strong>`model.eval()`</strong><p>모든 뉴런을 사용하며 무작위 마스크를 적용하지 않습니다.</p></div>
+          </div>
+          <aside class="callout callout-question">
+            <strong>Dropout을 합성곱층에도 항상 써야 할까?</strong>
+            <p>공간적으로 가중치를 공유하는 합성곱층은 완전연결층보다 파라미터가 적습니다. AlexNet은 파라미터가 집중된 완전연결층에 Dropout을 적용했고, 이후 구조에서는 정규화·데이터 증강·확률적 깊이 등 다양한 방법이 함께 사용됩니다.</p>
+          </aside>
+        </section>
+
+        <section class="lesson-section" id="checkpoint">
+          <div class="section-number">7.7</div>
+          <div class="lesson-heading">
+            <p class="eyebrow">정리와 연습문제</p>
+            <h2><span>7.7</span> 역사적 기여와 현재 구현을 구분해 읽기</h2>
+          </div>
+          <div class="chapter-summary-box">
+            <h3>7장 핵심 정리</h3>
+            <ul>
+              <li>AlexNet의 성과는 깊은 CNN, ImageNet 데이터, GPU 계산, 학습 기법이 결합된 결과입니다.</li>
+              <li>합성곱부는 공간 특징을 만들고 분류기는 펼친 특징으로 클래스 점수를 계산합니다.</li>
+              <li>CIFAR-10 변형은 32×32 입력을 보존하기 위해 첫 필터와 보폭을 줄입니다.</li>
+              <li>Dropout은 학습 중 일부 뉴런을 무작위로 꺼 완전연결층의 과적합을 줄입니다.</li>
+            </ul>
+          </div>
+          <dl class="key-terms">
+            <div><dt lang="en">ReLU</dt><dd>음수는 0, 양수는 그대로 전달하는 비선형 활성화</dd></div>
+            <div><dt lang="en">Dropout</dt><dd>학습 중 일부 뉴런 출력을 확률적으로 제거하는 정규화</dd></div>
+            <div><dt lang="en">Logits</dt><dd>확률 변환 전 마지막 선형층이 출력한 클래스별 점수</dd></div>
+          </dl>
+          <div class="quiz-list chapter-quiz-spacing">
+            <fieldset class="quiz" data-answer="b"><legend><span>Q1</span>프로젝트 AlexNet의 첫 합성곱 커널은?</legend><label><input type="radio" name="q1" value="a"> 11×11, stride 4</label><label><input type="radio" name="q1" value="b"> 3×3, stride 1</label><label><input type="radio" name="q1" value="c"> 1×1, stride 1</label><p class="quiz-feedback"></p></fieldset>
+            <fieldset class="quiz" data-answer="c"><legend><span>Q2</span>이 구현에서 파라미터가 가장 많이 모인 부분은?</legend><label><input type="radio" name="q2" value="a"> LRN</label><label><input type="radio" name="q2" value="b"> MaxPool</label><label><input type="radio" name="q2" value="c"> 완전연결 분류기</label><p class="quiz-feedback"></p></fieldset>
+            <fieldset class="quiz" data-answer="a"><legend><span>Q3</span>`model.eval()` 상태에서 Dropout은 어떻게 동작하는가?</legend><label><input type="radio" name="q3" value="a"> 모든 뉴런을 사용한다</label><label><input type="radio" name="q3" value="b"> 항상 절반을 제거한다</label><label><input type="radio" name="q3" value="c"> 가중치를 초기화한다</label><p class="quiz-feedback"></p></fieldset>
+            <button class="button" id="checkQuiz" type="button">정답 확인</button>
+            <p class="quiz-score" id="quizScore" aria-live="polite"></p>
+          </div>
+        </section>
+
+        <section class="local-run-card">
+          <div><p class="eyebrow">직접 실행</p><h2>CIFAR-10에서 AlexNet 빠르게 학습하기</h2><p>설치가 끝난 환경에서는 작은 데이터와 1 epoch 설정으로 전체 학습·검증·체크포인트 흐름을 먼저 확인할 수 있습니다.</p></div>
+          <div class="command-block"><code>cifar10-lab train --model alexnet --quick</code><button class="copy-button" type="button" data-copy-text="cifar10-lab train --model alexnet --quick">복사</button></div>
+        </section>
+
+        <nav class="chapter-pagination" aria-label="단원 이동">
+          <a href="06-pooling-receptive-field.html"><small>이전</small><strong>6장 · Pooling과 수용영역</strong></a>
+          <span class="disabled"><small>다음</small><strong>8장 · VGG</strong></span>
+        </nav>
+      </article>
+    </main>
+  </div>
+
+  <footer class="site-footer"><span>Backbone Lab · 실제 코드로 배우는 인공지능 기초</span><a href="https://github.com/tember40/Backbone_tester_CNN_Transformer">GitHub에서 보기</a></footer>
+</body>
+</html>

@@ -98,6 +98,21 @@ class ModelFamilyTests(unittest.TestCase):
         self.assertEqual(max_steps[2]["value"], 6.0)
         self.assertEqual(average_steps[3]["output_position"], (1, 1))
 
+    def test_alexnet_is_adapted_for_cifar10_geometry(self):
+        model = create_model("alexnet", num_classes=10, image_size=32)
+        first_convolution = model.features[0]
+        pooling_layers = [
+            module for module in model.features if isinstance(module, torch.nn.MaxPool2d)
+        ]
+
+        self.assertEqual(first_convolution.kernel_size, (3, 3))
+        self.assertEqual(first_convolution.stride, (1, 1))
+        self.assertEqual(first_convolution.padding, (1, 1))
+        self.assertEqual(len(pooling_layers), 3)
+        self.assertEqual(model.avgpool.output_size, (4, 4))
+        self.assertEqual(model.classifier[0].in_features, 256 * 4 * 4)
+        self.assertEqual(model.classifier[-1].out_features, 10)
+
 
 if __name__ == "__main__":
     unittest.main()

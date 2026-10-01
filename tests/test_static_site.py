@@ -150,6 +150,12 @@ class StaticSiteTests(unittest.TestCase):
         )
         self.assertIn("target.hash = window.location.hash", sixth_chapter_entry)
 
+        seventh_chapter_entry = (
+            ROOT / "chapters" / "07-alexnet.html"
+        ).read_text(encoding="utf-8")
+        self.assertIn("../docs/chapters/07-alexnet.html", seventh_chapter_entry)
+        self.assertIn("target.hash = window.location.hash", seventh_chapter_entry)
+
     def test_linear_separability_page_contains_the_lesson_contract(self):
         page = DOCS / "chapters" / "02-linear-separability.html"
         source = page.read_text(encoding="utf-8")
@@ -327,6 +333,34 @@ class StaticSiteTests(unittest.TestCase):
             "window = feature_tensor[",
             'value = window.max() if mode == "max" else window.mean()',
             "output[output_row, output_column] = value",
+        ):
+            self.assertIn(code_line, implementation)
+            self.assertIn(code_line, source)
+
+    def test_alexnet_page_contains_the_lesson_contract(self):
+        page = DOCS / "chapters" / "07-alexnet.html"
+        source = page.read_text(encoding="utf-8")
+        for section_id in (
+            "overview",
+            "paper",
+            "breakthrough",
+            "architecture",
+            "adaptation",
+            "code",
+            "lab",
+            "checkpoint",
+        ):
+            self.assertIn(f'id="{section_id}"', source)
+
+        implementation = (ROOT / "backbone" / "AlexNet.py").read_text(
+            encoding="utf-8"
+        )
+        for code_line in (
+            "x = self.features(x)",
+            "x = self.avgpool(x)",
+            "x = torch.flatten(x, 1)",
+            "x = self.classifier(x)",
+            "return x",
         ):
             self.assertIn(code_line, implementation)
             self.assertIn(code_line, source)
