@@ -903,6 +903,50 @@ code, pre { font-family: var(--mono); }
 .vgg-memory-results strong { margin: 4px 0; color: var(--blue-dark); font-family: var(--serif); font-size: 29px; }
 .vgg-memory-results small { color: var(--muted); font-size: 13px; }
 
+/* ResNet experiments */
+.resnet-equation { flex-wrap: wrap; gap: 9px 18px; font-family: var(--serif); font-size: 20px; text-align: center; }
+.resnet-controls { display: flex; flex-wrap: wrap; gap: 15px 28px; padding: 17px 20px; border-bottom: 1px solid var(--line); background: var(--surface-soft); }
+.resnet-controls label { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 15px; font-weight: 750; }
+.resnet-controls input[type="range"] { width: clamp(130px, 20vw, 250px); accent-color: var(--blue); }
+.resnet-controls select { padding: 7px 11px; border: 1px solid var(--line-dark); background: #fff; color: var(--ink); font: inherit; cursor: pointer; }
+.resnet-controls output { min-width: 34px; color: var(--blue); font-weight: 800; }
+.residual-diagram { display: grid; grid-template-columns: minmax(100px, 1fr) minmax(180px, 1.5fr) minmax(110px, 1fr); align-items: center; gap: 12px; padding: 25px 20px; }
+.residual-entry, .residual-merge { position: relative; display: grid; justify-items: center; gap: 4px; padding: 13px 9px; border-block: 2px solid var(--blue); background: var(--blue-soft); color: var(--blue-dark); font-size: 15px; text-align: center; }
+.residual-entry strong, .residual-merge strong { font-family: var(--serif); font-size: 28px; line-height: 1.2; }
+.residual-entry::after, .residual-branches::after { content: "→"; position: absolute; top: calc(50% - 17px); right: -19px; color: var(--blue); font-size: 24px; }
+.residual-merge small { color: var(--muted); font-size: 12px; }
+.residual-branches { position: relative; display: grid; gap: 8px; }
+.residual-branches > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; border-left: 3px solid var(--line-dark); background: #f8f7f4; font-size: 14px; }
+.residual-branches > div:first-child { border-left-color: var(--blue); }
+.residual-branches strong { color: var(--blue-dark); font-family: var(--serif); font-size: 20px; }
+.residual-results { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--line); }
+.residual-results > div { padding: 16px 20px; }
+.residual-results > div + div { border-left: 1px solid var(--line); }
+.residual-results span, .resnet-stage-overview span, .resnet-extension-results span { display: block; color: var(--muted); font-size: 13px; }
+.residual-results strong, .resnet-stage-overview strong, .resnet-extension-results strong { display: block; margin-top: 4px; color: var(--blue-dark); font-size: 20px; overflow-wrap: anywhere; }
+.resnet-lab-note { margin: 11px 0 22px; color: var(--muted); font-size: 15px; }
+.resnet-stage-overview, .resnet-extension-results { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); background: #fbf8f7; }
+.resnet-stage-overview > div, .resnet-extension-results > div { padding: 16px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.resnet-stage-overview > div:last-child, .resnet-extension-results > div:last-child { border-right: 0; }
+.resnet-stage-list { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.resnet-stage-list button { min-width: 0; padding: 13px 9px; border: 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: #fff; color: var(--ink); text-align: left; transition: background .18s ease, transform .18s ease; }
+.resnet-stage-list button:last-child { border-right: 0; }
+.resnet-stage-list button:hover { background: var(--surface-soft); transform: translateY(-2px); }
+.resnet-stage-list button.is-current { border-bottom: 3px solid var(--blue); background: var(--blue-soft); }
+.resnet-stage-list span, .resnet-stage-list strong, .resnet-stage-list small { display: block; }
+.resnet-stage-list span { color: var(--blue); font-size: 13px; font-weight: 800; }
+.resnet-stage-list strong { margin-top: 3px; font-size: 18px; }
+.resnet-stage-list small { color: var(--muted); font-size: 12px; }
+.resnet-stage-detail { display: grid; grid-template-columns: minmax(150px, .65fr) minmax(0, 1.35fr); gap: 22px; padding: 24px; }
+.resnet-stage-detail > div > span { color: var(--blue); font-size: 14px; font-weight: 800; }
+.resnet-stage-detail h3 { margin: 3px 0 5px; font-family: var(--serif); font-size: 29px; }
+.resnet-stage-detail p { margin: 0; color: var(--muted); font-size: 15px; }
+.resnet-stage-detail dl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 18px; margin: 0; }
+.resnet-stage-detail dt { color: var(--muted); font-size: 13px; }
+.resnet-stage-detail dd { margin: 3px 0 0; font-size: 16px; font-weight: 800; overflow-wrap: anywhere; }
+.resnet-extension-results { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.resnet-extension-lab > p { margin: 0; padding: 14px 18px; color: var(--muted); font-size: 15px; }
+
 /* Tables, summary, exercises */
 .comparison-table-wrap { overflow-x: auto; }
 .comparison-table { width: 100%; border-collapse: collapse; border: 1px solid var(--line-dark); background: #fff; font-size: 18.2px; }
@@ -1042,6 +1086,9 @@ code, pre { font-family: var(--mono); }
   .vgg-block-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .vgg-block-list button:nth-child(3) { border-right: 0; }
   .vgg-block-detail { grid-template-columns: 1fr; }
+  .resnet-stage-detail { grid-template-columns: 1fr; }
+  .resnet-extension-results { grid-template-columns: 1fr 1fr; }
+  .resnet-extension-results > div:nth-child(2) { border-right: 0; }
 }
 @media (max-width: 650px) {
   :root { font-size: 22.1px; }
@@ -1059,6 +1106,21 @@ code, pre { font-family: var(--mono); }
   .timeline-step::after, .timeline-step:nth-child(even)::after { right: auto; left: 13px; width: 19px; }
   .timeline-step .timeline-card, .timeline-step:nth-child(even) .timeline-card { grid-column: 2; text-align: left; }
   .timeline-step:nth-child(odd) .timeline-card:hover { transform: translateX(3px); }
+  .resnet-controls { flex-direction: column; align-items: stretch; }
+  .resnet-controls label { justify-content: space-between; flex-wrap: wrap; }
+  .resnet-controls label.range-label { display: grid; grid-template-columns: 1fr auto; width: 100%; gap: 7px 12px; }
+  .resnet-controls label.range-label input[type="range"] { grid-column: 1 / -1; grid-row: 2; width: 100%; }
+  .resnet-controls label.range-label output { grid-column: 2; grid-row: 1; text-align: right; }
+  .residual-diagram { grid-template-columns: 1fr; gap: 24px; }
+  .residual-entry::after, .residual-branches::after { top: auto; right: calc(50% - 10px); bottom: -29px; transform: rotate(90deg); }
+  .resnet-stage-overview { grid-template-columns: 1fr 1fr; }
+  .resnet-stage-overview > div:nth-child(2) { border-right: 0; }
+  .resnet-stage-overview > div:last-child { grid-column: 1 / -1; }
+  .resnet-stage-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .resnet-stage-list button:nth-child(3) { border-right: 0; }
+  .resnet-stage-list button:nth-child(n + 4) { border-bottom: 1px solid var(--line); }
+  .resnet-stage-list button:last-child { border-right: 1px solid var(--line); }
+  .resnet-stage-detail dl { grid-template-columns: 1fr; }
   .method-section, .curriculum-section { padding: 58px 20px; }
   .method-grid, .curriculum-grid { grid-template-columns: 1fr; }
   .method-grid li, .curriculum-card, .curriculum-card:nth-child(n) { border: 0; border-bottom: 1px solid var(--line); }

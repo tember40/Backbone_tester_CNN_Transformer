@@ -163,6 +163,12 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("../docs/chapters/08-vgg.html", eighth_chapter_entry)
         self.assertIn("target.hash = window.location.hash", eighth_chapter_entry)
 
+        ninth_chapter_entry = (
+            ROOT / "chapters" / "09-resnet.html"
+        ).read_text(encoding="utf-8")
+        self.assertIn("../docs/chapters/09-resnet.html", ninth_chapter_entry)
+        self.assertIn("target.hash = window.location.hash", ninth_chapter_entry)
+
     def test_linear_separability_page_contains_the_lesson_contract(self):
         page = DOCS / "chapters" / "02-linear-separability.html"
         source = page.read_text(encoding="utf-8")
@@ -293,7 +299,7 @@ class StaticSiteTests(unittest.TestCase):
         glossary = (DOCS / "assets" / "js" / "glossary.js").read_text(
             encoding="utf-8"
         )
-        for chapter in range(1, 9):
+        for chapter in range(1, 10):
             number = f"{chapter:02d}"
             page = next((DOCS / "chapters").glob(f"{number}-*.html"))
             source = page.read_text(encoding="utf-8")
@@ -312,7 +318,7 @@ class StaticSiteTests(unittest.TestCase):
             )
         }
         self.assertGreaterEqual(len(definitions), 30)
-        for chapter in range(1, 9):
+        for chapter in range(1, 10):
             number = f"{chapter:02d}"
             page = next((DOCS / "chapters").glob(f"{number}-*.html"))
             match = re.search(
@@ -450,6 +456,38 @@ class StaticSiteTests(unittest.TestCase):
         )
         self.assertIn('href="08-vgg.html"', alexnet)
 
+    def test_resnet_page_contains_the_lesson_contract(self):
+        page = DOCS / "chapters" / "09-resnet.html"
+        source = page.read_text(encoding="utf-8")
+        for section_id in (
+            "overview", "paper", "residual", "blocks", "architecture",
+            "adaptation", "code", "extensions", "checkpoint",
+        ):
+            self.assertIn(f'id="{section_id}"', source)
+
+        implementation = (ROOT / "backbone" / "ResNet.py").read_text(
+            encoding="utf-8"
+        )
+        for code_line in (
+            "identity = x",
+            "out = self.conv1(x)",
+            "out = self.bn2(out)",
+            "identity = self.downsample(x)",
+            "out += identity",
+            "out = self.relu(out)",
+        ):
+            self.assertIn(code_line, implementation)
+            self.assertIn(code_line, source)
+
+        self.assertIn('href="09-resnet.html"', (
+            DOCS / "chapters" / "08-vgg.html"
+        ).read_text(encoding="utf-8"))
+        self.assertIn('href="chapters/09-resnet.html"', (
+            DOCS / "index.html"
+        ).read_text(encoding="utf-8"))
+        self.assertIn("7×7 합성곱, 64채널", source)
+        self.assertIn("32×32 RGB", source)
+
     def test_home_page_timeline_and_private_curriculum_states(self):
         home = (DOCS / "index.html").read_text(encoding="utf-8")
         self.assertEqual(home.count('data-year="'), 8)
@@ -459,8 +497,8 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('id="timelineSource"', home)
         self.assertIn('id="timelineChapter"', home)
         self.assertNotIn("학습 가능", home)
-        self.assertEqual(home.count('class="is-locked"'), 10)
-        self.assertEqual(home.count('class="private-label">비공개'), 10)
+        self.assertEqual(home.count('class="is-locked"'), 9)
+        self.assertEqual(home.count('class="private-label">비공개'), 9)
         self.assertNotIn("lock-icon", home)
         self.assertIn("아직 제작 중인 단원", home)
 

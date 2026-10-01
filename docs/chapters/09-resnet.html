@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ResNet의 잔차 연결, BasicBlock과 Bottleneck, CIFAR-10 구현, ResNeXt와 Wide ResNet 확장을 실제 코드와 실험으로 살펴보는 학습 자료">
+  <title>9장. ResNet과 확장 모델 · Backbone Lab</title>
+  <link rel="stylesheet" href="../assets/css/site.css?v=20261001g">
+  <script src="../assets/js/glossary.js?v=20261001g" defer></script>
+  <script src="../assets/js/resnet.js?v=20261001a" defer></script>
+</head>
+<body class="chapter-page">
+  <header class="site-header">
+    <a class="brand" href="../index.html" aria-label="Backbone Lab 홈"><span class="brand-mark">KW</span><span><strong>인공지능 기초</strong><small><span lang="en">Backbone Lab</span> 학습 자료</small></span></a>
+    <div class="chapter-progress" aria-label="현재 과정"><span>제3부 · 고전 CNN</span><div><i style="width: 100%"></i></div><strong>3 / 3</strong></div>
+    <nav class="header-actions"><a href="../index.html#curriculum">전체 목차</a><a class="button button-small" href="https://github.com/tember40/Backbone_tester_CNN_Transformer/blob/main/backbone/ResNet.py">실제 코드</a></nav>
+  </header>
+  <div class="chapter-layout">
+    <aside class="chapter-sidebar" aria-label="단원 목차">
+      <p class="sidebar-label">제9장 · ResNet</p>
+      <nav>
+        <a class="is-current" href="#overview"><span>9.0</span>학습 안내</a>
+        <a href="#paper"><span>9.1</span>논문의 질문</a>
+        <a href="#residual"><span>9.2</span>잔차 연결</a>
+        <a href="#blocks"><span>9.3</span>블록과 투영</a>
+        <a href="#architecture"><span>9.4</span>단계별 구조</a>
+        <a href="#adaptation"><span>9.5</span>CIFAR-10 구현</a>
+        <a href="#code"><span>9.6</span>구현과 코드</a>
+        <a href="#extensions"><span>9.7</span>확장 모델</a>
+        <a href="#checkpoint"><span>9.8</span>연습문제</a>
+      </nav>
+    </aside>
+    <main class="chapter-content"><article>
+      <header class="chapter-hero" id="overview">
+        <div class="chapter-kicker"><span>제3부</span><span>고전 CNN</span><span>선수 지식: 4–8장</span></div>
+        <h1><small>제9장 · ResNet과 확장 모델</small><span lang="en">ResNet</span></h1>
+        <p class="chapter-lead">VGG는 층을 더 깊게 쌓는 방법을 정돈했습니다. 그런데 깊이가 계속 늘면 학습 오차조차 악화되는 경우가 있습니다. ResNet은 입력을 다음 층으로 건너 보내고, 층들이 입력에 더할 변화량을 학습하게 합니다. 이 장에서는 그 덧셈이 코드와 특징맵에서 어떻게 성립하는지 확인합니다.</p>
+        <div class="learning-objectives"><h2>학습 목표</h2><ul>
+          <li>깊은 plain network의 <span lang="en">degradation</span>을 과적합과 구분할 수 있습니다.</li>
+          <li>잔차 연결의 덧셈, 차원 일치 조건, 투영 <span lang="en">shortcut</span>을 설명할 수 있습니다.</li>
+          <li>ResNet18·34·50의 블록 구성과 32×32 입력의 단계별 크기를 추적할 수 있습니다.</li>
+          <li>ResNeXt의 그룹 수와 Wide ResNet의 폭 변경을 실제 구현에서 찾을 수 있습니다.</li>
+        </ul></div>
+      </header>
+
+      <section class="lesson-section" id="paper">
+        <div class="section-number">9.1</div><div class="lesson-heading"><p class="eyebrow">논문의 질문</p><h2><span>9.1</span> 층을 더 쌓는데 왜 학습 오차가 커질까?</h2></div>
+        <div class="paper-card"><div class="paper-meta"><span lang="en">Kaiming He · Xiangyu Zhang · Shaoqing Ren · Jian Sun</span><span>2015</span><span lang="en">CVPR 2016</span></div><h3 lang="en">Deep Residual Learning for Image Recognition</h3><p>논문은 깊은 plain network가 얕은 대응 모델보다 <strong>훈련 오차</strong>가 높아지는 현상을 보였습니다. 이것은 단순히 훈련 데이터를 외워서 테스트 성능만 나빠지는 과적합과 다릅니다. 연구진은 각 블록이 원하는 함수를 처음부터 만드는 대신 입력에서 얼마나 달라져야 하는지를 학습하도록 바꾸었습니다.</p><a class="text-link" href="https://arxiv.org/abs/1512.03385">원 논문 보기 <span aria-hidden="true">↗</span></a></div>
+        <p>논문의 논리는 이렇습니다. 얕은 모델에 층을 추가해도, 추가 층이 아무 변화도 주지 않는 항등 함수라면 최소한 기존 결과를 유지할 수 있어야 합니다. 그런데 실제 최적화는 그런 해를 쉽게 찾지 못했습니다. <span lang="en">residual learning</span>은 그 항등 경로를 구조에 직접 넣습니다. 이는 기울기 소실만을 없애는 만능 해법이라는 뜻이 아니라, 깊은 망의 <strong>최적화를 쉽게 하려는 설계</strong>입니다.</p>
+      </section>
+
+      <section class="lesson-section" id="residual">
+        <div class="section-number">9.2</div><div class="lesson-heading"><p class="eyebrow">실습 9.1 · 덧셈 따라가기</p><h2><span>9.2</span> 원래 입력에 변화량을 더한다</h2><p>덧셈 전의 목표 변환을 H(x)라고 할 때 블록은 차이 F(x)=H(x)−x를 학습합니다. 입력과 출력의 크기가 같으면 <span lang="en">identity shortcut</span>은 x를 그대로 전달하고, 주 경로가 만든 F(x)와 원소별로 더합니다. 이 구현은 덧셈 뒤 ReLU를 적용합니다.</p></div>
+        <div class="equation-card resnet-equation"><strong>H(x) = F(x) + x</strong><span aria-hidden="true">→</span><strong>y = ReLU(H(x))</strong></div>
+        <p>이 페이지의 숫자 실험은 특징맵의 한 원소만 떼어낸 모형입니다. 실제 블록에서는 텐서의 대응하는 모든 위치와 채널에 같은 방식으로 덧셈이 일어납니다. 슬라이더로 입력 x와 주 경로의 출력 F(x)를 바꿔 보세요.</p>
+        <div class="lab-panel residual-lab">
+          <div class="resnet-controls"><label class="range-label">입력 x <input id="residualInput" type="range" min="0" max="2" step="0.1" value="1"><output id="residualInputValue">1.0</output></label><label class="range-label">주 경로 F(x) <input id="residualChange" type="range" min="-1.5" max="1.5" step="0.1" value="0"><output id="residualChangeValue">0.0</output></label></div>
+          <div class="residual-diagram" aria-label="잔차 블록의 두 경로"><div class="residual-entry">입력 <strong id="residualDiagramInput">1.0</strong></div><div class="residual-branches"><div><span>주 경로 · 학습한 변화량</span><strong id="residualDiagramChange">0.0</strong></div><div><span>shortcut · 입력 그대로</span><strong id="residualDiagramSkip">1.0</strong></div></div><div class="residual-merge">더하기 <strong id="residualSum">1.0</strong><small>→ ReLU</small></div></div>
+          <div class="residual-results"><div><span>잔차 블록 출력</span><strong id="residualOutput">1.0</strong></div><div><span>같은 F(x)에 shortcut이 없다면</span><strong id="plainOutput">0.0</strong></div></div>
+        </div>
+        <p class="resnet-lab-note" id="residualNote">F(x)=0이면 양수 입력은 그대로 전달됩니다.</p>
+        <aside class="callout callout-note"><strong>항등 경로의 정확한 범위</strong><p>이 구현은 덧셈 <em>뒤</em>에도 ReLU를 적용합니다. 따라서 F(x)=0이어도 음수 입력까지 항상 그대로 나오는 것은 아닙니다. 실습에서 x를 0 이상으로 제한한 이유입니다. 덧셈 뒤 활성화까지 항등으로 만드는 후속 설계는 <a href="https://arxiv.org/abs/1603.05027">pre-activation ResNet</a>에서 살펴볼 수 있습니다.</p></aside>
+      </section>
+
+      <section class="lesson-section" id="blocks">
+        <div class="section-number">9.3</div><div class="lesson-heading"><p class="eyebrow">블록의 두 경로</p><h2><span>9.3</span> 더하려면 모양이 먼저 같아야 한다</h2></div>
+        <p><span lang="en">BasicBlock</span>은 3×3 합성곱 두 번으로 F(x)를 계산합니다. ResNet18과 ResNet34가 사용합니다. <span lang="en">Bottleneck</span>은 1×1 → 3×3 → 1×1로 채널을 조절하며 ResNet50 이상의 모델이 사용합니다. 이 저장소의 Bottleneck 출력 채널은 내부 <code>planes</code>의 네 배입니다.</p>
+        <div class="comparison-table-wrap"><table class="comparison-table"><thead><tr><th>블록</th><th>주 경로 F(x)</th><th>사용 모델</th></tr></thead><tbody><tr><th>BasicBlock</th><td>3×3 → 3×3</td><td>ResNet18·34</td></tr><tr><th>Bottleneck</th><td>1×1 → 3×3 → 1×1</td><td>ResNet50·101·152 및 확장 모델</td></tr></tbody></table></div>
+        <p>같은 단계에서는 입력과 F(x)의 채널·높이·너비가 같아 x를 그대로 더할 수 있습니다. 새 단계의 첫 블록처럼 공간 크기를 절반으로 줄이거나 채널 수를 늘릴 때는 <code>downsample</code> 경로에 <strong>1×1 합성곱(필요하면 보폭 2)과 BatchNorm</strong>을 두어 모양을 맞춥니다. 이는 매 블록의 항등 shortcut과 달리 학습 파라미터가 있는 <span lang="en">projection shortcut</span>입니다.</p>
+        <div class="equation-card resnet-equation"><strong>크기 일치: F(x) + x</strong><span aria-hidden="true">→</span><strong>크기 변경: F(x) + W<sub>s</sub>x</strong></div>
+        <p>이 프로젝트는 차원이 달라질 때 항상 위 투영 경로를 사용합니다. 원 논문에서 비교한, 0으로 채워 채널을 맞추는 방식과는 구분해야 합니다.</p>
+      </section>
+
+      <section class="lesson-section" id="architecture">
+        <div class="section-number">9.4</div><div class="lesson-heading"><p class="eyebrow">실습 9.2 · 단계별 특징맵</p><h2><span>9.4</span> ResNet18·34·50의 각 단계를 추적하기</h2><p>모델과 단계를 선택하세요. 값은 이 저장소의 <span lang="en">backbone/ResNet.py</span>에 32×32 RGB 이미지를 넣었을 때의 출력 모양입니다. 모델 이름의 숫자는 블록 수가 아니라 가중치가 있는 층 수를 뜻합니다.</p></div>
+        <div class="lab-panel resnet-stage-lab">
+          <div class="resnet-controls"><label>모델 <select id="resnetVariant"><option value="resnet18" selected>ResNet18</option><option value="resnet34">ResNet34</option><option value="resnet50">ResNet50</option></select></label></div>
+          <div class="resnet-stage-overview"><div><span>블록 구성</span><strong id="resnetBlockPattern">—</strong></div><div><span>블록 종류</span><strong id="resnetBlockType">—</strong></div><div><span>10-class 파라미터</span><strong id="resnetParameters">—</strong></div></div>
+          <div class="resnet-stage-list" id="resnetStageList" aria-label="ResNet 단계 목록"></div>
+          <div class="resnet-stage-detail"><div><span>선택한 단계</span><h3 id="resnetStageName">—</h3><p id="resnetStageDescription">—</p></div><dl><div><dt>입력 특징맵 [C, H, W]</dt><dd id="resnetStageInput">—</dd></div><div><dt>출력 특징맵 [C, H, W]</dt><dd id="resnetStageOutput">—</dd></div><div><dt>잔차 블록 수</dt><dd id="resnetStageBlocks">—</dd></div><div><dt>첫 블록 shortcut</dt><dd id="resnetStageShortcut">—</dd></div></dl></div>
+        </div>
+        <p>32×32 입력은 stem을 지나 8×8이 되고, 네 단계에서 8 → 4 → 2 → 1로 바뀝니다. ResNet50은 Bottleneck의 확장 계수 4 때문에 마지막 특징맵이 2048채널이며, BasicBlock을 쓰는 ResNet18·34는 512채널입니다.</p>
+      </section>
+
+      <section class="lesson-section" id="adaptation">
+        <div class="section-number">9.5</div><div class="lesson-heading"><p class="eyebrow">논문과 현재 프로젝트의 범위</p><h2><span>9.5</span> CIFAR-10을 쓴다고 같은 실험은 아니다</h2></div>
+        <div class="comparison-table-wrap"><table class="comparison-table"><thead><tr><th>항목</th><th>논문의 CIFAR-10 실험</th><th>이 프로젝트의 ResNet18</th></tr></thead><tbody><tr><th>입력</th><td>32×32 RGB</td><td>32×32 RGB</td></tr><tr><th>시작 부분</th><td>3×3 합성곱, 16채널</td><td>7×7 합성곱, 64채널, 보폭 2 + MaxPool</td></tr><tr><th>잔차 단계</th><td>3단계</td><td>4단계</td></tr><tr><th>마지막 공간 크기</th><td>8×8 뒤 전역 평균 풀링</td><td>1×1 뒤 적응형 평균 풀링</td></tr><tr><th>분류 범주</th><td>10개</td><td>10개</td></tr></tbody></table></div>
+        <p>논문에는 ImageNet용 ResNet 계열과 별도의 작은 CIFAR-10 실험 구조가 나옵니다. 이 저장소는 <strong>ImageNet형 stem과 4단계 구조를 유지한 채</strong> 분류 출력만 10개로 바꿉니다. 따라서 웹 실습의 크기 변화나 직접 학습한 결과를 논문의 CIFAR-10 수치와 일대일로 비교할 수 없습니다.</p>
+        <aside class="callout callout-question"><strong>사전학습 가중치는 자동으로 내려받지 않습니다</strong><p><span lang="en">backbone/ResNet.py</span>의 <code>pretrained</code> 인자는 생성 함수에 있지만 가중치 로딩 부분은 주석 처리되어 있습니다. <code>pretrained=True</code>만으로 논문 또는 ImageNet 사전학습 가중치가 적용된다고 생각하면 안 됩니다.</p></aside>
+      </section>
+
+      <section class="lesson-section" id="code">
+        <div class="section-number">9.6</div><div class="lesson-heading"><p class="eyebrow">실제 프로젝트 코드</p><h2><span>9.6</span> 덧셈 한 줄 전후를 읽기</h2><p>아래는 <span lang="en">backbone/ResNet.py</span>의 <code>BasicBlock.forward</code>에서 빈 줄만 뺀 코드입니다. 오른쪽 해설을 선택하면 해당 줄이 강조됩니다.</p></div>
+        <div class="code-study"><div class="code-window"><div class="code-toolbar"><span>backbone/ResNet.py · BasicBlock.forward</span><button class="copy-button" type="button" data-copy-target="resnetCode">코드 복사</button></div><pre id="resnetCode" class="line-code"><code><span data-line="1">def forward(self, x):</span>
+<span data-line="2">    identity = x</span>
+<span data-line="3">    out = self.conv1(x)</span>
+<span data-line="4">    out = self.bn1(out)</span>
+<span data-line="5">    out = self.relu(out)</span>
+<span data-line="6">    out = self.conv2(out)</span>
+<span data-line="7">    out = self.bn2(out)</span>
+<span data-line="8">    if self.downsample is not None:</span>
+<span data-line="9">        identity = self.downsample(x)</span>
+<span data-line="10">    out += identity</span>
+<span data-line="11">    out = self.relu(out)</span>
+<span data-line="12">    return out</span></code></pre></div><div class="code-notes" role="list" aria-label="코드 해설"><button type="button" data-highlight="1-2"><span>① 입력 보관</span><strong>shortcut의 시작</strong><small>기본값은 입력 x 그대로입니다.</small></button><button type="button" data-highlight="3-7"><span>② 주 경로</span><strong>3×3 합성곱 두 번</strong><small>중간 ReLU, 마지막 BN까지 F(x)를 만듭니다.</small></button><button type="button" data-highlight="8-9"><span>③ 크기 맞춤</span><strong>필요할 때만 투영</strong><small>채널 또는 공간 크기가 달라지면 downsample합니다.</small></button><button type="button" data-highlight="10-12"><span>④ 합치기</span><strong>원소별 덧셈 후 ReLU</strong><small>두 경로를 합친 뒤 활성화합니다.</small></button></div></div>
+        <p><code>out += identity</code>가 이 블록의 핵심입니다. <code>_make_layer</code>는 단계 첫 블록의 입력·출력 채널이나 보폭이 다를 때 <code>conv1x1(..., stride)</code>와 BatchNorm을 <code>downsample</code>에 넣습니다. 따라서 코드에서 투영 여부를 확인하려면 <code>forward</code>뿐 아니라 블록을 만드는 부분도 함께 읽어야 합니다.</p>
+      </section>
+
+      <section class="lesson-section" id="extensions">
+        <div class="section-number">9.7</div><div class="lesson-heading"><p class="eyebrow">실습 9.3 · 같은 골격의 다른 선택</p><h2><span>9.7</span> 그룹 수와 너비를 바꾸면?</h2><p>이 저장소에는 ResNet50의 Bottleneck 구조를 바탕으로 그룹 수를 늘린 ResNeXt와 내부 너비를 넓힌 <code>wide_resnet50_2</code>가 있습니다. 모델을 선택해 바뀌는 설정과 파라미터 수를 비교하세요.</p></div>
+        <div class="lab-panel resnet-extension-lab"><div class="resnet-controls"><label>비교 모델 <select id="resnetExtension"><option value="resnet50">ResNet50</option><option value="resnext50_32x4d">ResNeXt50 32×4d</option><option value="wide_resnet50_2">Wide ResNet50-2</option></select></label></div><div class="resnet-extension-results"><div><span>3×3 합성곱 그룹 수</span><strong id="extensionGroups">—</strong></div><div><span>Bottleneck 내부 너비 설정</span><strong id="extensionWidth">—</strong></div><div><span>실제 내부 채널 (planes=64)</span><strong id="extensionChannels">—</strong></div><div><span>10-class 파라미터</span><strong id="extensionParameters">—</strong></div></div><p id="extensionExplanation">—</p></div>
+        <p><span lang="en">ResNeXt</span>는 그룹화된 변환의 수(<span lang="en">cardinality</span>)를 설계 축으로 제안합니다. 이 구현의 <code>resnext50_32x4d</code>는 <code>groups=32</code>, <code>width_per_group=4</code>를 사용합니다. <code>wide_resnet50_2</code>는 <code>width_per_group=128</code>로 ResNet50의 Bottleneck 내부 폭을 두 배로 합니다. 이름이 비슷하더라도 이것을 <span lang="en">Wide Residual Networks</span> 논문의 CIFAR용 특정 구조와 동일시하면 안 됩니다.</p>
+        <p>더 읽어 보기: <a class="text-link" href="https://arxiv.org/abs/1611.05431">ResNeXt 원 논문 ↗</a> · <a class="text-link" href="https://arxiv.org/abs/1605.07146">Wide Residual Networks 원 논문 ↗</a></p>
+      </section>
+
+      <section class="lesson-section" id="checkpoint">
+        <div class="section-number">9.8</div><div class="lesson-heading"><p class="eyebrow">정리와 연습문제</p><h2><span>9.8</span> 무엇을 그대로 전달하고 무엇을 학습할까?</h2></div>
+        <div class="chapter-summary-box"><h3>9장 핵심 정리</h3><ul><li>ResNet은 깊은 plain network의 훈련 오차 악화라는 최적화 문제를 다룹니다.</li><li>잔차 블록은 F(x)와 shortcut 출력을 원소별로 더합니다. 모양이 다르면 투영으로 맞춥니다.</li><li>ResNet18·34는 BasicBlock, ResNet50 이상은 Bottleneck을 사용합니다.</li><li>이 프로젝트의 32×32 실습 모델은 논문의 CIFAR 전용 구조가 아닌 ImageNet형 stem을 사용합니다.</li></ul></div>
+        <dl class="key-terms"><div><dt lang="en">Residual</dt><dd>입력에 더해 학습하는 변화량 F(x)</dd></div><div><dt lang="en">Shortcut</dt><dd>주 경로를 우회해 입력을 덧셈 지점으로 전달하는 경로</dd></div><div><dt lang="en">Projection</dt><dd>덧셈을 위해 shortcut의 채널과 공간 크기를 맞추는 연산</dd></div></dl>
+        <div class="quiz-list chapter-quiz-spacing"><fieldset class="quiz" data-answer="b"><legend><span>Q1</span>논문의 degradation 현상을 가장 정확히 설명한 것은?</legend><label><input type="radio" name="q1" value="a"> 테스트 오차만 커지는 과적합</label><label><input type="radio" name="q1" value="b"> 깊은 plain network의 훈련 오차가 더 커지는 최적화 어려움</label><label><input type="radio" name="q1" value="c"> 입력 이미지 크기가 줄어드는 현상</label><p class="quiz-feedback"></p></fieldset><fieldset class="quiz" data-answer="c"><legend><span>Q2</span>입력과 주 경로 출력의 모양이 다르면 이 코드의 shortcut은?</legend><label><input type="radio" name="q2" value="a"> 덧셈을 생략한다</label><label><input type="radio" name="q2" value="b"> 무조건 x를 그대로 더한다</label><label><input type="radio" name="q2" value="c"> 1×1 합성곱과 BatchNorm으로 모양을 맞춘다</label><p class="quiz-feedback"></p></fieldset><fieldset class="quiz" data-answer="a"><legend><span>Q3</span>이 저장소의 32×32 입력 ResNet18은 처음에 무엇을 사용하는가?</legend><label><input type="radio" name="q3" value="a"> 7×7 합성곱, 보폭 2와 MaxPool</label><label><input type="radio" name="q3" value="b"> 논문 CIFAR 실험과 같은 3×3, 16채널 stem</label><label><input type="radio" name="q3" value="c"> 합성곱 없이 바로 분류기</label><p class="quiz-feedback"></p></fieldset><button class="button" id="checkQuiz" type="button">정답 확인</button><p class="quiz-score" id="quizScore" aria-live="polite"></p></div>
+      </section>
+      <section class="local-run-card"><div><p class="eyebrow">직접 실행</p><h2>CIFAR-10에서 ResNet18 빠르게 학습하기</h2><p>설치 후 빠른 실행으로 데이터 다운로드부터 한 epoch의 학습·검증까지 확인할 수 있습니다. 웹의 숫자 실험은 개념 모형이며, 실제 학습 기록은 여기서 생성됩니다.</p></div><div class="command-block"><code>cifar10-lab train --model resnet18 --quick</code><button class="copy-button" type="button" data-copy-text="cifar10-lab train --model resnet18 --quick">복사</button></div></section>
+      <nav class="chapter-pagination" aria-label="단원 이동"><a href="08-vgg.html"><small>이전</small><strong>8장 · VGG</strong></a><span class="disabled"><small>다음</small><strong>10장 · SENet</strong></span></nav>
+    </article></main>
+    <aside id="chapterGlossary" class="chapter-glossary" aria-label="핵심 용어" data-chapter="09"><div class="glossary-heading"><h2>핵심 용어</h2></div><p class="glossary-intro">영어 용어를 눌러 뜻과 등장 위치를 확인하세요.</p><div class="glossary-list"></div></aside>
+  </div>
+  <footer class="site-footer"><span>Backbone Lab · 실제 코드로 배우는 인공지능 기초</span><a href="https://github.com/tember40/Backbone_tester_CNN_Transformer">GitHub에서 보기</a></footer>
+</body>
+</html>

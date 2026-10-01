@@ -13,11 +13,12 @@
     "06": "06-pooling-receptive-field.html",
     "07": "07-alexnet.html",
     "08": "08-vgg.html",
+    "09": "09-resnet.html",
   };
   const chapterNames = {
     "01": "퍼셉트론", "02": "선형 분리와 XOR", "03": "다층 퍼셉트론",
     "04": "합성곱과 필터", "05": "특징맵과 활성화",
-    "06": "Pooling과 수용영역", "07": "AlexNet", "08": "VGG",
+    "06": "Pooling과 수용영역", "07": "AlexNet", "08": "VGG", "09": "ResNet과 확장 모델",
   };
   const term = (english, korean, meaning, chapter, section) =>
     ({english, korean, meaning, chapter, section});
@@ -63,6 +64,14 @@
     adaptivePool: term("Adaptive Average Pooling", "적응형 평균 풀링", "입력 크기에 맞춰 구역을 정해 지정된 출력 공간 크기로 평균을 냅니다.", "08", "adaptation"),
     parameter: term("Parameter", "파라미터", "학습 과정에서 갱신되는 가중치와 편향의 원소입니다.", "01", "anatomy"),
     mib: term("MiB", "메비바이트", "2의 20제곱 바이트를 한 단위로 세는 메모리 크기입니다.", "08", "lab"),
+    resnet: term("ResNet", "잔차 신경망", "입력을 우회 경로로 전달하고 층이 계산한 변화량과 더하는 CNN 계열입니다.", "09", "paper"),
+    degradation: term("Degradation", "깊이에 따른 훈련 성능 저하", "더 깊은 plain network의 훈련 오차가 오히려 커지는 최적화 현상입니다.", "09", "paper"),
+    residual: term("Residual Mapping", "잔차 함수", "원하는 출력 H(x)와 입력 x의 차이인 F(x)=H(x)−x입니다.", "09", "residual"),
+    shortcut: term("Shortcut Connection", "우회 연결", "주 경로의 층을 건너뛰어 입력을 덧셈 지점으로 보내는 경로입니다.", "09", "residual"),
+    projection: term("Projection Shortcut", "투영 우회 연결", "1×1 합성곱 등으로 shortcut의 크기를 주 경로와 맞춥니다.", "09", "blocks"),
+    basicBlock: term("BasicBlock", "기본 잔차 블록", "3×3 합성곱 두 개를 주 경로에 두는 ResNet18·34의 블록입니다.", "09", "blocks"),
+    bottleneck: term("Bottleneck", "병목 블록", "1×1, 3×3, 1×1 합성곱으로 내부 채널과 계산량을 조절하는 블록입니다.", "09", "blocks"),
+    cardinality: term("Cardinality", "그룹 변환의 수", "ResNeXt에서 병렬 그룹화 변환의 개수를 나타내는 설계 축입니다.", "09", "extensions"),
   };
   const chapterWords = {
     "01": [["perceptron", "anatomy"], ["weightedSum", "calculator"], ["weight", "anatomy"], ["bias", "anatomy"], ["decisionBoundary", "learning"], ["learningRate", "learning"]],
@@ -73,6 +82,7 @@
     "06": [["pooling", "pooling"], ["maxPooling", "comparison"], ["averagePooling", "comparison"], ["stride", "geometry"], ["receptiveField", "receptive-field"], ["jump", "receptive-field"]],
     "07": [["alexnet", "paper"], ["imagenet", "paper"], ["relu", "breakthrough"], ["lrn", "breakthrough"], ["dropout", "lab"], ["logits", "code"]],
     "08": [["vgg", "paper"], ["kernel", "small-kernels"], ["receptiveField", "small-kernels"], ["maxPooling", "architecture"], ["batchNorm", "code"], ["adaptivePool", "adaptation"], ["parameter", "lab"], ["mib", "lab"]],
+    "09": [["resnet", "paper"], ["degradation", "paper"], ["residual", "residual"], ["shortcut", "residual"], ["projection", "blocks"], ["basicBlock", "blocks"], ["bottleneck", "blocks"], ["cardinality", "extensions"]],
   };
 
   const currentChapter = rail.dataset.chapter;
