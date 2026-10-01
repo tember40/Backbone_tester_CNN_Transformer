@@ -71,6 +71,47 @@ def summarize_activations(features):
     }
 
 
+def trace_pooling(feature_map, kernel_size=2, stride=None, mode="max"):
+    """Pool one 2D feature map and retain the window used for every output value."""
+    feature_tensor = torch.as_tensor(feature_map, dtype=torch.float32)
+    if feature_tensor.ndim != 2:
+        raise ValueError("feature_map must be two-dimensional.")
+    if kernel_size < 1:
+        raise ValueError("kernel_size must be at least 1.")
+    stride = kernel_size if stride is None else stride
+    if stride < 1:
+        raise ValueError("stride must be at least 1.")
+    if mode not in {"max", "average"}:
+        raise ValueError("mode must be 'max' or 'average'.")
+
+    output_height = (feature_tensor.shape[0] - kernel_size) // stride + 1
+    output_width = (feature_tensor.shape[1] - kernel_size) // stride + 1
+    if output_height < 1 or output_width < 1:
+        raise ValueError("kernel_size cannot be larger than the feature map.")
+
+    output = torch.empty((output_height, output_width), dtype=torch.float32)
+    steps = []
+    for output_row in range(output_height):
+        for output_column in range(output_width):
+            input_row = output_row * stride
+            input_column = output_column * stride
+            window = feature_tensor[
+                input_row : input_row + kernel_size,
+                input_column : input_column + kernel_size,
+            ]
+            value = window.max() if mode == "max" else window.mean()
+            output[output_row, output_column] = value
+            steps.append(
+                {
+                    "output_position": (output_row, output_column),
+                    "input_position": (input_row, input_column),
+                    "window": window.clone(),
+                    "value": float(value.item()),
+                }
+            )
+    return output, steps
+
+
 def collect_feature_maps(model, image, max_layers=6):
     """Capture early Conv2d and pooling outputs from one forward pass."""
     records = []

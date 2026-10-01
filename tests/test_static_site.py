@@ -141,6 +141,15 @@ class StaticSiteTests(unittest.TestCase):
         )
         self.assertIn("target.hash = window.location.hash", fifth_chapter_entry)
 
+        sixth_chapter_entry = (
+            ROOT / "chapters" / "06-pooling-receptive-field.html"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "../docs/chapters/06-pooling-receptive-field.html",
+            sixth_chapter_entry,
+        )
+        self.assertIn("target.hash = window.location.hash", sixth_chapter_entry)
+
     def test_linear_separability_page_contains_the_lesson_contract(self):
         page = DOCS / "chapters" / "02-linear-separability.html"
         source = page.read_text(encoding="utf-8")
@@ -293,6 +302,34 @@ class StaticSiteTests(unittest.TestCase):
         ):
             self.assertIn(code_line, implementation)
             self.assertIn(code_line.replace(">", "&gt;"), source)
+
+    def test_pooling_page_contains_the_lesson_contract(self):
+        page = DOCS / "chapters" / "06-pooling-receptive-field.html"
+        source = page.read_text(encoding="utf-8")
+        for section_id in (
+            "overview",
+            "paper",
+            "pooling",
+            "geometry",
+            "comparison",
+            "code",
+            "receptive-field",
+            "checkpoint",
+        ):
+            self.assertIn(f'id="{section_id}"', source)
+
+        implementation = (
+            ROOT / "cifar10_lab" / "cnn_visualization.py"
+        ).read_text(encoding="utf-8")
+        for code_line in (
+            "input_row = output_row * stride",
+            "input_column = output_column * stride",
+            "window = feature_tensor[",
+            'value = window.max() if mode == "max" else window.mean()',
+            "output[output_row, output_column] = value",
+        ):
+            self.assertIn(code_line, implementation)
+            self.assertIn(code_line, source)
 
     def test_user_facing_pages_avoid_book_authorship_wording(self):
         for page in DOCS.rglob("*.html"):

@@ -33,5 +33,6 @@ docs/
 - `03-multilayer-perceptron.html`: 은닉층, 순전파·역전파, XOR 학습 실험
 - `04-convolution-filters.html`: 합성곱 계산, 출력 크기, 필터별 특징맵 실험
 - `05-feature-maps-activations.html`: 특징맵 채널, 텐서 차원, ReLU 활성화 실험
+- `06-pooling-receptive-field.html`: 최대·평균 풀링 계산, 출력 크기, 수용영역 누적 실험
 
 `main` 브랜치의 `docs/` 변경은 GitHub Actions가 GitHub Pages에 자동 배포합니다.

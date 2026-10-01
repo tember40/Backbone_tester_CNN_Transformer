@@ -6,6 +6,7 @@ from cifar10_lab.cnn_visualization import (
     collect_feature_maps,
     receptive_field_stages,
     summarize_activations,
+    trace_pooling,
     trace_single_channel_convolution,
 )
 from cifar10_lab.model_validation import validate_registered_models
@@ -81,6 +82,21 @@ class ModelFamilyTests(unittest.TestCase):
         self.assertEqual(before["positive_ratio"], 0.5)
         self.assertEqual(after["minimum"], 0.0)
         self.assertEqual(after["zero_ratio"], 0.5)
+
+    def test_pooling_trace_keeps_each_window_and_summary(self):
+        features = torch.tensor(
+            [[1.0, 3.0, 2.0, 4.0], [5.0, 0.0, 7.0, 1.0],
+             [2.0, 6.0, 8.0, 3.0], [4.0, 1.0, 5.0, 9.0]]
+        )
+
+        maximums, max_steps = trace_pooling(features, mode="max")
+        averages, average_steps = trace_pooling(features, mode="average")
+
+        self.assertTrue(torch.equal(maximums, torch.tensor([[5.0, 7.0], [6.0, 9.0]])))
+        self.assertTrue(torch.equal(averages, torch.tensor([[2.25, 3.5], [3.25, 6.25]])))
+        self.assertEqual(max_steps[2]["input_position"], (2, 0))
+        self.assertEqual(max_steps[2]["value"], 6.0)
+        self.assertEqual(average_steps[3]["output_position"], (1, 1))
 
 
 if __name__ == "__main__":
