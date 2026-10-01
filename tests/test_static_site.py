@@ -299,7 +299,7 @@ class StaticSiteTests(unittest.TestCase):
         glossary = (DOCS / "assets" / "js" / "glossary.js").read_text(
             encoding="utf-8"
         )
-        for chapter in range(1, 11):
+        for chapter in range(1, 12):
             number = f"{chapter:02d}"
             page = next((DOCS / "chapters").glob(f"{number}-*.html"))
             source = page.read_text(encoding="utf-8")
@@ -318,7 +318,7 @@ class StaticSiteTests(unittest.TestCase):
             )
         }
         self.assertGreaterEqual(len(definitions), 30)
-        for chapter in range(1, 11):
+        for chapter in range(1, 12):
             number = f"{chapter:02d}"
             page = next((DOCS / "chapters").glob(f"{number}-*.html"))
             match = re.search(
@@ -497,8 +497,8 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('id="timelineSource"', home)
         self.assertIn('id="timelineChapter"', home)
         self.assertNotIn("학습 가능", home)
-        self.assertEqual(home.count('class="is-locked"'), 8)
-        self.assertEqual(home.count('class="private-label">비공개'), 8)
+        self.assertEqual(home.count('class="is-locked"'), 7)
+        self.assertEqual(home.count('class="private-label">비공개'), 7)
         self.assertNotIn("lock-icon", home)
         self.assertIn("아직 제작 중인 단원", home)
 
@@ -540,6 +540,35 @@ class StaticSiteTests(unittest.TestCase):
         reminder = "개념과 결과는 원 논문, 공식 문서, 실제 코드와 함께 확인해 주세요."
         for public_page in [DOCS / "index.html", *(DOCS / "chapters").glob("*.html")]:
             self.assertIn(reminder, public_page.read_text(encoding="utf-8"))
+
+    def test_mobilenetv2_chapter_matches_implementation(self):
+        page = DOCS / "chapters" / "11-mobilenetv2.html"
+        source = page.read_text(encoding="utf-8")
+        for section_id in (
+            "overview", "paper", "depthwise", "inverted", "linear",
+            "architecture", "code", "adaptation", "checkpoint",
+        ):
+            self.assertIn(f'id="{section_id}"', source)
+
+        implementation = (ROOT / "backbone" / "MobileNet.py").read_text(
+            encoding="utf-8"
+        )
+        for code_line in (
+            "hidden_dim = int(round(inp * expand_ratio))",
+            "self.use_res_connect = self.stride == 1 and inp == oup",
+            "groups=hidden_dim",
+            "nn.Conv2d(hidden_dim, oup, 1, 1, 0, bias=False)",
+            "return x + self.conv(x)",
+            "x.mean([2, 3])",
+        ):
+            self.assertIn(code_line, implementation)
+            self.assertIn(code_line, source)
+        self.assertIn('href="chapters/11-mobilenetv2.html"', (
+            DOCS / "index.html"
+        ).read_text(encoding="utf-8"))
+        self.assertIn('href="11-mobilenetv2.html"', (
+            DOCS / "chapters" / "10-senet.html"
+        ).read_text(encoding="utf-8"))
 
     def test_user_facing_pages_avoid_book_authorship_wording(self):
         for page in DOCS.rglob("*.html"):

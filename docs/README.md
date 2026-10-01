@@ -39,5 +39,6 @@ docs/
 - `08-vgg.html`: VGG 논문, 작은 필터와 깊이별 구조, CIFAR-10 모델과 메모리 실험
 - `09-resnet.html`: 잔차 연결, 단계별 특징맵, CIFAR-10 구현과 ResNeXt·Wide ResNet 비교
 - `10-senet.html`: 채널별 squeeze·excitation·scale, 축소 비율, SE-ResNet 코드 실습
+- `11-mobilenetv2.html`: 깊이별·점별 합성곱, 역잔차와 선형 병목, 32×32 단계별 구조 실습
 
 `main` 브랜치의 `docs/` 변경은 GitHub Actions가 GitHub Pages에 자동 배포합니다.

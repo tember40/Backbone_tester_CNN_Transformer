@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="MobileNetV2의 깊이별 합성곱, inverted residual, linear bottleneck과 CIFAR-10 구현을 실제 코드와 실험으로 배우는 자료">
+  <title>11장. MobileNetV2 · Backbone Lab</title>
+  <link rel="stylesheet" href="../assets/css/site.css?v=20261001i">
+  <script src="../assets/js/glossary.js?v=20261001i" defer></script>
+  <script src="../assets/js/mobilenetv2.js?v=20261001b" defer></script>
+</head>
+<body class="chapter-page">
+  <header class="site-header">
+    <a class="brand" href="../index.html" aria-label="Backbone Lab 홈"><span class="brand-mark">KW</span><span><strong>인공지능 기초</strong><small><span lang="en">Backbone Lab</span> 학습 자료</small></span></a>
+    <div class="chapter-progress" aria-label="현재 과정"><span>제4부 · 채널과 효율</span><div><i style="width: 67%"></i></div><strong>2 / 3</strong></div>
+    <nav class="header-actions"><a href="../index.html#curriculum">전체 목차</a><a class="button button-small" href="https://github.com/tember40/Backbone_tester_CNN_Transformer/blob/main/backbone/MobileNet.py">실제 코드</a></nav>
+  </header>
+  <div class="chapter-layout">
+    <aside class="chapter-sidebar" aria-label="단원 목차">
+      <p class="sidebar-label">MobileNetV2</p>
+      <nav>
+        <a class="is-current" href="#overview"><span>11.0</span>학습 안내</a>
+        <a href="#paper"><span>11.1</span>논문의 질문</a>
+        <a href="#depthwise"><span>11.2</span>연산 분리</a>
+        <a href="#inverted"><span>11.3</span>역잔차 블록</a>
+        <a href="#linear"><span>11.4</span>선형 투영</a>
+        <a href="#architecture"><span>11.5</span>단계별 구조</a>
+        <a href="#code"><span>11.6</span>실제 코드</a>
+        <a href="#adaptation"><span>11.7</span>구현 범위</a>
+        <a href="#checkpoint"><span>11.8</span>연습문제</a>
+      </nav>
+    </aside>
+    <main class="chapter-content"><article>
+      <header class="chapter-hero" id="overview">
+        <div class="chapter-kicker"><span>제4부</span><span>채널과 효율</span><span>선수 지식: 4·9장</span></div>
+        <h1><small>제11장 · 연산을 나누고 좁은 곳을 연결하다</small><span lang="en">MobileNetV2</span></h1>
+        <p class="chapter-lead">합성곱을 무작정 줄이면 특징 표현도 줄어듭니다. MobileNetV2는 공간 필터링과 채널 혼합을 분리하고, 블록 안에서 잠시 채널을 넓혔다가 다시 좁힙니다. 마지막 좁은 층에는 비선형 활성화를 두지 않습니다. <strong>어디에서 계산을 줄이고 어디에서 정보를 보존하는지</strong> 직접 따져 봅시다.</p>
+        <div class="learning-objectives"><h2>학습 목표</h2><ul>
+          <li>일반 3×3 합성곱과 깊이별·점별 합성곱의 가중치 수를 비교할 수 있습니다.</li>
+          <li><span lang="en">inverted residual</span>의 확장·공간 처리·선형 투영 순서를 추적할 수 있습니다.</li>
+          <li>이 구현에서 shortcut이 사용되는 정확한 조건을 판단할 수 있습니다.</li>
+          <li>32×32 입력과 <code>width_mult</code>에 따른 실제 출력 크기와 파라미터 수를 읽을 수 있습니다.</li>
+        </ul></div>
+      </header>
+
+      <section class="lesson-section" id="paper">
+        <div class="section-number">11.1</div><div class="lesson-heading"><p class="eyebrow">논문의 질문</p><h2><span>11.1</span> 작은 기기에서 무엇을 아낄까?</h2></div>
+        <div class="paper-card"><div class="paper-meta"><span lang="en">Mark Sandler · Andrew Howard · Menglong Zhu · Andrey Zhmoginov · Liang-Chieh Chen</span><span lang="en">CVPR 2018</span></div><h3 lang="en">MobileNetV2: Inverted Residuals and Linear Bottlenecks</h3><p>연구진은 좁은 입력·출력 사이에서 채널을 넓힌 뒤 깊이별 합성곱을 수행하는 <span lang="en">inverted residual</span>을 제안했습니다. 좁은 출력에 비선형 활성화를 적용하면 정보가 손실될 수 있다는 점에서, 투영 층을 선형으로 두는 설계도 핵심입니다. 논문은 정확도뿐 아니라 연산량과 파라미터 수의 절충을 비교합니다.</p><a class="text-link" href="https://arxiv.org/abs/1801.04381">원 논문 보기 <span aria-hidden="true">↗</span></a></div>
+        <p>9장의 ResNet은 주 경로와 shortcut을 더해 깊은 모델의 학습을 돕습니다. MobileNetV2에도 더하기가 있지만, <strong>좁은 표현에서 좁은 표현으로 연결</strong>한다는 점이 다릅니다. 블록 내부의 넓은 표현은 주로 변환을 계산하는 공간입니다. 두 모델을 같은 “skip connection”이라는 말만으로 묶지 말고 채널 흐름을 함께 보세요.</p>
+      </section>
+
+      <section class="lesson-section" id="depthwise">
+        <div class="section-number">11.2</div><div class="lesson-heading"><p class="eyebrow">실습 11.1 · 가중치 세기</p><h2><span>11.2</span> 공간과 채널 연산을 분리한다</h2><p>일반 합성곱은 출력 채널마다 모든 입력 채널의 3×3 값을 사용합니다. <span lang="en">depthwise</span>는 각 입력 채널에서 공간 필터를 하나씩 적용하고, 뒤의 1×1 <span lang="en">pointwise</span>가 채널을 섞습니다. 입력·출력 채널 수를 바꿔 가중치 수를 계산해 보세요.</p></div>
+        <div class="equation-card resnet-equation"><strong>일반: 9 × C<sub>in</sub> × C<sub>out</sub></strong><span aria-hidden="true">↔</span><strong>분리: 9 × C<sub>in</sub> + C<sub>in</sub> × C<sub>out</sub></strong></div>
+        <div class="lab-panel mobile-cost-lab"><div class="resnet-controls"><label>입력 채널 <select id="mobileInputChannels"><option value="16">16</option><option value="32" selected>32</option><option value="64">64</option><option value="128">128</option></select></label><label>출력 채널 <select id="mobileOutputChannels"><option value="16">16</option><option value="32" selected>32</option><option value="64">64</option><option value="128">128</option></select></label></div><div class="mobile-cost-results"><div><span>일반 3×3</span><strong id="mobileFullWeights">9,216</strong><small id="mobileFullFormula">9 × 32 × 32</small></div><div><span>깊이별 3×3 + 점별 1×1</span><strong id="mobileSplitWeights">1,312</strong><small id="mobileSplitFormula">9 × 32 + 32 × 32</small></div><div><span>가중치 수 비율</span><strong id="mobileCostRatio">7.02배</strong><small>일반 ÷ 분리</small></div></div></div>
+        <p>이 계산은 <strong>한 합성곱을 분리했을 때의 필터 가중치</strong>만 셉니다. 편향·BatchNorm·활성화와 블록의 확장·투영은 포함하지 않습니다. 따라서 위 비율을 전체 모델의 속도나 메모리 절감률로 읽으면 안 됩니다. 실제 실행 시간은 기기와 연산 구현에도 영향을 받습니다.</p>
+      </section>
+
+      <section class="lesson-section" id="inverted">
+        <div class="section-number">11.3</div><div class="lesson-heading"><p class="eyebrow">실습 11.2 · 채널 흐름</p><h2><span>11.3</span> 좁게 들어가 넓게 계산한다</h2><p>이 구현의 <code>InvertedResidual</code>은 입력 채널에 확장 비율 <code>expand_ratio</code>를 곱해 중간 채널 수를 구합니다. 비율이 1이면 첫 1×1 확장 층은 생략합니다. 마지막 1×1은 출력 채널 수로 다시 투영합니다.</p></div>
+        <div class="lab-panel mobile-block-lab"><div class="resnet-controls"><label>입력 C<sub>in</sub> <select id="mobileBlockInput"><option value="16">16</option><option value="24" selected>24</option><option value="32">32</option></select></label><label>출력 C<sub>out</sub> <select id="mobileBlockOutput"><option value="16">16</option><option value="24" selected>24</option><option value="32">32</option></select></label><label>확장 비율 t <select id="mobileExpand"><option value="1">1</option><option value="3">3</option><option value="6" selected>6</option></select></label><label>보폭 <select id="mobileStride"><option value="1" selected>1</option><option value="2">2</option></select></label></div><div class="mobile-block-flow"><div><span>입력</span><strong id="mobileFlowInput">24</strong><small>좁은 표현</small></div><div><span id="mobileFlowExpandLabel">1×1 확장</span><strong id="mobileFlowHidden">144</strong><small id="mobileExpandNote">ReLU6</small></div><div><span>3×3 깊이별</span><strong id="mobileFlowDepthwise">144</strong><small>ReLU6</small></div><div><span>1×1 투영</span><strong id="mobileFlowOutput">24</strong><small>선형 + BN</small></div></div><p class="mobile-block-note" id="mobileSkipNote" aria-live="polite">보폭 1·입출력 채널 일치 → shortcut으로 입력을 더합니다.</p></div>
+        <p>이름이 “역잔차”인 까닭은 전통적인 bottleneck처럼 넓은 양끝을 좁힌 것이 아니라, <strong>좁은 양끝 사이를 넓혀</strong> 계산하기 때문입니다. 이 저장소에서 더하기는 <code>stride == 1</code>이고 <code>inp == oup</code>일 때만 실행됩니다. 공간 크기가 바뀌는 보폭 2 블록은 shortcut을 쓰지 않습니다.</p>
+      </section>
+
+      <section class="lesson-section" id="linear">
+        <div class="section-number">11.4</div><div class="lesson-heading"><p class="eyebrow">좁은 표현과 정보</p><h2><span>11.4</span> 마지막 층을 선형으로 두는 이유</h2></div>
+        <p>확장 층과 깊이별 층에는 <code>ReLU6</code>가 붙지만, 마지막 1×1 투영에는 ReLU6가 없습니다. 차원을 줄인 뒤 또 값을 0 또는 6으로 잘라내면 이미 좁아진 표현의 정보를 더 잃을 수 있기 때문입니다. “선형”은 이 투영의 <strong>활성화를 생략</strong>한다는 뜻이지, 전체 블록이 선형 함수라는 뜻은 아닙니다.</p>
+        <div class="comparison-table-wrap"><table class="comparison-table"><thead><tr><th>투영 값 예시</th><th>활성화 없음</th><th>ReLU6 적용 시</th></tr></thead><tbody><tr><th>−2</th><td>−2 유지</td><td>0으로 잘림</td></tr><tr><th>0.5</th><td>0.5 유지</td><td>0.5 유지</td></tr><tr><th>7</th><td>7 유지</td><td>6으로 잘림</td></tr></tbody></table></div>
+        <p>이 표는 <span lang="en">ReLU6</span>의 잘림을 보여주는 작은 숫자 예시입니다. 실제 코드는 투영 합성곱 뒤에 <span lang="en">BatchNorm</span>을 적용하므로, 표의 값이 모델에서 그대로 관찰된다는 의미는 아닙니다.</p>
+      </section>
+
+      <section class="lesson-section" id="architecture">
+        <div class="section-number">11.5</div><div class="lesson-heading"><p class="eyebrow">실습 11.3 · 32×32 입력</p><h2><span>11.5</span> 단계별 특징맵을 추적한다</h2><p>모델의 너비 배율과 단계를 선택하세요. 아래 값은 이 저장소의 <span lang="en">backbone/MobileNet.py</span>에 32×32 RGB 이미지를 넣었을 때의 출력입니다. 각 단계의 <code>t, c, n, s</code>는 확장 비율, 출력 채널, 반복 수, 첫 블록의 보폭을 뜻합니다.</p></div>
+        <div class="lab-panel mobile-stage-lab"><div class="resnet-controls"><label>너비 배율 <select id="mobileWidth"><option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1" selected>1.0×</option></select></label></div><div class="mobile-stage-overview"><div><span>10-class 파라미터</span><strong id="mobileParameters">2,236,682</strong></div><div><span>역잔차 블록</span><strong>17개</strong></div><div><span>마지막 1×1 채널</span><strong id="mobileLastChannels">1,280</strong></div></div><div class="mobile-stage-list" id="mobileStageList" aria-label="MobileNetV2 단계 목록"></div><div class="resnet-stage-detail"><div><span>선택한 단계</span><h3 id="mobileStageName">—</h3><p id="mobileStagePattern">—</p></div><dl><div><dt>출력 [C, H, W]</dt><dd id="mobileStageOutput">—</dd></div><div><dt>첫 블록 보폭</dt><dd id="mobileStageStride">—</dd></div><div><dt>반복 수</dt><dd id="mobileStageRepeats">—</dd></div><div><dt>확장 비율</dt><dd id="mobileStageExpand">—</dd></div></dl></div></div>
+        <p><code>width_mult</code>는 대부분의 단계 채널 수를 바꾸지만, 1.0 이하에서는 이 구현의 마지막 채널 수가 1280으로 남습니다. 또한 채널 수는 8의 배수에 가깝게 조정됩니다. 너비 배율이 파라미터 수를 같은 비율로 줄이는 단순한 스위치는 아닙니다.</p>
+      </section>
+
+      <section class="lesson-section" id="code">
+        <div class="section-number">11.6</div><div class="lesson-heading"><p class="eyebrow">실제 프로젝트 코드</p><h2><span>11.6</span> 그룹 수와 더하기 조건 찾기</h2><p>아래는 <span lang="en">backbone/MobileNet.py</span>의 <code>InvertedResidual</code>에서 필요한 줄을 순서대로 뽑은 발췌입니다. 중간의 <code>layers</code> 구성은 실제 코드와 같으며, 강조할 해설을 선택해 연산의 역할을 확인하세요.</p></div>
+        <div class="code-study"><div class="code-window"><div class="code-toolbar"><span>backbone/MobileNet.py · InvertedResidual</span><button class="copy-button" type="button" data-copy-target="mobileCode">코드 복사</button></div><pre id="mobileCode" class="line-code"><code><span data-line="1">hidden_dim = int(round(inp * expand_ratio))</span>
+<span data-line="2">self.use_res_connect = self.stride == 1 and inp == oup</span>
+<span data-line="3">if expand_ratio != 1:</span>
+<span data-line="4">    layers.append(ConvBNReLU(inp, hidden_dim, kernel_size=1, norm_layer=norm_layer))</span>
+<span data-line="5">layers.extend([</span>
+<span data-line="6">    ConvBNReLU(hidden_dim, hidden_dim, stride=stride, groups=hidden_dim, norm_layer=norm_layer),</span>
+<span data-line="7">    nn.Conv2d(hidden_dim, oup, 1, 1, 0, bias=False),</span>
+<span data-line="8">    norm_layer(oup),</span>
+<span data-line="9">])</span></code></pre></div><div class="code-notes" role="list" aria-label="코드 해설"><button type="button" data-highlight="1-2"><span>① 크기와 연결</span><strong>확장·shortcut 조건</strong><small>보폭 1·같은 채널만 더합니다.</small></button><button type="button" data-highlight="3-4"><span>② 확장</span><strong>첫 1×1은 선택적</strong><small>t=1이면 생략합니다.</small></button><button type="button" data-highlight="5-6"><span>③ 공간 처리</span><strong>groups=hidden_dim</strong><small>중간 채널마다 독립된 3×3 필터</small></button><button type="button" data-highlight="7-9"><span>④ 선형 투영</span><strong>1×1 Conv + BN</strong><small>마지막에 ReLU6가 없습니다.</small></button></div></div>
+        <p>실제 <code>forward</code>는 조건이 참일 때 <code>return x + self.conv(x)</code>, 거짓일 때 <code>return self.conv(x)</code>입니다. 합성곱과 정규화·ReLU6를 묶은 <code>ConvBNReLU</code>는 확장과 깊이별 단계에만 사용됩니다. 이 발췌의 마지막 두 줄은 묶음 바깥에 있으므로 선형 투영으로 남습니다.</p>
+      </section>
+
+      <section class="lesson-section" id="adaptation">
+        <div class="section-number">11.7</div><div class="lesson-heading"><p class="eyebrow">논문과 현재 프로젝트의 범위</p><h2><span>11.7</span> CIFAR-10 실습에서 달라지는 점</h2></div>
+        <div class="comparison-table-wrap"><table class="comparison-table"><thead><tr><th>항목</th><th>원 논문의 주된 분류 설정</th><th>이 저장소의 기본 실행</th></tr></thead><tbody><tr><th>데이터</th><td>ImageNet 등 큰 이미지 분류</td><td>CIFAR-10, 32×32</td></tr><tr><th>입력</th><td>논문 표의 224×224 설정</td><td>32×32 RGB를 그대로 입력</td></tr><tr><th>분류 출력</th><td>ImageNet 1000개 클래스</td><td>10개 클래스</td></tr><tr><th>가중치</th><td>논문에서 학습해 평가</td><td>기본값은 새로 초기화</td></tr></tbody></table></div>
+        <p>이 구현은 3×3 시작 합성곱의 보폭 2와 단계별 보폭을 그대로 사용합니다. 그래서 32×32 입력은 시작부터 16×16이 되고 최종 특징맵은 1×1입니다. <code>x.mean([2, 3])</code>으로 공간 평균을 낸 뒤 Dropout(0.2)과 10-class 선형 분류기로 보냅니다. <code>mobilenet_v2(pretrained=True)</code>를 넘겨도 가중치 다운로드 부분이 주석 처리되어 있어 사전학습 가중치가 적용되지 않습니다.</p>
+        <aside class="callout callout-note"><strong>효율을 판단할 때</strong><p>가중치 수가 적다는 사실만으로 학습 속도나 실제 기기 지연 시간이 반드시 짧다고 결론내릴 수 없습니다. 정확도, 연산량, 메모리, 하드웨어 실행 시간을 같은 입력·설정에서 함께 측정해야 합니다.</p></aside>
+      </section>
+
+      <section class="lesson-section" id="checkpoint">
+        <div class="section-number">11.8</div><div class="lesson-heading"><p class="eyebrow">정리와 연습문제</p><h2><span>11.8</span> 좁은 연결과 넓은 계산</h2></div>
+        <div class="chapter-summary-box"><h3>11장 핵심 정리</h3><ul><li>깊이별 합성곱은 공간 패턴을 채널별로 처리하고, 점별 합성곱은 채널을 섞습니다.</li><li>역잔차 블록은 좁은 입력을 확장하고, 깊이별 합성곱을 거쳐 좁은 출력으로 선형 투영합니다.</li><li>shortcut은 보폭 1이면서 입력·출력 채널 수가 같을 때만 사용합니다.</li><li>32×32 CIFAR-10의 크기 흐름과 논문의 큰 이미지 결과를 직접 동일시하지 않습니다.</li></ul></div>
+        <dl class="key-terms"><div><dt lang="en">Depthwise</dt><dd>채널마다 별도의 공간 필터 적용</dd></div><div><dt lang="en">Pointwise</dt><dd>1×1 합성곱으로 채널 혼합</dd></div><div><dt lang="en">Linear Bottleneck</dt><dd>좁은 출력에 비선형 활성화 생략</dd></div></dl>
+        <div class="quiz-list chapter-quiz-spacing"><fieldset class="quiz" data-answer="b"><legend><span>Q1</span>깊이별 합성곱에서 <code>groups</code>는?</legend><label><input type="radio" name="q1" value="a"> 항상 1</label><label><input type="radio" name="q1" value="b"> 해당 층의 입력 채널 수</label><label><input type="radio" name="q1" value="c"> 출력 공간의 높이</label><p class="quiz-feedback"></p></fieldset><fieldset class="quiz" data-answer="a"><legend><span>Q2</span>보폭 2인 블록은 이 구현에서 shortcut을 더하는가?</legend><label><input type="radio" name="q2" value="a"> 아니요, 공간 크기가 달라 더하지 않습니다.</label><label><input type="radio" name="q2" value="b"> 네, 채널 수와 무관하게 항상 더합니다.</label><label><input type="radio" name="q2" value="c"> 학습률에 따라 결정됩니다.</label><p class="quiz-feedback"></p></fieldset><fieldset class="quiz" data-answer="c"><legend><span>Q3</span>마지막 1×1 투영에 ReLU6가 없는 이유는?</legend><label><input type="radio" name="q3" value="a"> 채널 수가 늘어나기 때문</label><label><input type="radio" name="q3" value="b"> 모든 층을 선형으로 만들기 위해</label><label><input type="radio" name="q3" value="c"> 좁은 표현에서 추가 정보 손실을 피하기 위해</label><p class="quiz-feedback"></p></fieldset><button class="button" id="checkQuiz" type="button">정답 확인</button><p class="quiz-score" id="quizScore" aria-live="polite"></p></div>
+      </section>
+      <section class="local-run-card"><div><p class="eyebrow">직접 실행</p><h2>CIFAR-10에서 MobileNetV2 빠르게 학습하기</h2><p>설치 후 데이터 다운로드와 1 epoch 학습·검증을 실행합니다. 브라우저의 계산은 개념 실험이며, 논문 성능을 재현한 결과가 아닙니다.</p></div><div class="command-block"><code>cifar10-lab train --model mobilenet_v2 --quick</code><button class="copy-button" type="button" data-copy-text="cifar10-lab train --model mobilenet_v2 --quick">복사</button></div></section>
+      <nav class="chapter-pagination" aria-label="단원 이동"><a href="10-senet.html"><small>이전</small><strong>10장 · SENet</strong></a><span class="disabled"><small>다음</small><strong>12장 · EfficientNet</strong></span></nav>
+    </article></main>
+    <aside id="chapterGlossary" class="chapter-glossary" aria-label="핵심 용어" data-chapter="11"><div class="glossary-heading"><h2>핵심 용어</h2></div><p class="glossary-intro">영어 용어를 눌러 뜻과 등장 위치를 확인하세요.</p><div class="glossary-list"></div></aside>
+  </div>
+  <footer class="site-footer"><div class="footer-copy"><strong>Backbone Lab · 실제 코드로 배우는 인공지능 기초</strong><p>이 자료는 학습의 출발점입니다. 개념과 결과는 원 논문, 공식 문서, 실제 코드와 함께 확인해 주세요.</p></div><a href="https://github.com/tember40/Backbone_tester_CNN_Transformer">GitHub에서 보기</a></footer>
+</body>
+</html>

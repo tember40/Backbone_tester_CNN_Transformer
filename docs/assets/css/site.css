@@ -970,6 +970,33 @@ code, pre { font-family: var(--mono); }
 .se-block-flow > * { padding: 10px 13px; border-bottom: 2px solid var(--line-dark); background: var(--surface-soft); font-size: 15px; }
 .se-block-flow > strong { border-bottom-color: var(--blue); background: var(--blue-soft); color: var(--blue-dark); }
 
+/* MobileNetV2 calculation and architecture labs */
+.mobile-cost-results, .mobile-stage-overview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.mobile-cost-results > div, .mobile-stage-overview > div { min-width: 0; padding: 20px; border-right: 1px solid var(--line); }
+.mobile-cost-results > div:last-child, .mobile-stage-overview > div:last-child { border-right: 0; }
+.mobile-cost-results span, .mobile-stage-overview span { display: block; color: var(--muted); font-size: 14px; }
+.mobile-cost-results strong, .mobile-stage-overview strong { display: block; margin: 5px 0 2px; color: var(--blue-dark); font: 750 24px var(--serif); overflow-wrap: anywhere; }
+.mobile-cost-results small { color: var(--muted); font-size: 13px; }
+.mobile-block-flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; }
+.mobile-block-flow > div { min-width: 0; padding: 22px 12px; border-right: 1px solid var(--line); text-align: center; }
+.mobile-block-flow > div:last-child { border-right: 0; }
+.mobile-block-flow > div:nth-child(2), .mobile-block-flow > div:nth-child(3) { background: var(--blue-soft); }
+.mobile-block-flow span, .mobile-block-flow strong, .mobile-block-flow small { display: block; }
+.mobile-block-flow span { color: var(--muted); font-size: 13px; }
+.mobile-block-flow strong { margin: 4px 0; color: var(--blue-dark); font: 750 30px var(--serif); }
+.mobile-block-flow small { color: var(--muted); font-size: 13px; }
+.mobile-block-note { margin: 0; padding: 14px 18px; border-top: 1px solid var(--line); color: var(--blue-dark); font-size: 16px; font-weight: 700; }
+.mobile-stage-overview { border-bottom: 1px solid var(--line); }
+.mobile-stage-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.mobile-stage-list button { min-width: 0; padding: 13px 12px; border: 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: #fff; color: var(--ink); text-align: left; cursor: pointer; transition: background .18s ease, transform .18s ease; }
+.mobile-stage-list button:nth-child(3n) { border-right: 0; }
+.mobile-stage-list button:hover { background: var(--surface-soft); transform: translateY(-2px); }
+.mobile-stage-list button.is-current { border-bottom: 3px solid var(--blue); background: var(--blue-soft); }
+.mobile-stage-list span, .mobile-stage-list strong, .mobile-stage-list small { display: block; }
+.mobile-stage-list span { color: var(--blue); font-size: 13px; font-weight: 800; }
+.mobile-stage-list strong { margin: 3px 0; font-size: 18px; }
+.mobile-stage-list small { color: var(--muted); font-size: 12px; }
+
 /* Tables, summary, exercises */
 .comparison-table-wrap { overflow-x: auto; }
 .comparison-table { width: 100%; border-collapse: collapse; border: 1px solid var(--line-dark); background: #fff; font-size: 18.2px; }
@@ -1151,6 +1178,13 @@ code, pre { font-family: var(--mono); }
   .se-scale-content { grid-template-columns: 1fr; }
   .se-scale-arrow { text-align: center; }
   .se-dimension-flow > div { min-width: 92px; padding-inline: 10px; }
+  .mobile-cost-results, .mobile-stage-overview { grid-template-columns: 1fr; }
+  .mobile-cost-results > div, .mobile-stage-overview > div { border-right: 0; border-bottom: 1px solid var(--line); }
+  .mobile-block-flow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mobile-block-flow > div:nth-child(2) { border-right: 0; }
+  .mobile-stage-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mobile-stage-list button:nth-child(n) { border-right: 1px solid var(--line); }
+  .mobile-stage-list button:nth-child(2n) { border-right: 0; }
   .resnet-stage-detail dl { grid-template-columns: 1fr; }
   .method-section, .curriculum-section { padding: 58px 20px; }
   .method-grid, .curriculum-grid { grid-template-columns: 1fr; }

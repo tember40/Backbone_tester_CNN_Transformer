@@ -15,11 +15,12 @@
     "08": "08-vgg.html",
     "09": "09-resnet.html",
     "10": "10-senet.html",
+    "11": "11-mobilenetv2.html",
   };
   const chapterNames = {
     "01": "퍼셉트론", "02": "선형 분리와 XOR", "03": "다층 퍼셉트론",
     "04": "합성곱과 필터", "05": "특징맵과 활성화",
-    "06": "Pooling과 수용영역", "07": "AlexNet", "08": "VGG", "09": "ResNet과 확장 모델", "10": "SENet",
+    "06": "Pooling과 수용영역", "07": "AlexNet", "08": "VGG", "09": "ResNet과 확장 모델", "10": "SENet", "11": "MobileNetV2",
   };
   const term = (english, korean, meaning, chapter, section) =>
     ({english, korean, meaning, chapter, section});
@@ -79,6 +80,13 @@
     scale: term("Scale", "채널별 곱셈", "같은 채널의 모든 공간 위치에 동일한 가중치를 곱합니다.", "10", "excitation"),
     globalAverage: term("Global Average Pooling", "전역 평균 풀링", "각 채널의 전체 공간 값을 평균 내 [C,1,1] 크기로 요약합니다.", "10", "squeeze"),
     reduction: term("Reduction Ratio", "축소 비율", "SE의 첫 선형층이 채널 수를 얼마나 줄일지 정하는 비율입니다.", "10", "reduction"),
+    mobilenetV2: term("MobileNetV2", "모바일넷 V2", "깊이별 합성곱과 역잔차·선형 병목을 사용하는 경량 CNN입니다.", "11", "paper"),
+    depthwise: term("Depthwise Convolution", "깊이별 합성곱", "입력 채널마다 별도의 공간 필터를 적용합니다.", "11", "depthwise"),
+    pointwise: term("Pointwise Convolution", "점별 합성곱", "1×1 필터로 채널 간 정보를 섞거나 채널 수를 바꿉니다.", "11", "depthwise"),
+    invertedResidual: term("Inverted Residual", "역잔차", "좁은 양끝 사이에서 채널을 확장해 연산하고 조건이 맞으면 양끝을 더합니다.", "11", "inverted"),
+    linearBottleneck: term("Linear Bottleneck", "선형 병목", "좁은 출력 투영에 비선형 활성화를 두지 않는 설계입니다.", "11", "linear"),
+    relu6: term("ReLU6", "6으로 제한한 ReLU", "음수는 0, 6보다 큰 값은 6으로 제한하는 활성화입니다.", "11", "linear"),
+    widthMultiplier: term("Width Multiplier", "너비 배율", "모델의 주요 채널 수를 조절하는 설정입니다. 실제 채널은 배수 단위로 반올림됩니다.", "11", "architecture"),
   };
   const chapterWords = {
     "01": [["perceptron", "anatomy"], ["weightedSum", "calculator"], ["weight", "anatomy"], ["bias", "anatomy"], ["decisionBoundary", "learning"], ["learningRate", "learning"]],
@@ -91,6 +99,7 @@
     "08": [["vgg", "paper"], ["kernel", "small-kernels"], ["receptiveField", "small-kernels"], ["maxPooling", "architecture"], ["batchNorm", "code"], ["adaptivePool", "adaptation"], ["parameter", "lab"], ["mib", "lab"]],
     "09": [["resnet", "paper"], ["degradation", "paper"], ["residual", "residual"], ["shortcut", "residual"], ["projection", "blocks"], ["basicBlock", "blocks"], ["bottleneck", "blocks"], ["cardinality", "extensions"]],
     "10": [["senet", "paper"], ["squeeze", "squeeze"], ["globalAverage", "squeeze"], ["excitation", "excitation"], ["scale", "excitation"], ["reduction", "reduction"], ["shortcut", "placement"]],
+    "11": [["mobilenetV2", "paper"], ["depthwise", "depthwise"], ["pointwise", "depthwise"], ["invertedResidual", "inverted"], ["linearBottleneck", "linear"], ["relu6", "linear"], ["widthMultiplier", "architecture"]],
   };
 
   const currentChapter = rail.dataset.chapter;
