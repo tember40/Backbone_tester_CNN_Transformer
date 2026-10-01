@@ -14,11 +14,12 @@
     "07": "07-alexnet.html",
     "08": "08-vgg.html",
     "09": "09-resnet.html",
+    "10": "10-senet.html",
   };
   const chapterNames = {
     "01": "퍼셉트론", "02": "선형 분리와 XOR", "03": "다층 퍼셉트론",
     "04": "합성곱과 필터", "05": "특징맵과 활성화",
-    "06": "Pooling과 수용영역", "07": "AlexNet", "08": "VGG", "09": "ResNet과 확장 모델",
+    "06": "Pooling과 수용영역", "07": "AlexNet", "08": "VGG", "09": "ResNet과 확장 모델", "10": "SENet",
   };
   const term = (english, korean, meaning, chapter, section) =>
     ({english, korean, meaning, chapter, section});
@@ -72,6 +73,12 @@
     basicBlock: term("BasicBlock", "기본 잔차 블록", "3×3 합성곱 두 개를 주 경로에 두는 ResNet18·34의 블록입니다.", "09", "blocks"),
     bottleneck: term("Bottleneck", "병목 블록", "1×1, 3×3, 1×1 합성곱으로 내부 채널과 계산량을 조절하는 블록입니다.", "09", "blocks"),
     cardinality: term("Cardinality", "그룹 변환의 수", "ResNeXt에서 병렬 그룹화 변환의 개수를 나타내는 설계 축입니다.", "09", "extensions"),
+    senet: term("SENet", "채널 재보정 네트워크", "특징맵을 요약해 채널별 가중치를 만든 뒤 원래 채널 반응에 곱하는 SE 단위를 사용합니다.", "10", "paper"),
+    squeeze: term("Squeeze", "공간 요약", "각 채널의 공간 위치를 평균 내 하나의 전역 값으로 줄입니다.", "10", "squeeze"),
+    excitation: term("Excitation", "채널 가중치 생성", "요약 벡터를 두 선형층과 활성화 함수에 통과시켜 채널별 가중치를 구합니다.", "10", "excitation"),
+    scale: term("Scale", "채널별 곱셈", "같은 채널의 모든 공간 위치에 동일한 가중치를 곱합니다.", "10", "excitation"),
+    globalAverage: term("Global Average Pooling", "전역 평균 풀링", "각 채널의 전체 공간 값을 평균 내 [C,1,1] 크기로 요약합니다.", "10", "squeeze"),
+    reduction: term("Reduction Ratio", "축소 비율", "SE의 첫 선형층이 채널 수를 얼마나 줄일지 정하는 비율입니다.", "10", "reduction"),
   };
   const chapterWords = {
     "01": [["perceptron", "anatomy"], ["weightedSum", "calculator"], ["weight", "anatomy"], ["bias", "anatomy"], ["decisionBoundary", "learning"], ["learningRate", "learning"]],
@@ -83,6 +90,7 @@
     "07": [["alexnet", "paper"], ["imagenet", "paper"], ["relu", "breakthrough"], ["lrn", "breakthrough"], ["dropout", "lab"], ["logits", "code"]],
     "08": [["vgg", "paper"], ["kernel", "small-kernels"], ["receptiveField", "small-kernels"], ["maxPooling", "architecture"], ["batchNorm", "code"], ["adaptivePool", "adaptation"], ["parameter", "lab"], ["mib", "lab"]],
     "09": [["resnet", "paper"], ["degradation", "paper"], ["residual", "residual"], ["shortcut", "residual"], ["projection", "blocks"], ["basicBlock", "blocks"], ["bottleneck", "blocks"], ["cardinality", "extensions"]],
+    "10": [["senet", "paper"], ["squeeze", "squeeze"], ["globalAverage", "squeeze"], ["excitation", "excitation"], ["scale", "excitation"], ["reduction", "reduction"], ["shortcut", "placement"]],
   };
 
   const currentChapter = rail.dataset.chapter;

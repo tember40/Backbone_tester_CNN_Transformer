@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="ResNet의 잔차 연결, BasicBlock과 Bottleneck, CIFAR-10 구현, ResNeXt와 Wide ResNet 확장을 실제 코드와 실험으로 살펴보는 학습 자료">
   <title>9장. ResNet과 확장 모델 · Backbone Lab</title>
-  <link rel="stylesheet" href="../assets/css/site.css?v=20261001g">
+  <link rel="stylesheet" href="../assets/css/site.css?v=20261001h">
   <script src="../assets/js/glossary.js?v=20261001g" defer></script>
   <script src="../assets/js/resnet.js?v=20261001a" defer></script>
 </head>
@@ -120,10 +120,10 @@
         <div class="quiz-list chapter-quiz-spacing"><fieldset class="quiz" data-answer="b"><legend><span>Q1</span>논문의 degradation 현상을 가장 정확히 설명한 것은?</legend><label><input type="radio" name="q1" value="a"> 테스트 오차만 커지는 과적합</label><label><input type="radio" name="q1" value="b"> 깊은 plain network의 훈련 오차가 더 커지는 최적화 어려움</label><label><input type="radio" name="q1" value="c"> 입력 이미지 크기가 줄어드는 현상</label><p class="quiz-feedback"></p></fieldset><fieldset class="quiz" data-answer="c"><legend><span>Q2</span>입력과 주 경로 출력의 모양이 다르면 이 코드의 shortcut은?</legend><label><input type="radio" name="q2" value="a"> 덧셈을 생략한다</label><label><input type="radio" name="q2" value="b"> 무조건 x를 그대로 더한다</label><label><input type="radio" name="q2" value="c"> 1×1 합성곱과 BatchNorm으로 모양을 맞춘다</label><p class="quiz-feedback"></p></fieldset><fieldset class="quiz" data-answer="a"><legend><span>Q3</span>이 저장소의 32×32 입력 ResNet18은 처음에 무엇을 사용하는가?</legend><label><input type="radio" name="q3" value="a"> 7×7 합성곱, 보폭 2와 MaxPool</label><label><input type="radio" name="q3" value="b"> 논문 CIFAR 실험과 같은 3×3, 16채널 stem</label><label><input type="radio" name="q3" value="c"> 합성곱 없이 바로 분류기</label><p class="quiz-feedback"></p></fieldset><button class="button" id="checkQuiz" type="button">정답 확인</button><p class="quiz-score" id="quizScore" aria-live="polite"></p></div>
       </section>
       <section class="local-run-card"><div><p class="eyebrow">직접 실행</p><h2>CIFAR-10에서 ResNet18 빠르게 학습하기</h2><p>설치 후 빠른 실행으로 데이터 다운로드부터 한 epoch의 학습·검증까지 확인할 수 있습니다. 웹의 숫자 실험은 개념 모형이며, 실제 학습 기록은 여기서 생성됩니다.</p></div><div class="command-block"><code>cifar10-lab train --model resnet18 --quick</code><button class="copy-button" type="button" data-copy-text="cifar10-lab train --model resnet18 --quick">복사</button></div></section>
-      <nav class="chapter-pagination" aria-label="단원 이동"><a href="08-vgg.html"><small>이전</small><strong>8장 · VGG</strong></a><span class="disabled"><small>다음</small><strong>10장 · SENet</strong></span></nav>
+      <nav class="chapter-pagination" aria-label="단원 이동"><a href="08-vgg.html"><small>이전</small><strong>8장 · VGG</strong></a><a href="10-senet.html"><small>다음</small><strong>10장 · SENet</strong></a></nav>
     </article></main>
     <aside id="chapterGlossary" class="chapter-glossary" aria-label="핵심 용어" data-chapter="09"><div class="glossary-heading"><h2>핵심 용어</h2></div><p class="glossary-intro">영어 용어를 눌러 뜻과 등장 위치를 확인하세요.</p><div class="glossary-list"></div></aside>
   </div>
-  <footer class="site-footer"><span>Backbone Lab · 실제 코드로 배우는 인공지능 기초</span><a href="https://github.com/tember40/Backbone_tester_CNN_Transformer">GitHub에서 보기</a></footer>
+  <footer class="site-footer"><div class="footer-copy"><strong>Backbone Lab · 실제 코드로 배우는 인공지능 기초</strong><p>이 자료는 학습의 출발점입니다. 개념과 결과는 원 논문, 공식 문서, 실제 코드와 함께 확인해 주세요.</p></div><a href="https://github.com/tember40/Backbone_tester_CNN_Transformer">GitHub에서 보기</a></footer>
 </body>
 </html>

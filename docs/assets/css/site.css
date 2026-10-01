@@ -947,6 +947,29 @@ code, pre { font-family: var(--mono); }
 .resnet-extension-results { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .resnet-extension-lab > p { margin: 0; padding: 14px 18px; color: var(--muted); font-size: 15px; }
 
+/* SENet calculation examples */
+.se-squeeze-content, .se-scale-content { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; padding: 24px; }
+.se-squeeze-content h3, .se-scale-content h3 { margin: 0 0 13px; font-family: var(--serif); font-size: 22px; }
+.se-pixel-grid, .se-value-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; max-width: 260px; }
+.se-pixel-grid input, .se-value-grid span { display: grid; place-items: center; width: 100%; min-height: 54px; border: 1px solid var(--line-dark); background: #fff; color: var(--blue-dark); font: 750 21px var(--serif); text-align: center; }
+.se-pixel-grid input:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+.se-channel-list { display: grid; gap: 6px; }
+.se-channel-list > div { display: flex; justify-content: space-between; gap: 12px; padding: 7px 12px; border-left: 3px solid var(--line-dark); background: #fff; }
+.se-channel-list > div.is-current { border-left-color: var(--blue); background: var(--blue-soft); }
+.se-channel-list strong { color: var(--blue-dark); }
+.se-lab-caption { margin: 0; padding: 12px 20px 16px; color: var(--muted); font-size: 15px; line-height: 1.55; }
+.se-squeeze-content .se-lab-caption { padding: 11px 0 0; }
+.se-scale-content { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px; }
+.se-scale-arrow { color: var(--blue); font-size: 18px; white-space: nowrap; }
+.se-scale-arrow strong { font-family: var(--serif); }
+.se-dimension-flow { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; padding: 26px 18px 10px; }
+.se-dimension-flow > div { min-width: 130px; padding: 12px 18px; border-bottom: 3px solid var(--blue); background: var(--blue-soft); text-align: center; }
+.se-dimension-flow span { display: block; color: var(--muted); font-size: 14px; }
+.se-dimension-flow strong { display: block; color: var(--blue-dark); font: 750 26px var(--serif); }
+.se-block-flow { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0; }
+.se-block-flow > * { padding: 10px 13px; border-bottom: 2px solid var(--line-dark); background: var(--surface-soft); font-size: 15px; }
+.se-block-flow > strong { border-bottom-color: var(--blue); background: var(--blue-soft); color: var(--blue-dark); }
+
 /* Tables, summary, exercises */
 .comparison-table-wrap { overflow-x: auto; }
 .comparison-table { width: 100%; border-collapse: collapse; border: 1px solid var(--line-dark); background: #fff; font-size: 18.2px; }
@@ -993,6 +1016,10 @@ code, pre { font-family: var(--mono); }
 .chapter-pagination strong { margin-top: 2px; font-size: 18.85px; }
 .chapter-pagination .disabled { opacity: .45; text-align: right; }
 .site-footer { min-height: 80px; padding: 25px clamp(20px, 5vw, 65px); display: flex; justify-content: space-between; align-items: center; border-top: 3px solid var(--kw-brown); background: var(--kw-brown-deep); color: #eadedb; font-size: 16.9px; }
+.footer-copy { display: grid; gap: 4px; max-width: 680px; }
+.footer-copy > * { margin: 0; }
+.footer-copy strong { color: #fff; font-size: 16px; }
+.footer-copy p { color: #eadedb; font-size: 14px; line-height: 1.55; }
 .site-footer a { color: #fff; font-weight: 700; }
 .chapter-page .site-footer { width: calc(100% - (var(--sidebar) * 2)); margin-left: var(--sidebar); }
 
@@ -1120,6 +1147,10 @@ code, pre { font-family: var(--mono); }
   .resnet-stage-list button:nth-child(3) { border-right: 0; }
   .resnet-stage-list button:nth-child(n + 4) { border-bottom: 1px solid var(--line); }
   .resnet-stage-list button:last-child { border-right: 1px solid var(--line); }
+  .se-squeeze-content { grid-template-columns: 1fr; gap: 20px; }
+  .se-scale-content { grid-template-columns: 1fr; }
+  .se-scale-arrow { text-align: center; }
+  .se-dimension-flow > div { min-width: 92px; padding-inline: 10px; }
   .resnet-stage-detail dl { grid-template-columns: 1fr; }
   .method-section, .curriculum-section { padding: 58px 20px; }
   .method-grid, .curriculum-grid { grid-template-columns: 1fr; }

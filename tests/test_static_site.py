@@ -299,7 +299,7 @@ class StaticSiteTests(unittest.TestCase):
         glossary = (DOCS / "assets" / "js" / "glossary.js").read_text(
             encoding="utf-8"
         )
-        for chapter in range(1, 10):
+        for chapter in range(1, 11):
             number = f"{chapter:02d}"
             page = next((DOCS / "chapters").glob(f"{number}-*.html"))
             source = page.read_text(encoding="utf-8")
@@ -318,7 +318,7 @@ class StaticSiteTests(unittest.TestCase):
             )
         }
         self.assertGreaterEqual(len(definitions), 30)
-        for chapter in range(1, 10):
+        for chapter in range(1, 11):
             number = f"{chapter:02d}"
             page = next((DOCS / "chapters").glob(f"{number}-*.html"))
             match = re.search(
@@ -497,8 +497,8 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('id="timelineSource"', home)
         self.assertIn('id="timelineChapter"', home)
         self.assertNotIn("학습 가능", home)
-        self.assertEqual(home.count('class="is-locked"'), 9)
-        self.assertEqual(home.count('class="private-label">비공개'), 9)
+        self.assertEqual(home.count('class="is-locked"'), 8)
+        self.assertEqual(home.count('class="private-label">비공개'), 8)
         self.assertNotIn("lock-icon", home)
         self.assertIn("아직 제작 중인 단원", home)
 
@@ -508,6 +508,38 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('card.addEventListener("pointerenter"', script)
         self.assertIn('card.addEventListener("focus"', script)
         self.assertIn('closest(".timeline-step")', script)
+
+    def test_senet_chapter_and_study_reminder(self):
+        page = DOCS / "chapters" / "10-senet.html"
+        source = page.read_text(encoding="utf-8")
+        for section_id in (
+            "overview", "paper", "squeeze", "excitation", "reduction",
+            "placement", "adaptation", "code", "checkpoint",
+        ):
+            self.assertIn(f'id="{section_id}"', source)
+
+        implementation = (ROOT / "backbone" / "SeNet.py").read_text(
+            encoding="utf-8"
+        )
+        for code_line in (
+            "b, c, _, _ = x.size()",
+            "y = self.avg_pool(x).view(b, c)",
+            "y = self.fc(y).view(b, c, 1, 1)",
+            "return x * y.expand_as(x)",
+            "out = self.se(out)",
+        ):
+            self.assertIn(code_line, implementation)
+            self.assertIn(code_line, source)
+        self.assertIn('href="chapters/10-senet.html"', (
+            DOCS / "index.html"
+        ).read_text(encoding="utf-8"))
+        self.assertIn('href="10-senet.html"', (
+            DOCS / "chapters" / "09-resnet.html"
+        ).read_text(encoding="utf-8"))
+
+        reminder = "개념과 결과는 원 논문, 공식 문서, 실제 코드와 함께 확인해 주세요."
+        for public_page in [DOCS / "index.html", *(DOCS / "chapters").glob("*.html")]:
+            self.assertIn(reminder, public_page.read_text(encoding="utf-8"))
 
     def test_user_facing_pages_avoid_book_authorship_wording(self):
         for page in DOCS.rglob("*.html"):
