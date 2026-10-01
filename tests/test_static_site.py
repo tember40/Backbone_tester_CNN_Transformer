@@ -156,6 +156,12 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("../docs/chapters/07-alexnet.html", seventh_chapter_entry)
         self.assertIn("target.hash = window.location.hash", seventh_chapter_entry)
 
+        eighth_chapter_entry = (
+            ROOT / "chapters" / "08-vgg.html"
+        ).read_text(encoding="utf-8")
+        self.assertIn("../docs/chapters/08-vgg.html", eighth_chapter_entry)
+        self.assertIn("target.hash = window.location.hash", eighth_chapter_entry)
+
     def test_linear_separability_page_contains_the_lesson_contract(self):
         page = DOCS / "chapters" / "02-linear-separability.html"
         source = page.read_text(encoding="utf-8")
@@ -364,6 +370,42 @@ class StaticSiteTests(unittest.TestCase):
         ):
             self.assertIn(code_line, implementation)
             self.assertIn(code_line, source)
+
+    def test_vgg_page_contains_the_lesson_contract(self):
+        page = DOCS / "chapters" / "08-vgg.html"
+        source = page.read_text(encoding="utf-8")
+        for section_id in (
+            "overview",
+            "paper",
+            "small-kernels",
+            "architecture",
+            "adaptation",
+            "code",
+            "lab",
+            "checkpoint",
+        ):
+            self.assertIn(f'id="{section_id}"', source)
+
+        implementation = (ROOT / "backbone" / "VGG.py").read_text(
+            encoding="utf-8"
+        )
+        for code_line in (
+            "if v == 'M':",
+            "layers += [nn.MaxPool2d(kernel_size=2, stride=2)]",
+            "conv2d = nn.Conv2d(in_channels, v, kernel_size=3, padding=1)",
+            "layers += [conv2d, nn.ReLU(True)]",
+            "in_channels = v",
+            "return nn.Sequential(*layers)",
+        ):
+            self.assertIn(code_line, implementation)
+            self.assertIn(code_line, source)
+
+        curriculum = (DOCS / "index.html").read_text(encoding="utf-8")
+        self.assertIn('href="chapters/08-vgg.html"', curriculum)
+        alexnet = (DOCS / "chapters" / "07-alexnet.html").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('href="08-vgg.html"', alexnet)
 
     def test_user_facing_pages_avoid_book_authorship_wording(self):
         for page in DOCS.rglob("*.html"):

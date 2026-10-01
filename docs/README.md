@@ -35,5 +35,6 @@ docs/
 - `05-feature-maps-activations.html`: 특징맵 채널, 텐서 차원, ReLU 활성화 실험
 - `06-pooling-receptive-field.html`: 최대·평균 풀링 계산, 출력 크기, 수용영역 누적 실험
 - `07-alexnet.html`: AlexNet 논문, CIFAR-10 구조 변형, 파라미터와 Dropout 실험
+- `08-vgg.html`: VGG 논문, 작은 필터와 깊이별 구조, CIFAR-10 모델과 메모리 실험
 
 `main` 브랜치의 `docs/` 변경은 GitHub Actions가 GitHub Pages에 자동 배포합니다.
