@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="MobileNetV2의 깊이별 합성곱, inverted residual, linear bottleneck과 CIFAR-10 구현을 실제 코드와 실험으로 배우는 자료">
   <title>11장. MobileNetV2 · Backbone Lab</title>
-  <link rel="stylesheet" href="../assets/css/site.css?v=20261001j">
+  <link rel="stylesheet" href="../assets/css/site.css?v=20261001k">
   <script src="../assets/js/glossary.js?v=20261001i" defer></script>
   <script src="../assets/js/mobilenetv2.js?v=20261001b" defer></script>
 </head>
@@ -51,7 +51,7 @@
 
       <section class="lesson-section" id="depthwise">
         <div class="section-number">11.2</div><div class="lesson-heading"><p class="eyebrow">실습 11.1 · 가중치 세기</p><h2><span>11.2</span> 공간과 채널 연산을 분리한다</h2><p>일반 합성곱은 출력 채널마다 모든 입력 채널의 3×3 값을 사용합니다. <span lang="en">depthwise</span>는 각 입력 채널에서 공간 필터를 하나씩 적용하고, 뒤의 1×1 <span lang="en">pointwise</span>가 채널을 섞습니다. 입력·출력 채널 수를 바꿔 가중치 수를 계산해 보세요.</p></div>
-        <figure class="mobile-convolution-figure"><div class="mobile-visual-scroll"><img src="../assets/img/mobilenet-depthwise-pointwise.svg" width="920" height="370" alt="입력 채널 3개가 각각 별도의 3×3 필터를 통과해 채널 3개를 만들고, 두 개의 1×1 필터가 이 3개 채널을 모두 읽어 출력 채널 2개를 만드는 흐름"></div><figcaption><span class="mobile-scroll-hint">작은 화면에서는 그림을 좌우로 밀어 두 단계를 확인하세요. </span>그림은 입력 3채널·출력 2채널의 작은 예시입니다. 왼쪽의 세 줄은 서로 섞이지 않고, 오른쪽 1×1 필터는 각 위치에서 세 채널의 값을 함께 사용합니다. <a href="https://arxiv.org/abs/1704.04861">MobileNet 원 논문의 Figure 2</a>를 참고해 새로 그렸습니다.</figcaption></figure>
+        <figure class="mobile-convolution-figure"><div class="mobile-visual-scroll"><img src="../assets/img/mobilenet-depthwise-pointwise.svg?v=20261001b" width="540" height="515" alt="첫 단계에서 입력 채널 3개가 각각 별도의 3×3 필터를 거친다. 둘째 단계에서 1×1 필터 두 개가 이 3개 채널을 모두 읽어 출력 채널 2개를 만든다."></div><figcaption><span class="mobile-scroll-hint">작은 화면에서는 그림을 좌우로 밀어 각 단계의 오른쪽까지 확인하세요. </span>그림은 입력 3채널·출력 2채널의 작은 예시입니다. 위의 세 줄은 서로 섞이지 않고, 아래의 1×1 필터는 각 위치에서 세 채널의 값을 함께 사용합니다. <a href="https://arxiv.org/abs/1704.04861">MobileNet 원 논문의 Figure 2</a>를 참고해 새로 그렸습니다.</figcaption></figure>
         <div class="equation-card resnet-equation"><strong>일반: 9 × C<sub>in</sub> × C<sub>out</sub></strong><span aria-hidden="true">↔</span><strong>분리: 9 × C<sub>in</sub> + C<sub>in</sub> × C<sub>out</sub></strong></div>
         <div class="lab-panel mobile-cost-lab"><div class="resnet-controls"><label>입력 채널 <select id="mobileInputChannels"><option value="16">16</option><option value="32" selected>32</option><option value="64">64</option><option value="128">128</option></select></label><label>출력 채널 <select id="mobileOutputChannels"><option value="16">16</option><option value="32" selected>32</option><option value="64">64</option><option value="128">128</option></select></label></div><div class="mobile-cost-results"><div><span>일반 3×3</span><strong id="mobileFullWeights">9,216</strong><small id="mobileFullFormula">9 × 32 × 32</small></div><div><span>깊이별 3×3 + 점별 1×1</span><strong id="mobileSplitWeights">1,312</strong><small id="mobileSplitFormula">9 × 32 + 32 × 32</small></div><div><span>가중치 수 비율</span><strong id="mobileCostRatio">7.02배</strong><small>일반 ÷ 분리</small></div></div></div>
         <p>이 계산은 <strong>한 합성곱을 분리했을 때의 필터 가중치</strong>만 셉니다. 편향·BatchNorm·활성화와 블록의 확장·투영은 포함하지 않습니다. 따라서 위 비율을 전체 모델의 속도나 메모리 절감률로 읽으면 안 됩니다. 실제 실행 시간은 기기와 연산 구현에도 영향을 받습니다.</p>

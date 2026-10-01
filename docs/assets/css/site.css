@@ -973,7 +973,7 @@ code, pre { font-family: var(--mono); }
 /* MobileNetV2 calculation and architecture labs */
 .mobile-convolution-figure { margin: 23px 0 27px; }
 .mobile-visual-scroll { overflow-x: auto; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.mobile-visual-scroll img { display: block; width: 100%; min-width: 680px; height: auto; }
+.mobile-visual-scroll img { display: block; width: 100%; min-width: 500px; height: auto; }
 .mobile-convolution-figure figcaption { margin-top: 10px; color: var(--muted); font-size: 15.6px; line-height: 1.65; }
 .mobile-convolution-figure figcaption a { color: var(--blue-dark); text-decoration: underline; text-underline-offset: 3px; }
 .mobile-scroll-hint { display: none; }

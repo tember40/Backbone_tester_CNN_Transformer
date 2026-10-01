@@ -547,7 +547,7 @@ class StaticSiteTests(unittest.TestCase):
     def test_mobilenetv2_chapter_matches_implementation(self):
         page = DOCS / "chapters" / "11-mobilenetv2.html"
         source = page.read_text(encoding="utf-8")
-        self.assertIn('src="../assets/img/mobilenet-depthwise-pointwise.svg"', source)
+        self.assertIn('src="../assets/img/mobilenet-depthwise-pointwise.svg?v=20261001b"', source)
         self.assertIn("MobileNet 원 논문의 Figure 2", source)
         for section_id in (
             "overview", "paper", "depthwise", "inverted", "linear",
