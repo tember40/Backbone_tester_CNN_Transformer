@@ -16,6 +16,7 @@ class PageParser(HTMLParser):
         self.links = []
         self.scripts = []
         self.stylesheets = []
+        self.images = []
 
     def handle_starttag(self, tag, attrs):
         attributes = dict(attrs)
@@ -25,6 +26,8 @@ class PageParser(HTMLParser):
             self.links.append(attributes["href"])
         if tag == "script" and attributes.get("src"):
             self.scripts.append(attributes["src"])
+        if tag == "img" and attributes.get("src"):
+            self.images.append(attributes["src"])
         if (
             tag == "link"
             and attributes.get("rel") == "stylesheet"
@@ -55,7 +58,7 @@ class StaticSiteTests(unittest.TestCase):
 
         for page in html_pages:
             parser = parse_page(page)
-            references = parser.links + parser.scripts + parser.stylesheets
+            references = parser.links + parser.scripts + parser.stylesheets + parser.images
             for reference in references:
                 target = local_target(page, reference)
                 if target is None:
@@ -544,6 +547,8 @@ class StaticSiteTests(unittest.TestCase):
     def test_mobilenetv2_chapter_matches_implementation(self):
         page = DOCS / "chapters" / "11-mobilenetv2.html"
         source = page.read_text(encoding="utf-8")
+        self.assertIn('src="../assets/img/mobilenet-depthwise-pointwise.svg"', source)
+        self.assertIn("MobileNet 원 논문의 Figure 2", source)
         for section_id in (
             "overview", "paper", "depthwise", "inverted", "linear",
             "architecture", "code", "adaptation", "checkpoint",

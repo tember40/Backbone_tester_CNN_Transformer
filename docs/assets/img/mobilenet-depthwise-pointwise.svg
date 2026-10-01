@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 370" role="img" aria-labelledby="title description">
+  <title id="title">깊이별 합성곱과 점별 합성곱의 채널 흐름</title>
+  <desc id="description">입력 채널 세 개가 각각 자기 색의 3×3 필터 하나를 거쳐 출력 채널 세 개를 만든다. 그 뒤 두 개의 1×1 필터가 세 채널을 모두 읽어 최종 출력 채널 두 개를 만든다.</desc>
+  <defs>
+    <pattern id="map-grid" width="13" height="13" patternUnits="userSpaceOnUse"><path d="M 13 0 L 0 0 0 13" fill="none" stroke="#9f9a98" stroke-opacity=".28" stroke-width="1"/></pattern>
+    <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#7d7371"/></marker>
+    <style>
+      text{font-family:Arial,'Malgun Gothic',sans-serif;fill:#322d2c}
+      .head{font-size:19px;font-weight:700}
+      .sub{font-size:14px;fill:#665c5a}
+      .label{font-size:17px;font-weight:700}
+      .small{font-size:13px;fill:#5f5553}
+      .wire{fill:none;stroke:#7d7371;stroke-width:2;marker-end:url(#arrow)}
+      .soft-wire{fill:none;stroke:#a49a98;stroke-width:1.6}
+    </style>
+  </defs>
+  <rect width="920" height="370" fill="#fff"/>
+  <text class="head" x="24" y="31">입력 특징맵</text>
+  <text class="head" x="199" y="31">① 3×3 Depthwise</text>
+  <text class="head" x="545" y="31">② 1×1 Pointwise</text>
+  <text class="head" x="800" y="31">출력</text>
+  <text class="sub" x="24" y="56">입력 채널 3개</text>
+  <text class="sub" x="199" y="56">채널마다 필터 1개</text>
+  <text class="sub" x="545" y="56">모든 채널을 함께 읽음</text>
+  <text class="sub" x="800" y="56">출력 채널 2개</text>
+
+  <g stroke-width="1.5">
+    <rect x="26" y="91" width="80" height="53" rx="3" fill="#e9f2f1" stroke="#3d7771"/><rect x="26" y="91" width="80" height="53" fill="url(#map-grid)"/>
+    <rect x="26" y="170" width="80" height="53" rx="3" fill="#f6ece5" stroke="#af7048"/><rect x="26" y="170" width="80" height="53" fill="url(#map-grid)"/>
+    <rect x="26" y="249" width="80" height="53" rx="3" fill="#eeeaf3" stroke="#79658c"/><rect x="26" y="249" width="80" height="53" fill="url(#map-grid)"/>
+    <rect x="355" y="91" width="80" height="53" rx="3" fill="#e9f2f1" stroke="#3d7771"/><rect x="355" y="91" width="80" height="53" fill="url(#map-grid)"/>
+    <rect x="355" y="170" width="80" height="53" rx="3" fill="#f6ece5" stroke="#af7048"/><rect x="355" y="170" width="80" height="53" fill="url(#map-grid)"/>
+    <rect x="355" y="249" width="80" height="53" rx="3" fill="#eeeaf3" stroke="#79658c"/><rect x="355" y="249" width="80" height="53" fill="url(#map-grid)"/>
+    <rect x="805" y="132" width="80" height="53" rx="3" fill="#f3e6e4" stroke="#702e36"/><rect x="805" y="132" width="80" height="53" fill="url(#map-grid)"/>
+    <rect x="805" y="211" width="80" height="53" rx="3" fill="#f3e6e4" stroke="#702e36"/><rect x="805" y="211" width="80" height="53" fill="url(#map-grid)"/>
+  </g>
+  <g class="label" text-anchor="middle">
+    <text x="66" y="124">C₁</text><text x="66" y="203">C₂</text><text x="66" y="282">C₃</text>
+    <text x="395" y="124">C₁′</text><text x="395" y="203">C₂′</text><text x="395" y="282">C₃′</text>
+    <text x="845" y="165">O₁</text><text x="845" y="244">O₂</text>
+  </g>
+
+  <g class="wire">
+    <path d="M114 117H181"/><path d="M114 196H181"/><path d="M114 275H181"/>
+    <path d="M252 117H344"/><path d="M252 196H344"/><path d="M252 275H344"/>
+    <path d="M755 157H793"/><path d="M755 236H793"/>
+  </g>
+  <g stroke-width="1.7">
+    <rect x="192" y="99" width="48" height="37" rx="2" fill="#e9f2f1" stroke="#3d7771"/>
+    <rect x="192" y="178" width="48" height="37" rx="2" fill="#f6ece5" stroke="#af7048"/>
+    <rect x="192" y="257" width="48" height="37" rx="2" fill="#eeeaf3" stroke="#79658c"/>
+    <path d="M208 99v37m16-37v37m-32-25h48m-48 12h48M208 178v37m16-37v37m-32-25h48m-48 12h48M208 257v37m16-37v37m-32-25h48m-48 12h48" stroke="#847876" stroke-opacity=".55"/>
+  </g>
+  <g class="small" text-anchor="middle"><text x="216" y="88">K₁</text><text x="216" y="167">K₂</text><text x="216" y="246">K₃</text></g>
+
+  <g class="soft-wire">
+    <path d="M435 117H515M435 196H515M435 275H515M515 117V275"/>
+  </g>
+  <g class="wire"><path d="M515 157H555"/><path d="M515 236H555"/></g>
+  <g>
+    <rect x="565" y="112" width="190" height="79" rx="4" fill="#fbf8f7" stroke="#ac8b86" stroke-width="1.5"/>
+    <rect x="565" y="202" width="190" height="80" rx="4" fill="#fbf8f7" stroke="#ac8b86" stroke-width="1.5"/>
+    <g stroke="#8a817e" stroke-width="1.2"><rect x="581" y="129" width="23" height="23" fill="#e9f2f1"/><rect x="605" y="129" width="23" height="23" fill="#f6ece5"/><rect x="629" y="129" width="23" height="23" fill="#eeeaf3"/><rect x="581" y="208" width="23" height="23" fill="#e9f2f1"/><rect x="605" y="208" width="23" height="23" fill="#f6ece5"/><rect x="629" y="208" width="23" height="23" fill="#eeeaf3"/></g>
+    <text class="label" x="668" y="145">1×1 필터 A</text><text class="label" x="668" y="224">1×1 필터 B</text>
+    <text class="small" x="582" y="181">각 필터가 C₁′·C₂′·C₃′를 함께 봄</text>
+    <text class="small" x="582" y="260">서로 다른 조합 → 출력 2개</text>
+  </g>
+  <path d="M24 335H889" stroke="#d9cfcb"/>
+  <text class="small" x="24" y="355">채널 수 유지: 3 → 3</text>
+  <text class="small" x="343" y="355">공간 패턴을 각각 추출</text>
+  <text class="small" x="632" y="355">채널을 섞어 3 → 2</text>
+</svg>
