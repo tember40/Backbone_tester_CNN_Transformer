@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="VGG 논문의 작은 필터와 깊이 실험, CIFAR-10 구조, 실제 코드와 메모리 사용량을 단계별로 살펴보는 인공지능 학습 자료">
   <title>8장. VGG · Backbone Lab</title>
-  <link rel="stylesheet" href="../assets/css/site.css?v=20261001c">
+  <link rel="stylesheet" href="../assets/css/site.css?v=20261001e">
+  <script src="../assets/js/glossary.js?v=20261001e" defer></script>
   <script src="../assets/js/vgg.js?v=20261001c" defer></script>
 </head>
 <body class="chapter-page">
@@ -72,7 +73,7 @@
       <section class="lesson-section" id="adaptation">
         <div class="section-number">8.4</div><div class="lesson-heading"><p class="eyebrow">원 논문과 프로젝트 구현</p><h2><span>8.4</span> 입력 크기가 달라지면 마지막 특징도 달라진다</h2></div>
         <div class="comparison-table-wrap"><table class="comparison-table"><thead><tr><th>항목</th><th>원 논문 VGG16</th><th>이 프로젝트 VGG16</th></tr></thead><tbody><tr><th>입력</th><td>224×224 RGB</td><td>32×32 RGB (CIFAR-10)</td></tr><tr><th>3×3 합성곱</th><td>13층</td><td>13층</td></tr><tr><th>2×2 풀링</th><td>5회</td><td>5회</td></tr><tr><th>마지막 특징</th><td>512×7×7</td><td>512×1×1</td></tr><tr><th>분류 범주</th><td>1,000개</td><td>10개</td></tr><tr><th>파라미터</th><td>약 1억 3,800만 개</td><td>33,638,218개</td></tr></tbody></table></div>
-        <p>다섯 번의 풀링은 공간의 가로·세로를 각각 절반으로 줄입니다. 32 → 16 → 8 → 4 → 2 → 1이므로 마지막 특징은 512×1×1입니다. 분류기 첫 선형층의 입력도 512개가 되어 원 논문보다 훨씬 작아집니다. 따라서 여기서 학습한 가중치를 논문 모델의 가중치로 볼 수 없습니다.</p>
+        <p>다섯 번의 풀링은 공간의 가로·세로를 각각 절반으로 줄입니다. 32 → 16 → 8 → 4 → 2 → 1이므로 마지막 특징은 512×1×1입니다. 구현의 <code>AdaptiveAvgPool2d((1, 1))</code>도 분류기로 넘길 크기를 1×1로 고정합니다. 분류기 첫 선형층의 입력은 512개이므로 원 논문보다 훨씬 작습니다. 따라서 여기서 학습한 가중치를 논문 모델의 가중치로 볼 수 없습니다.</p>
         <aside class="callout callout-question"><strong>현재 코드의 사전학습 옵션에 주의하세요</strong><p><span lang="en">backbone/VGG.py</span>의 <code>pretrained=True</code>는 가중치 초기화를 건너뛰지만, 가중치를 내려받는 부분은 주석 처리되어 있습니다. 사전학습 모델을 실제로 불러오는 기능이 아닙니다.</p></aside>
       </section>
 
@@ -111,6 +112,11 @@
       <section class="local-run-card"><div><p class="eyebrow">직접 실행</p><h2>CIFAR-10에서 VGG16 빠르게 학습하기</h2><p>설치 후 빠른 실행으로 데이터 다운로드부터 학습·검증까지 확인할 수 있습니다. CPU에서는 시간이 걸릴 수 있습니다.</p></div><div class="command-block"><code>cifar10-lab train --model vgg16 --quick</code><button class="copy-button" type="button" data-copy-text="cifar10-lab train --model vgg16 --quick">복사</button></div></section>
       <nav class="chapter-pagination" aria-label="단원 이동"><a href="07-alexnet.html"><small>이전</small><strong>7장 · AlexNet</strong></a><span class="disabled"><small>다음</small><strong>9장 · ResNet과 확장 모델</strong></span></nav>
     </article></main>
+    <aside id="chapterGlossary" class="chapter-glossary" aria-label="핵심 용어" data-chapter="08">
+      <div class="glossary-heading"><h2>핵심 용어</h2></div>
+      <p class="glossary-intro">영어 용어를 눌러 뜻과 등장 위치를 확인하세요.</p>
+      <div class="glossary-list"></div>
+    </aside>
   </div>
   <footer class="site-footer"><span>Backbone Lab · 실제 코드로 배우는 인공지능 기초</span><a href="https://github.com/tember40/Backbone_tester_CNN_Transformer">GitHub에서 보기</a></footer>
 </body>

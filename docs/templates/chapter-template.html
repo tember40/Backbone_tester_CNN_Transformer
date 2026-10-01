@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Backbone Lab 전공 학습 자료 장 템플릿">
   <title>장 제목 · 인공지능 기초</title>
-  <link rel="stylesheet" href="../assets/css/site.css?v=20261001c">
+  <link rel="stylesheet" href="../assets/css/site.css?v=20261001e">
+  <script src="../assets/js/glossary.js?v=20261001e" defer></script>
 </head>
 <body class="chapter-page">
   <!-- 새 장을 만들 때 이 파일을 chapters/NN-slug.html로 복사하고 번호와 링크를 바꿉니다. -->
@@ -78,6 +79,12 @@
         <nav class="chapter-pagination" aria-label="단원 이동"><a href="../index.html"><small>이전</small><strong>전체 목차</strong></a><span class="disabled"><small>다음</small><strong>다음 장</strong></span></nav>
       </article>
     </main>
+    <!-- data-chapter와 glossary.js의 용어 목록을 새 장 번호에 맞춰 함께 추가합니다. -->
+    <aside id="chapterGlossary" class="chapter-glossary" aria-label="핵심 용어" data-chapter="NN">
+      <div class="glossary-heading"><h2>핵심 용어</h2></div>
+      <p class="glossary-intro">영어 용어를 눌러 뜻과 등장 위치를 확인하세요.</p>
+      <div class="glossary-list"></div>
+    </aside>
   </div>
 </body>
 </html>

@@ -1,4 +1,5 @@
 import unittest
+import re
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urlparse
@@ -273,6 +274,7 @@ class StaticSiteTests(unittest.TestCase):
         )
         self.assertIn(".site-header {\n  position: fixed;", stylesheet)
         self.assertIn(".chapter-sidebar { position: fixed;", stylesheet)
+        self.assertIn(".chapter-glossary { position: fixed;", stylesheet)
         self.assertIn(
             "grid-template-columns: var(--sidebar) minmax(0, 1fr) var(--sidebar)",
             stylesheet,
@@ -286,6 +288,47 @@ class StaticSiteTests(unittest.TestCase):
             source = page.read_text(encoding="utf-8")
             self.assertNotIn("sidebar-note", source, str(page))
             self.assertNotIn("이 장의 분량", source, str(page))
+
+    def test_all_chapters_have_linked_glossaries(self):
+        glossary = (DOCS / "assets" / "js" / "glossary.js").read_text(
+            encoding="utf-8"
+        )
+        for chapter in range(1, 9):
+            number = f"{chapter:02d}"
+            page = next((DOCS / "chapters").glob(f"{number}-*.html"))
+            source = page.read_text(encoding="utf-8")
+            self.assertIn('id="chapterGlossary"', source)
+            self.assertIn(f'data-chapter="{number}"', source)
+            self.assertIn('../assets/js/glossary.js?', source)
+            self.assertIn('class="glossary-list"', source)
+            self.assertIn(f'"{number}": [[', glossary)
+
+        definitions = {
+            key: (chapter, section)
+            for key, chapter, section in re.findall(
+                r'^\s*(\w+): term\(.+, "(\d\d)", "([^"]+)"\),?$',
+                glossary,
+                re.MULTILINE,
+            )
+        }
+        self.assertGreaterEqual(len(definitions), 30)
+        for chapter in range(1, 9):
+            number = f"{chapter:02d}"
+            page = next((DOCS / "chapters").glob(f"{number}-*.html"))
+            match = re.search(
+                rf'^\s*"{number}": \[(.*)\],?$', glossary, re.MULTILINE
+            )
+            self.assertIsNotNone(match)
+            entries = re.findall(r'\["(\w+)", "([^"]+)"\]', match.group(1))
+            self.assertGreaterEqual(len(entries), 5)
+            for key, local_section in entries:
+                self.assertIn(key, definitions)
+                self.assertIn(local_section, parse_page(page).ids)
+                original_chapter, original_section = definitions[key]
+                original_page = next(
+                    (DOCS / "chapters").glob(f"{original_chapter}-*.html")
+                )
+                self.assertIn(original_section, parse_page(original_page).ids)
 
     def test_feature_maps_page_contains_the_lesson_contract(self):
         page = DOCS / "chapters" / "05-feature-maps-activations.html"

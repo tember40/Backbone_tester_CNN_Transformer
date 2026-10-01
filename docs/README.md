@@ -25,6 +25,7 @@ docs/
 ```
 
 새 장은 `templates/chapter-template.html`을 복사하고 `STYLE_GUIDE.md`의 구성 원칙에 맞춰 작성합니다.
+오른쪽 용어장은 `assets/js/glossary.js`에서 장별 목록을 관리합니다. 새 장을 추가할 때는 본문 절 링크와 영어·한국어 용어를 함께 등록합니다.
 
 현재 완성된 장:
 
