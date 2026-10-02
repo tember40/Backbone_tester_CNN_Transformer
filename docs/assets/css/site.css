@@ -1004,6 +1004,27 @@ code, pre { font-family: var(--mono); }
 .mobile-stage-list strong { margin: 3px 0; font-size: 18px; }
 .mobile-stage-list small { color: var(--muted); font-size: 12px; }
 
+/* EfficientNet scale and block labs */
+.efficient-scale-control { padding: 20px 22px 15px; border-bottom: 1px solid var(--line); }
+.efficient-scale-control label { display: flex; justify-content: space-between; align-items: baseline; color: var(--ink); font-size: 18px; font-weight: 700; }
+.efficient-scale-control label strong { color: var(--blue-dark); font: 750 27px var(--serif); }
+.efficient-scale-control input { width: 100%; margin: 15px 0 4px; accent-color: var(--blue); cursor: pointer; }
+.efficient-scale-ticks { display: flex; justify-content: space-between; color: var(--muted); font-size: 13px; }
+.efficient-scale-bars { display: grid; gap: 14px; padding: 21px 22px; }
+.efficient-scale-bars > div { display: grid; grid-template-columns: 86px minmax(0, 1fr) 72px; gap: 12px; align-items: center; }
+.efficient-scale-bars span { color: var(--ink); font-size: 16px; font-weight: 700; }
+.efficient-scale-bars > div > div { height: 15px; background: #ebe5e2; }
+.efficient-scale-bars i { display: block; height: 100%; background: var(--blue); transition: width .22s ease; }
+.efficient-scale-bars > div:nth-child(2) i { background: #ad704c; }
+.efficient-scale-bars > div:nth-child(3) i { background: #607c77; }
+.efficient-scale-bars strong { color: var(--blue-dark); font: 750 17px var(--serif); text-align: right; }
+.efficient-cost-note { margin: 0; padding: 13px 22px; border-top: 1px solid var(--line); color: var(--blue-dark); font-size: 16px; font-weight: 700; }
+.efficient-block-flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; margin: 25px 0; }
+.efficient-block-flow > * { display: grid; align-content: center; padding: 11px 12px; border-bottom: 2px solid var(--line-dark); background: var(--surface-soft); font-size: 15px; text-align: center; }
+.efficient-block-flow > strong { border-bottom-color: var(--blue); background: var(--blue-soft); color: var(--blue-dark); }
+.efficient-block-flow small { color: var(--muted); font-size: 12px; font-weight: 500; }
+.efficient-preset-lab .mobile-stage-list small { font-size: 12px; }
+
 /* Tables, summary, exercises */
 .comparison-table-wrap { overflow-x: auto; }
 .comparison-table { width: 100%; border-collapse: collapse; border: 1px solid var(--line-dark); background: #fff; font-size: 18.2px; }

@@ -16,11 +16,12 @@
     "09": "09-resnet.html",
     "10": "10-senet.html",
     "11": "11-mobilenetv2.html",
+    "12": "12-efficientnet.html",
   };
   const chapterNames = {
     "01": "퍼셉트론", "02": "선형 분리와 XOR", "03": "다층 퍼셉트론",
     "04": "합성곱과 필터", "05": "특징맵과 활성화",
-    "06": "Pooling과 수용영역", "07": "AlexNet", "08": "VGG", "09": "ResNet과 확장 모델", "10": "SENet", "11": "MobileNetV2",
+    "06": "Pooling과 수용영역", "07": "AlexNet", "08": "VGG", "09": "ResNet과 확장 모델", "10": "SENet", "11": "MobileNetV2", "12": "EfficientNet",
   };
   const term = (english, korean, meaning, chapter, section) =>
     ({english, korean, meaning, chapter, section});
@@ -87,6 +88,12 @@
     linearBottleneck: term("Linear Bottleneck", "선형 병목", "좁은 출력 투영에 비선형 활성화를 두지 않는 설계입니다.", "11", "linear"),
     relu6: term("ReLU6", "6으로 제한한 ReLU", "음수는 0, 6보다 큰 값은 6으로 제한하는 활성화입니다.", "11", "linear"),
     widthMultiplier: term("Width Multiplier", "너비 배율", "모델의 주요 채널 수를 조절하는 설정입니다. 실제 채널은 배수 단위로 반올림됩니다.", "11", "architecture"),
+    efficientnet: term("EfficientNet", "이피션트넷", "MBConv 기반 B0를 출발점으로 삼아 깊이·너비·해상도 확장을 함께 고려한 CNN 계열입니다.", "12", "paper"),
+    compoundScaling: term("Compound Scaling", "복합 스케일링", "하나의 계수와 고정 비율로 모델 깊이·너비·입력 해상도를 함께 키우는 규칙입니다.", "12", "compound"),
+    phi: term("Compound Coefficient φ", "복합 계수", "확장 자원 규모를 조절하는 값으로, 논문의 세 축 배율에서 지수로 사용됩니다.", "12", "compound"),
+    mbconv: term("MBConv", "이동형 역병목 블록", "1×1 확장, 깊이별 공간 처리, 1×1 선형 투영을 중심으로 하는 블록입니다.", "12", "mbconv"),
+    nas: term("Neural Architecture Search", "신경망 구조 탐색", "성능과 자원 조건을 기준으로 후보 네트워크 구조를 탐색하는 방법입니다.", "12", "paper"),
+    resolution: term("Input Resolution", "입력 해상도", "입력 이미지의 높이와 너비입니다. 이 저장소의 CIFAR-10 실습은 32×32로 고정합니다.", "12", "dimensions"),
   };
   const chapterWords = {
     "01": [["perceptron", "anatomy"], ["weightedSum", "calculator"], ["weight", "anatomy"], ["bias", "anatomy"], ["decisionBoundary", "learning"], ["learningRate", "learning"]],
@@ -100,6 +107,7 @@
     "09": [["resnet", "paper"], ["degradation", "paper"], ["residual", "residual"], ["shortcut", "residual"], ["projection", "blocks"], ["basicBlock", "blocks"], ["bottleneck", "blocks"], ["cardinality", "extensions"]],
     "10": [["senet", "paper"], ["squeeze", "squeeze"], ["globalAverage", "squeeze"], ["excitation", "excitation"], ["scale", "excitation"], ["reduction", "reduction"], ["shortcut", "placement"]],
     "11": [["mobilenetV2", "paper"], ["depthwise", "depthwise"], ["pointwise", "depthwise"], ["invertedResidual", "inverted"], ["linearBottleneck", "linear"], ["relu6", "linear"], ["widthMultiplier", "architecture"]],
+    "12": [["efficientnet", "paper"], ["nas", "paper"], ["resolution", "dimensions"], ["compoundScaling", "compound"], ["phi", "compound"], ["mbconv", "mbconv"], ["squeeze", "mbconv"], ["widthMultiplier", "presets"]],
   };
 
   const currentChapter = rail.dataset.chapter;

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="EfficientNet의 복합 스케일링과 MBConv를 논문·CIFAR-10 구현·실습으로 비교하는 인공지능 기초 자료">
+  <title>12장. EfficientNet · Backbone Lab</title>
+  <link rel="stylesheet" href="../assets/css/site.css?v=20261002a">
+  <script src="../assets/js/glossary.js?v=20261002a" defer></script>
+  <script src="../assets/js/efficientnet.js?v=20261002a" defer></script>
+</head>
+<body class="chapter-page">
+  <header class="site-header">
+    <a class="brand" href="../index.html" aria-label="Backbone Lab 홈"><span class="brand-mark">KW</span><span><strong>인공지능 기초</strong><small><span lang="en">Backbone Lab</span> 학습 자료</small></span></a>
+    <div class="chapter-progress" aria-label="현재 과정"><span>제4부 · 채널과 효율</span><div><i style="width: 100%"></i></div><strong>3 / 3</strong></div>
+    <nav class="header-actions"><a href="../index.html#curriculum">전체 목차</a><a class="button button-small" href="https://github.com/tember40/Backbone_tester_CNN_Transformer/blob/main/backbone/EfficientNet.py">실제 코드</a></nav>
+  </header>
+  <div class="chapter-layout">
+    <aside class="chapter-sidebar" aria-label="단원 목차"><p class="sidebar-label">EfficientNet</p><nav>
+      <a class="is-current" href="#overview"><span>12.0</span>학습 안내</a>
+      <a href="#paper"><span>12.1</span>논문의 질문</a>
+      <a href="#dimensions"><span>12.2</span>세 가지 크기</a>
+      <a href="#compound"><span>12.3</span>복합 확장</a>
+      <a href="#mbconv"><span>12.4</span>MBConv·SE</a>
+      <a href="#presets"><span>12.5</span>B 계열 비교</a>
+      <a href="#code"><span>12.6</span>실제 코드</a>
+      <a href="#adaptation"><span>12.7</span>논문과 실습</a>
+      <a href="#checkpoint"><span>12.8</span>연습문제</a>
+    </nav></aside>
+    <main class="chapter-content"><article>
+      <header class="chapter-hero" id="overview">
+        <div class="chapter-kicker"><span>제4부</span><span>채널과 효율</span><span>선수 지식: 10·11장</span></div>
+        <h1><small>제12장 · 커질 때 무엇을 함께 키울까?</small><span lang="en">EfficientNet</span></h1>
+        <p class="chapter-lead">모델을 크게 만들 때 층만 더 쌓을까요? 채널을 넓힐까요? 이미지를 크게 넣을까요? EfficientNet은 이 세 선택을 따로 떼지 않고 <strong>깊이·너비·해상도의 균형</strong>으로 다룹니다. 먼저 논문의 생각을 실험하고, 이 저장소가 실제로 구현한 범위를 구별해 봅시다.</p>
+        <div class="learning-objectives"><h2>학습 목표</h2><ul>
+          <li>깊이·너비·입력 해상도가 바꾸는 대상과 계산 비용을 설명할 수 있습니다.</li>
+          <li>복합 계수 φ와 α·β·γ를 사용한 스케일링 결과를 읽을 수 있습니다.</li>
+          <li>MBConv 안의 depthwise·SE·선형 투영을 앞 장과 연결할 수 있습니다.</li>
+          <li>논문의 B 계열과 이 저장소의 32×32 CIFAR-10용 B 계열을 구분할 수 있습니다.</li>
+        </ul></div>
+      </header>
+
+      <section class="lesson-section" id="paper">
+        <div class="section-number">12.1</div><div class="lesson-heading"><p class="eyebrow">논문의 질문</p><h2><span>12.1</span> 같은 자원으로 어떻게 더 잘 키울까?</h2></div>
+        <div class="paper-card"><div class="paper-meta"><span lang="en">Mingxing Tan · Quoc V. Le</span><span lang="en">ICML 2019</span></div><h3 lang="en">EfficientNet: Rethinking Model Scaling for Convolutional Neural Networks</h3><p>연구진은 채널만 넓히거나 층만 늘리는 방식보다, 깊이·너비·해상도를 함께 조절하는 방식이 주어진 계산 예산을 더 효과적으로 쓸 수 있는지 물었습니다. 먼저 신경망 구조 탐색으로 작은 기준 모델 B0를 찾고, 그 모델을 복합 계수로 키워 B1~B7을 만들었습니다.</p><a class="text-link" href="https://proceedings.mlr.press/v97/tan19a.html">원 논문 보기 <span aria-hidden="true">↗</span></a></div>
+        <p>여기서 <strong>좋은 출발 모델</strong>과 <strong>키우는 규칙</strong>은 별개입니다. 출발점 B0에는 11장의 MobileNetV2와 닮은 MBConv가 들어가고, 10장의 SE도 결합됩니다. 복합 스케일링은 이 구조를 새로 발명하는 연산이 아니라, 구조를 어느 방향으로 얼마나 확장할지 정하는 규칙입니다.</p>
+      </section>
+
+      <section class="lesson-section" id="dimensions">
+        <div class="section-number">12.2</div><div class="lesson-heading"><p class="eyebrow">크기의 세 축</p><h2><span>12.2</span> 깊이·너비·해상도는 서로 다르다</h2></div>
+        <div class="comparison-table-wrap"><table class="comparison-table"><thead><tr><th>축</th><th>바꾸는 것</th><th>예시</th><th>생각할 점</th></tr></thead><tbody>
+          <tr><th lang="en">Depth</th><td>블록 반복 수</td><td>한 단계의 MBConv 2개 → 3개</td><td>더 많은 변환 단계를 거칩니다.</td></tr>
+          <tr><th lang="en">Width</th><td>채널 수</td><td>24채널 → 32채널</td><td>각 단계가 더 많은 특징을 담습니다.</td></tr>
+          <tr><th lang="en">Resolution</th><td>입력의 높이·너비</td><td>224×224 → 더 큰 이미지</td><td>공간 위치가 늘어 계산이 많아집니다.</td></tr>
+        </tbody></table></div>
+        <p>단순화하면 합성곱 계산량은 깊이에 비례하고, 채널 수와 공간 크기에는 대략 제곱으로 반응합니다. 그러나 실제 모델은 depthwise 연산, 채널 반올림, 단계별 보폭을 사용하므로 이 관계를 <strong>정확한 FLOPs 공식</strong>으로 취급하면 안 됩니다. 11장의 “가중치 수와 실행 속도는 다르다”는 주의도 그대로 적용됩니다.</p>
+      </section>
+
+      <section class="lesson-section" id="compound">
+        <div class="section-number">12.3</div><div class="lesson-heading"><p class="eyebrow">실습 12.1 · 논문의 스케일링</p><h2><span>12.3</span> 하나의 φ로 세 축을 함께 움직인다</h2><p>논문은 B0를 기준으로 <span lang="en">depth</span> d=α<sup>φ</sup>, <span lang="en">width</span> w=β<sup>φ</sup>, <span lang="en">resolution</span> r=γ<sup>φ</sup>를 사용합니다. 논문에서 선택한 계수 α=1.2, β=1.1, γ=1.15를 놓고 φ를 바꿔 보세요.</p></div>
+        <div class="equation-card resnet-equation"><strong>d = 1.2<sup>φ</sup></strong><strong>w = 1.1<sup>φ</sup></strong><strong>r = 1.15<sup>φ</sup></strong></div>
+        <div class="lab-panel efficient-scale-lab"><div class="efficient-scale-control"><label for="efficientPhi">복합 계수 φ <strong id="efficientPhiValue">0</strong></label><input id="efficientPhi" type="range" min="0" max="4" step="1" value="0"><div class="efficient-scale-ticks" aria-hidden="true"><span>0 · B0 기준</span><span>4 · 더 큰 모델</span></div></div><div class="efficient-scale-bars" aria-live="polite"><div><span>깊이 d</span><div><i id="efficientDepthBar"></i></div><strong id="efficientDepth">1.00×</strong></div><div><span>너비 w</span><div><i id="efficientWidthBar"></i></div><strong id="efficientWidth">1.00×</strong></div><div><span>해상도 r</span><div><i id="efficientResolutionBar"></i></div><strong id="efficientResolution">1.00×</strong></div></div><p class="efficient-cost-note" id="efficientCost">단순 근사 계산량: B0의 1.00배</p></div>
+        <p>α·β²·γ² ≈ 1.92이므로 이 근사식에서는 φ가 1 커질 때 계산량이 대략 두 배가 됩니다. <strong>슬라이더는 논문의 비율을 보여주는 개념 실험</strong>입니다. 이 저장소의 B1~B7 이름에 φ=1~7을 그대로 대입해 정확한 입력 크기나 연산량을 얻는 도구가 아닙니다. 실제 채널은 정수로 반올림되고 블록 수는 올림 처리됩니다.</p>
+      </section>
+
+      <section class="lesson-section" id="mbconv">
+        <div class="section-number">12.4</div><div class="lesson-heading"><p class="eyebrow">앞 장과 연결</p><h2><span>12.4</span> MBConv 안에 MobileNetV2와 SE가 만난다</h2></div>
+        <p>이 저장소의 한 <span lang="en">MBConv</span> 블록은 필요하면 1×1로 채널을 확장하고, 3×3 또는 5×5 <span lang="en">depthwise</span>로 공간 패턴을 읽습니다. 이어 SE로 채널별 반응을 조절한 뒤 1×1 선형 투영으로 출력 채널을 만듭니다. 조건이 맞으면 입력을 더합니다.</p>
+        <div class="efficient-block-flow" aria-label="이 저장소의 MBConv 연산 순서"><span>입력</span><strong>1×1 확장<br><small>t≠1일 때</small></strong><strong>k×k 깊이별<br><small>k=3 또는 5</small></strong><strong>SE<br><small>채널별 곱</small></strong><strong>1×1 투영<br><small>선형 + BN</small></strong><span>출력</span></div>
+        <p>첫 단계의 확장이 생략되어도 depthwise와 SE·투영은 남습니다. shortcut은 <code>skip_connection</code>이 참이고, 보폭이 1이며, 입출력 채널 수가 같을 때만 더합니다. 11장의 역잔차 구조와 비교하면서 SE가 <strong>depthwise 뒤, 투영 앞</strong>에 놓인 위치를 확인하세요.</p>
+      </section>
+
+      <section class="lesson-section" id="presets">
+        <div class="section-number">12.5</div><div class="lesson-heading"><p class="eyebrow">실습 12.2 · 이 저장소의 B 계열</p><h2><span>12.5</span> 같은 입력, 다른 B 계열</h2><p>이 구현의 B0~B3을 선택하면 너비 배율, 반복 수, 채널 수와 출력 크기가 바뀝니다. 아래 수치는 <code>backbone/EfficientNet.py</code>를 기준으로 계산한 10-class 모델 값입니다. 해상도 배율은 이 코드에 없습니다.</p></div>
+        <div class="lab-panel efficient-preset-lab"><div class="resnet-controls"><label>모델 <select id="efficientPreset"><option value="b0">B0</option><option value="b1">B1</option><option value="b2">B2</option><option value="b3">B3</option></select></label></div><div class="mobile-stage-overview"><div><span>너비·깊이 배율</span><strong id="efficientMultipliers">1.0× · 1.0×</strong></div><div><span>MBConv 블록</span><strong id="efficientBlocks">16개</strong></div><div><span>10-class 파라미터</span><strong id="efficientParameters">4,055,730</strong></div></div><div class="mobile-stage-list" id="efficientStageList" aria-label="EfficientNet 단계 목록"></div><div class="resnet-stage-detail"><div><span>선택한 단계</span><h3 id="efficientStageName">—</h3><p id="efficientStagePattern">—</p></div><dl><div><dt>출력 [C, H, W]</dt><dd id="efficientStageOutput">—</dd></div><div><dt>블록 반복 수</dt><dd id="efficientStageRepeats">—</dd></div><div><dt>첫 블록 보폭</dt><dd id="efficientStageStride">—</dd></div><div><dt>커널 크기</dt><dd id="efficientStageKernel">—</dd></div></dl></div></div>
+        <p>B1은 B0와 너비 배율이 같아도 반복 수가 늘어 블록이 16개에서 23개가 됩니다. 5×5 depthwise가 쓰이는 단계도 있습니다. B4~B7 생성 함수 역시 코드에 있으나, 여기서는 빠르게 구조를 추적하기 좋은 B0~B3에 실습을 집중했습니다.</p>
+      </section>
+
+      <section class="lesson-section" id="code">
+        <div class="section-number">12.6</div><div class="lesson-heading"><p class="eyebrow">실제 프로젝트 코드</p><h2><span>12.6</span> 반복 수와 채널 수를 만드는 줄 읽기</h2><p>아래는 <code>backbone/EfficientNet.py</code>에서 단계 생성의 핵심 줄을 순서대로 발췌한 것입니다. 왼쪽 코드를 선택하면 오른쪽 설명에 해당하는 줄이 강조됩니다.</p></div>
+        <div class="code-study"><div class="code-window"><div class="code-toolbar"><span>backbone/EfficientNet.py · stage construction</span><button class="copy-button" type="button" data-copy-target="efficientCode">코드 복사</button></div><pre id="efficientCode" class="line-code"><code><span data-line="1">input_channel = _make_divisible(input_channel * width_mult, round_nearest)</span>
+<span data-line="2">self.last_channel = _make_divisible(last_channel * width_mult, round_nearest)</span>
+<span data-line="3">for t, c, n, s, k in inverted_residual_setting:</span>
+<span data-line="4">    output_channel = _make_divisible(c * width_mult, round_nearest)</span>
+<span data-line="5">    num_blocks = int(math.ceil(n * depth_mult))</span>
+<span data-line="6">    for i in range(num_blocks):</span>
+<span data-line="7">        stride = s if i == 0 else 1</span>
+<span data-line="8">        features.append(block(input_channel, output_channel, stride, expand_ratio=t, kernel_size=k, skip_connection=True, norm_layer=norm_layer, se_layer=se_layer))</span>
+<span data-line="9">        input_channel = output_channel</span></code></pre></div><div class="code-notes" role="list" aria-label="코드 해설"><button type="button" data-highlight="1-2"><span>① 시작과 끝</span><strong>채널 수 조정</strong><small>너비를 곱하고 8의 배수로 조정합니다.</small></button><button type="button" data-highlight="3-4"><span>② 단계 설정</span><strong>t, c, n, s, k</strong><small>확장·채널·반복·보폭·커널</small></button><button type="button" data-highlight="5-6"><span>③ 깊이 조정</span><strong>올림된 반복 수</strong><small>n × depth_mult를 올림합니다.</small></button><button type="button" data-highlight="7-9"><span>④ 블록 생성</span><strong>첫 블록만 보폭 s</strong><small>나머지는 보폭 1로 반복합니다.</small></button></div></div>
+        <p>논문의 φ를 계산하는 코드는 여기 없습니다. 대신 <code>efficientnet_b0()</code>부터 <code>efficientnet_b7()</code>까지의 함수가 <code>width_mult</code>와 <code>depth_mult</code>를 각각 넘깁니다. 같은 B 이름이라도 <strong>논문의 입력 해상도 변화까지 자동으로 적용되지는 않습니다.</strong></p>
+      </section>
+
+      <section class="lesson-section" id="adaptation">
+        <div class="section-number">12.7</div><div class="lesson-heading"><p class="eyebrow">논문과 현재 프로젝트의 범위</p><h2><span>12.7</span> 같은 이름을 같은 실험 결과로 읽지 않기</h2></div>
+        <div class="comparison-table-wrap"><table class="comparison-table"><thead><tr><th>항목</th><th>논문의 EfficientNet</th><th>이 저장소의 기본 실행</th></tr></thead><tbody>
+          <tr><th>입력 해상도</th><td>B 계열에 따라 확대</td><td>CIFAR-10의 32×32 고정</td></tr>
+          <tr><th>크기 조절</th><td>깊이·너비·해상도 복합 조절</td><td>미리 정한 너비·깊이 배율</td></tr>
+          <tr><th>활성화</th><td>Swish 사용</td><td><code>ConvBNReLU</code>에서 ReLU6 사용</td></tr>
+          <tr><th>SE의 출력</th><td>원 논문의 SE 설정</td><td><code>Hardsigmoid</code>로 채널 가중치 생성</td></tr>
+          <tr><th>분류 출력</th><td>ImageNet 1000개 등</td><td>기본 10개 클래스</td></tr>
+          <tr><th>가중치</th><td>논문 실험에서 학습한 모델</td><td>새로 초기화, 사전학습 다운로드 없음</td></tr>
+        </tbody></table></div>
+        <p>논문은 ImageNet 사전학습 후 CIFAR-10으로 전이 학습한 결과도 보고합니다. 이 페이지의 빠른 실행은 32×32 CIFAR-10에서 모델을 새로 학습하는 경로이므로 그 정확도를 재현하거나 비교한 값이 아닙니다. 본문 실습의 파라미터 수는 실제 코드의 구조를 세지만, 슬라이더의 계산량은 <strong>개념적인 근사</strong>입니다.</p>
+      </section>
+
+      <section class="lesson-section" id="checkpoint">
+        <div class="section-number">12.8</div><div class="lesson-heading"><p class="eyebrow">정리와 연습문제</p><h2><span>12.8</span> 구조와 확장 규칙을 나누어 생각하기</h2></div>
+        <div class="chapter-summary-box"><h3>12장 핵심 정리</h3><ul><li>EfficientNet은 B0의 구조와 깊이·너비·해상도를 함께 키우는 규칙을 결합합니다.</li><li>논문에서 α·β²·γ²≈2는 복합 계수 한 단계의 계산 예산을 대략 두 배로 맞추기 위한 근사 조건입니다.</li><li>이 저장소의 B 계열은 너비와 반복 수를 조정하지만 CIFAR-10 입력은 32×32로 둡니다.</li><li>MBConv는 MobileNetV2의 역잔차 흐름에 SE를 더하며, 실제 연산·활성화는 코드를 통해 확인해야 합니다.</li></ul></div>
+        <dl class="key-terms"><div><dt lang="en">Compound Scaling</dt><dd>깊이·너비·해상도를 함께 키우는 규칙</dd></div><div><dt lang="en">MBConv</dt><dd>역잔차 형태의 이동형 합성곱 블록</dd></div><div><dt lang="en">NAS</dt><dd>성능과 자원 조건에서 기준 구조를 탐색하는 방법</dd></div></dl>
+        <div class="quiz-list chapter-quiz-spacing"><fieldset class="quiz" data-answer="b"><legend><span>Q1</span>깊이 배율을 늘릴 때 이 코드에서 직접 바뀌는 것은?</legend><label><input type="radio" name="q1" value="a"> 입력 해상도</label><label><input type="radio" name="q1" value="b"> 각 단계의 블록 반복 수</label><label><input type="radio" name="q1" value="c"> 분류 클래스 이름</label><p class="quiz-feedback"></p></fieldset><fieldset class="quiz" data-answer="c"><legend><span>Q2</span>이 저장소의 B2가 논문 B2와 반드시 같지 않은 이유는?</legend><label><input type="radio" name="q2" value="a"> SE를 전혀 사용하지 않기 때문</label><label><input type="radio" name="q2" value="b"> 출력 채널이 항상 10이 아니기 때문</label><label><input type="radio" name="q2" value="c"> 입력 해상도와 일부 활성화·학습 설정이 다르기 때문</label><p class="quiz-feedback"></p></fieldset><fieldset class="quiz" data-answer="a"><legend><span>Q3</span>이 코드에서 SE는 블록의 어디에 위치하는가?</legend><label><input type="radio" name="q3" value="a"> depthwise 뒤, 1×1 투영 앞</label><label><input type="radio" name="q3" value="b"> 분류기 뒤</label><label><input type="radio" name="q3" value="c"> 입력 이미지 앞</label><p class="quiz-feedback"></p></fieldset><button class="button" id="checkQuiz" type="button">정답 확인</button><p class="quiz-score" id="quizScore" aria-live="polite"></p></div>
+      </section>
+      <section class="local-run-card"><div><p class="eyebrow">직접 실행</p><h2>CIFAR-10에서 EfficientNet-B0 빠르게 학습하기</h2><p>설치 후 데이터 다운로드와 1 epoch 학습·검증을 실행합니다. 브라우저 실습은 개념과 구조 확인용이며 논문 성능 재현이 아닙니다.</p></div><div class="command-block"><code>cifar10-lab train --model efficientnet_b0 --quick</code><button class="copy-button" type="button" data-copy-text="cifar10-lab train --model efficientnet_b0 --quick">복사</button></div></section>
+      <nav class="chapter-pagination" aria-label="단원 이동"><a href="11-mobilenetv2.html"><small>이전</small><strong>11장 · MobileNetV2</strong></a><span class="disabled"><small>다음</small><strong>13장 · Attention 기초</strong></span></nav>
+    </article></main>
+    <aside id="chapterGlossary" class="chapter-glossary" aria-label="핵심 용어" data-chapter="12"><div class="glossary-heading"><h2>핵심 용어</h2></div><p class="glossary-intro">영어 용어를 눌러 뜻과 등장 위치를 확인하세요.</p><div class="glossary-list"></div></aside>
+  </div>
+  <footer class="site-footer"><div class="footer-copy"><strong>Backbone Lab · 실제 코드로 배우는 인공지능 기초</strong><p>이 자료는 학습의 출발점입니다. 개념과 결과는 원 논문, 공식 문서, 실제 코드와 함께 확인해 주세요.</p></div><a href="https://github.com/tember40/Backbone_tester_CNN_Transformer">GitHub에서 보기</a></footer>
+</body>
+</html>

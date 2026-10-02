@@ -493,15 +493,15 @@ class StaticSiteTests(unittest.TestCase):
 
     def test_home_page_timeline_and_private_curriculum_states(self):
         home = (DOCS / "index.html").read_text(encoding="utf-8")
-        self.assertEqual(home.count('data-year="'), 8)
-        self.assertEqual(home.count('class="timeline-step'), 8)
+        self.assertEqual(home.count('data-year="'), 9)
+        self.assertEqual(home.count('class="timeline-step'), 9)
         self.assertIn('src="assets/js/home.js?', home)
         self.assertIn('id="timelineDescription"', home)
         self.assertIn('id="timelineSource"', home)
         self.assertIn('id="timelineChapter"', home)
         self.assertNotIn("학습 가능", home)
-        self.assertEqual(home.count('class="is-locked"'), 7)
-        self.assertEqual(home.count('class="private-label">비공개'), 7)
+        self.assertEqual(home.count('class="is-locked"'), 6)
+        self.assertEqual(home.count('class="private-label">비공개'), 6)
         self.assertNotIn("lock-icon", home)
         self.assertIn("아직 제작 중인 단원", home)
 
@@ -574,6 +574,27 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('href="11-mobilenetv2.html"', (
             DOCS / "chapters" / "10-senet.html"
         ).read_text(encoding="utf-8"))
+
+    def test_efficientnet_chapter_matches_implementation(self):
+        source = (DOCS / "chapters" / "12-efficientnet.html").read_text(encoding="utf-8")
+        for section_id in (
+            "overview", "paper", "dimensions", "compound", "mbconv",
+            "presets", "code", "adaptation", "checkpoint",
+        ):
+            self.assertIn(f'id="{section_id}"', source)
+        implementation = (ROOT / "backbone" / "EfficientNet.py").read_text(encoding="utf-8")
+        for code_line in (
+            "output_channel = _make_divisible(c * width_mult, round_nearest)",
+            "num_blocks = int(math.ceil(n * depth_mult))",
+            "stride = s if i == 0 else 1",
+            "features.append(block(input_channel, output_channel, stride, expand_ratio=t, kernel_size=k, skip_connection=True, norm_layer=norm_layer, se_layer=se_layer))",
+        ):
+            self.assertIn(code_line, implementation)
+            self.assertIn(code_line, source)
+        self.assertIn('href="chapters/12-efficientnet.html"', (DOCS / "index.html").read_text(encoding="utf-8"))
+        self.assertIn('href="12-efficientnet.html"', (DOCS / "chapters" / "11-mobilenetv2.html").read_text(encoding="utf-8"))
+        glossary = (DOCS / "assets" / "js" / "glossary.js").read_text(encoding="utf-8")
+        self.assertIn('"12": "12-efficientnet.html"', glossary)
 
     def test_user_facing_pages_avoid_book_authorship_wording(self):
         for page in DOCS.rglob("*.html"):
