@@ -1050,6 +1050,46 @@ code, pre { font-family: var(--mono); }
 .attention-steps strong { color: var(--blue-dark); font: 700 19px var(--serif); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .attention-steps small { color: var(--muted); font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
 
+/* ViT patch inspection and classification path */
+.vit-patch-controls, .vit-pool-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.vit-patch-controls > span { margin-right: 8px; color: var(--ink); font-size: 16px; font-weight: 700; }
+.vit-patch-controls button, .vit-pool-controls button { padding: 8px 11px; border: 1px solid var(--line-dark); background: #fff; color: var(--ink); font: 700 15px var(--sans); cursor: pointer; transition: transform .18s ease, border-color .18s ease, background .18s ease, color .18s ease; }
+.vit-patch-controls button:hover, .vit-patch-controls button:focus-visible, .vit-pool-controls button:hover, .vit-pool-controls button:focus-visible { transform: translateY(-2px); border-color: var(--blue); background: var(--blue-soft); }
+.vit-patch-controls button.is-current, .vit-pool-controls button.is-current { border-color: var(--blue); background: var(--blue); color: #fff; }
+.vit-patch-workspace { display: grid; grid-template-columns: 360px minmax(0, 1fr); }
+.vit-image-view { display: grid; justify-items: center; align-content: start; gap: 9px; padding: 20px; border-right: 1px solid var(--line); }
+.vit-image-view canvas { display: block; width: min(320px, 100%); height: auto; aspect-ratio: 1; border: 1px solid var(--line-dark); cursor: crosshair; image-rendering: pixelated; }
+.vit-image-view canvas:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+.vit-image-view small { color: var(--muted); font-size: 13px; text-align: center; }
+.vit-patch-inspector { display: grid; justify-items: start; align-content: start; gap: 6px; padding: 20px 22px; }
+.vit-patch-inspector > span { color: var(--muted); font-size: 14px; font-weight: 700; }
+.vit-patch-inspector > strong { color: var(--blue-dark); font: 700 26px var(--serif); }
+.vit-patch-inspector p { margin: 0 0 6px; color: var(--ink); font: 16px var(--mono); }
+.vit-patch-inspector canvas { width: 128px; height: 128px; border: 1px solid var(--line-dark); image-rendering: pixelated; }
+.vit-patch-inspector small { margin-top: 7px; color: var(--muted); font-size: 14px; line-height: 1.45; }
+.vit-patch-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--line); }
+.vit-patch-metrics > div { display: grid; align-content: start; gap: 2px; min-width: 0; padding: 17px 14px; border-right: 1px solid var(--line); }
+.vit-patch-metrics > div:last-child { border-right: 0; }
+.vit-patch-metrics span { color: var(--muted); font-size: 13px; font-weight: 700; }
+.vit-patch-metrics strong { color: var(--blue-dark); font: 700 25px var(--serif); font-variant-numeric: tabular-nums; }
+.vit-patch-metrics small { color: var(--faint); font-size: 12px; }
+.vit-shape-flow, .vit-encoder-flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 5px; margin: 24px 0; }
+.vit-shape-flow > div, .vit-encoder-flow > div { display: grid; align-content: center; gap: 3px; min-width: 0; padding: 13px 15px; border-bottom: 2px solid var(--line-dark); background: var(--surface-soft); }
+.vit-shape-flow > div:last-child, .vit-encoder-flow > div:last-child { border-bottom-color: var(--blue); background: var(--blue-soft); }
+.vit-shape-flow span { color: var(--muted); font-size: 13px; font-weight: 700; }
+.vit-shape-flow strong, .vit-encoder-flow strong { font: 700 16px var(--serif); white-space: nowrap; }
+.vit-shape-flow small, .vit-encoder-flow small { color: var(--muted); font-size: 12px; }
+.vit-encoder-flow { align-items: center; }
+.vit-encoder-flow b { align-self: center; color: var(--blue); font-size: 19px; }
+.vit-pool-lab { padding-bottom: 18px; }
+.vit-token-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; padding: 20px 22px 9px; }
+.vit-token-strip span { padding: 9px 10px; border: 1px solid var(--line); background: var(--surface-soft); color: var(--muted); font-size: 15px; }
+.vit-token-strip span.is-chosen { border-color: var(--blue); background: var(--blue-soft); color: var(--blue-dark); font-weight: 750; }
+.vit-pool-lab > p { margin: 5px 22px 16px; color: var(--ink); font-size: 17px; }
+.vit-pool-result { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; margin: 0 22px; padding-top: 14px; border-top: 1px solid var(--line); }
+.vit-pool-result span { color: var(--muted); font-size: 14px; }
+.vit-pool-result strong { margin-right: 10px; color: var(--blue-dark); font: 700 18px var(--serif); }
+
 /* Tables, summary, exercises */
 .comparison-table-wrap { overflow-x: auto; }
 .comparison-table { width: 100%; border-collapse: collapse; border: 1px solid var(--line-dark); background: #fff; font-size: 18.2px; }
@@ -1125,6 +1165,12 @@ code, pre { font-family: var(--mono); }
 @media (max-width: 820px) {
   .attention-lab-inner { grid-template-columns: 1fr; }
   .attention-matrix-wrap { border-right: 0; border-bottom: 1px solid var(--line); }
+  .vit-patch-workspace { grid-template-columns: 1fr; }
+  .vit-image-view { border-right: 0; border-bottom: 1px solid var(--line); }
+  .vit-patch-inspector { grid-template-columns: 1fr 1fr; align-items: start; }
+  .vit-patch-inspector > span, .vit-patch-inspector > strong, .vit-patch-inspector > p { grid-column: 1; }
+  .vit-patch-inspector canvas { grid-column: 2; grid-row: 1 / 4; }
+  .vit-patch-inspector small { grid-column: 1 / -1; }
   .landing-hero { grid-template-columns: 1fr; padding-top: 58px; }
   .hero-visual { max-width: 620px; }
   .method-grid { grid-template-columns: 1fr 1fr; }
@@ -1200,6 +1246,9 @@ code, pre { font-family: var(--mono); }
   .resnet-extension-results > div:nth-child(2) { border-right: 0; }
 }
 @media (max-width: 650px) {
+  .vit-patch-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .vit-patch-metrics > div:nth-child(2) { border-right: 0; }
+  .vit-patch-metrics > div:nth-child(-n + 2) { border-bottom: 1px solid var(--line); }
   :root { font-size: 22.1px; }
   .site-header { padding: 8px 13px; }
   .header-actions > a:not(.button), .chapter-progress { display: none; }

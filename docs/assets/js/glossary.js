@@ -18,11 +18,12 @@
     "11": "11-mobilenetv2.html",
     "12": "12-efficientnet.html",
     "13": "13-attention-basics.html",
+    "14": "14-vision-transformer.html",
   };
   const chapterNames = {
     "01": "퍼셉트론", "02": "선형 분리와 XOR", "03": "다층 퍼셉트론",
     "04": "합성곱과 필터", "05": "특징맵과 활성화",
-    "06": "Pooling과 수용영역", "07": "AlexNet", "08": "VGG", "09": "ResNet과 확장 모델", "10": "SENet", "11": "MobileNetV2", "12": "EfficientNet", "13": "Attention 기초",
+    "06": "Pooling과 수용영역", "07": "AlexNet", "08": "VGG", "09": "ResNet과 확장 모델", "10": "SENet", "11": "MobileNetV2", "12": "EfficientNet", "13": "Attention 기초", "14": "Vision Transformer",
   };
   const term = (english, korean, meaning, chapter, section) =>
     ({english, korean, meaning, chapter, section});
@@ -104,6 +105,13 @@
     softmax: term("Softmax", "소프트맥스", "한 Query에서 모든 Key 점수를 0과 1 사이의 가중치로 바꿔 합이 1이 되게 합니다.", "13", "softmax"),
     multiHead: term("Multi-Head Attention", "다중 헤드 어텐션", "여러 Head가 각자 Q·K·V 성분과 가중치 표를 계산한 후 출력을 합칩니다.", "13", "multihead"),
     classToken: term("[CLS] Token", "분류 토큰", "ViT의 패치 열 앞에 붙는 학습 가능한 벡터로, 기본 설정에서 마지막 분류 표현에 사용됩니다.", "13", "bridge"),
+    vit: term("Vision Transformer (ViT)", "비전 트랜스포머", "이미지를 패치 토큰의 열로 바꾸어 Transformer Encoder로 처리하는 이미지 모델입니다.", "14", "paper"),
+    imagePatch: term("Image Patch", "이미지 패치", "입력을 겹치지 않는 일정한 크기의 이미지 조각으로 나눈 단위입니다.", "14", "patches"),
+    patchEmbedding: term("Patch Embedding", "패치 임베딩", "평평하게 편 RGB 패치를 선형 투영하여 모델 차원의 토큰으로 만든 결과입니다.", "14", "embedding"),
+    positionEmbedding: term("Position Embedding", "위치 임베딩", "토큰의 순서를 구분하도록 각 위치에 더하는 학습 가능한 벡터입니다.", "14", "embedding"),
+    transformerEncoder: term("Transformer Encoder", "트랜스포머 인코더", "Attention과 MLP 블록을 반복하여 토큰 표현을 갱신합니다.", "14", "encoder"),
+    inductiveBias: term("Inductive Bias", "구조적 가정", "모델 구조가 학습 전부터 갖는 가정입니다. CNN의 지역성·가중치 공유가 대표적입니다.", "14", "paper"),
+    transferLearning: term("Transfer Learning", "전이 학습", "큰 데이터에서 학습한 표현을 다른 분류 과제에 활용하는 방법입니다.", "14", "experiment"),
   };
   const chapterWords = {
     "01": [["perceptron", "anatomy"], ["weightedSum", "calculator"], ["weight", "anatomy"], ["bias", "anatomy"], ["decisionBoundary", "learning"], ["learningRate", "learning"]],
@@ -119,6 +127,7 @@
     "11": [["mobilenetV2", "paper"], ["depthwise", "depthwise"], ["pointwise", "depthwise"], ["invertedResidual", "inverted"], ["linearBottleneck", "linear"], ["relu6", "linear"], ["widthMultiplier", "architecture"]],
     "12": [["efficientnet", "paper"], ["nas", "paper"], ["resolution", "dimensions"], ["compoundScaling", "compound"], ["phi", "compound"], ["mbconv", "mbconv"], ["squeeze", "mbconv"], ["widthMultiplier", "presets"]],
     "13": [["selfAttention", "paper"], ["token", "tokens"], ["query", "qkv"], ["key", "qkv"], ["value", "qkv"], ["scaledDotProduct", "scores"], ["softmax", "softmax"], ["multiHead", "multihead"], ["classToken", "bridge"]],
+    "14": [["vit", "paper"], ["inductiveBias", "paper"], ["imagePatch", "patches"], ["patchEmbedding", "embedding"], ["positionEmbedding", "embedding"], ["transformerEncoder", "encoder"], ["classToken", "classification"], ["multiHead", "encoder"], ["transferLearning", "experiment"]],
   };
 
   const currentChapter = rail.dataset.chapter;

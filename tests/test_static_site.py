@@ -500,8 +500,8 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('id="timelineSource"', home)
         self.assertIn('id="timelineChapter"', home)
         self.assertNotIn("학습 가능", home)
-        self.assertEqual(home.count('class="is-locked"'), 5)
-        self.assertEqual(home.count('class="private-label">비공개'), 5)
+        self.assertEqual(home.count('class="is-locked"'), 4)
+        self.assertEqual(home.count('class="private-label">비공개'), 4)
         self.assertNotIn("lock-icon", home)
         self.assertIn("아직 제작 중인 단원", home)
 
@@ -621,6 +621,36 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('src="../assets/js/attention-basics.js?', source)
         glossary = (DOCS / "assets" / "js" / "glossary.js").read_text(encoding="utf-8")
         self.assertIn('"13": "13-attention-basics.html"', glossary)
+
+    def test_vit_chapter_matches_implementation_and_patch_lab(self):
+        source = (DOCS / "chapters" / "14-vision-transformer.html").read_text(encoding="utf-8")
+        for section_id in (
+            "overview", "paper", "patches", "embedding", "encoder",
+            "classification", "variants", "code", "experiment", "checkpoint",
+        ):
+            self.assertIn(f'id="{section_id}"', source)
+        implementation = (ROOT / "backbone" / "ViT.py").read_text(encoding="utf-8")
+        for code_line in (
+            "nn.Linear(patch_dim, dim)",
+            "self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 1, dim))",
+            "self.cls_token = nn.Parameter(torch.randn(1, 1, dim))",
+            "x = self.to_patch_embedding(img)",
+            "x = torch.cat((cls_tokens, x), dim = 1)",
+            "x += self.pos_embedding[:, :(n + 1)]",
+            "x = self.transformer(x)",
+            "x = x.mean(dim = 1) if self.pool == 'mean' else x[:, 0]",
+            "return self.mlp_head(x)",
+        ):
+            self.assertIn(code_line, implementation)
+            self.assertIn(code_line, source)
+        self.assertIn('data-patch-size="4"', source)
+        self.assertIn('id="vitImage"', source)
+        self.assertIn('id="vitAttentionCells"', source)
+        self.assertIn('data-pool="mean"', source)
+        self.assertIn('href="chapters/14-vision-transformer.html"', (DOCS / "index.html").read_text(encoding="utf-8"))
+        self.assertIn('href="14-vision-transformer.html"', (DOCS / "chapters" / "13-attention-basics.html").read_text(encoding="utf-8"))
+        glossary = (DOCS / "assets" / "js" / "glossary.js").read_text(encoding="utf-8")
+        self.assertIn('"14": "14-vision-transformer.html"', glossary)
 
     def test_user_facing_pages_avoid_book_authorship_wording(self):
         for page in DOCS.rglob("*.html"):
