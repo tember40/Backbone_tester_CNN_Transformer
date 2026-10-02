@@ -17,11 +17,12 @@
     "10": "10-senet.html",
     "11": "11-mobilenetv2.html",
     "12": "12-efficientnet.html",
+    "13": "13-attention-basics.html",
   };
   const chapterNames = {
     "01": "퍼셉트론", "02": "선형 분리와 XOR", "03": "다층 퍼셉트론",
     "04": "합성곱과 필터", "05": "특징맵과 활성화",
-    "06": "Pooling과 수용영역", "07": "AlexNet", "08": "VGG", "09": "ResNet과 확장 모델", "10": "SENet", "11": "MobileNetV2", "12": "EfficientNet",
+    "06": "Pooling과 수용영역", "07": "AlexNet", "08": "VGG", "09": "ResNet과 확장 모델", "10": "SENet", "11": "MobileNetV2", "12": "EfficientNet", "13": "Attention 기초",
   };
   const term = (english, korean, meaning, chapter, section) =>
     ({english, korean, meaning, chapter, section});
@@ -94,6 +95,15 @@
     mbconv: term("MBConv", "이동형 역병목 블록", "1×1 확장, 깊이별 공간 처리, 1×1 선형 투영을 중심으로 하는 블록입니다.", "12", "mbconv"),
     nas: term("Neural Architecture Search", "신경망 구조 탐색", "성능과 자원 조건을 기준으로 후보 네트워크 구조를 탐색하는 방법입니다.", "12", "paper"),
     resolution: term("Input Resolution", "입력 해상도", "입력 이미지의 높이와 너비입니다. 이 저장소의 CIFAR-10 실습은 32×32로 고정합니다.", "12", "dimensions"),
+    selfAttention: term("Self-Attention", "자기 어텐션", "같은 입력 토큰 열에서 Q·K·V를 만들어 각 위치가 다른 위치의 정보를 모으는 연산입니다.", "13", "paper"),
+    token: term("Token", "토큰", "Attention이 한 위치로 다루는 벡터입니다. ViT에서는 이미지 패치와 [CLS]가 토큰이 됩니다.", "13", "tokens"),
+    query: term("Query", "질의", "현재 위치에서 어떤 Key와 잘 맞는지 비교하는 벡터입니다.", "13", "qkv"),
+    key: term("Key", "키", "Query와 내적하여 해당 위치를 참고할 점수를 만드는 벡터입니다.", "13", "qkv"),
+    value: term("Value", "값", "Attention 가중치를 곱해 합산할 실제 정보 벡터입니다.", "13", "qkv"),
+    scaledDotProduct: term("Scaled Dot-Product Attention", "스케일된 내적 어텐션", "QKᵀ를 √dₖ로 나누고 행별 softmax를 거쳐 V를 가중합합니다.", "13", "scores"),
+    softmax: term("Softmax", "소프트맥스", "한 Query에서 모든 Key 점수를 0과 1 사이의 가중치로 바꿔 합이 1이 되게 합니다.", "13", "softmax"),
+    multiHead: term("Multi-Head Attention", "다중 헤드 어텐션", "여러 Head가 각자 Q·K·V 성분과 가중치 표를 계산한 후 출력을 합칩니다.", "13", "multihead"),
+    classToken: term("[CLS] Token", "분류 토큰", "ViT의 패치 열 앞에 붙는 학습 가능한 벡터로, 기본 설정에서 마지막 분류 표현에 사용됩니다.", "13", "bridge"),
   };
   const chapterWords = {
     "01": [["perceptron", "anatomy"], ["weightedSum", "calculator"], ["weight", "anatomy"], ["bias", "anatomy"], ["decisionBoundary", "learning"], ["learningRate", "learning"]],
@@ -108,6 +118,7 @@
     "10": [["senet", "paper"], ["squeeze", "squeeze"], ["globalAverage", "squeeze"], ["excitation", "excitation"], ["scale", "excitation"], ["reduction", "reduction"], ["shortcut", "placement"]],
     "11": [["mobilenetV2", "paper"], ["depthwise", "depthwise"], ["pointwise", "depthwise"], ["invertedResidual", "inverted"], ["linearBottleneck", "linear"], ["relu6", "linear"], ["widthMultiplier", "architecture"]],
     "12": [["efficientnet", "paper"], ["nas", "paper"], ["resolution", "dimensions"], ["compoundScaling", "compound"], ["phi", "compound"], ["mbconv", "mbconv"], ["squeeze", "mbconv"], ["widthMultiplier", "presets"]],
+    "13": [["selfAttention", "paper"], ["token", "tokens"], ["query", "qkv"], ["key", "qkv"], ["value", "qkv"], ["scaledDotProduct", "scores"], ["softmax", "softmax"], ["multiHead", "multihead"], ["classToken", "bridge"]],
   };
 
   const currentChapter = rail.dataset.chapter;

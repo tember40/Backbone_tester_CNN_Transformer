@@ -493,15 +493,15 @@ class StaticSiteTests(unittest.TestCase):
 
     def test_home_page_timeline_and_private_curriculum_states(self):
         home = (DOCS / "index.html").read_text(encoding="utf-8")
-        self.assertEqual(home.count('data-year="'), 9)
-        self.assertEqual(home.count('class="timeline-step'), 9)
+        self.assertEqual(home.count('data-year="'), 10)
+        self.assertEqual(home.count('class="timeline-step'), 10)
         self.assertIn('src="assets/js/home.js?', home)
         self.assertIn('id="timelineDescription"', home)
         self.assertIn('id="timelineSource"', home)
         self.assertIn('id="timelineChapter"', home)
         self.assertNotIn("학습 가능", home)
-        self.assertEqual(home.count('class="is-locked"'), 6)
-        self.assertEqual(home.count('class="private-label">비공개'), 6)
+        self.assertEqual(home.count('class="is-locked"'), 5)
+        self.assertEqual(home.count('class="private-label">비공개'), 5)
         self.assertNotIn("lock-icon", home)
         self.assertIn("아직 제작 중인 단원", home)
 
@@ -595,6 +595,32 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('href="12-efficientnet.html"', (DOCS / "chapters" / "11-mobilenetv2.html").read_text(encoding="utf-8"))
         glossary = (DOCS / "assets" / "js" / "glossary.js").read_text(encoding="utf-8")
         self.assertIn('"12": "12-efficientnet.html"', glossary)
+
+    def test_attention_chapter_matches_vit_implementation(self):
+        source = (DOCS / "chapters" / "13-attention-basics.html").read_text(encoding="utf-8")
+        for section_id in (
+            "overview", "paper", "tokens", "qkv", "scores", "softmax",
+            "multihead", "code", "bridge", "checkpoint",
+        ):
+            self.assertIn(f'id="{section_id}"', source)
+        implementation = (ROOT / "backbone" / "ViT.py").read_text(encoding="utf-8")
+        for code_line in (
+            "self.scale = dim_head ** -0.5",
+            "self.to_qkv = nn.Linear(dim, inner_dim * 3, bias = False)",
+            "qkv = self.to_qkv(x).chunk(3, dim = -1)",
+            "dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale",
+            "attn = self.attend(dots)",
+            "out = torch.matmul(attn, v)",
+            "return self.to_out(out)",
+        ):
+            self.assertIn(code_line, implementation)
+            self.assertIn(code_line, source)
+        self.assertIn('href="chapters/13-attention-basics.html"', (DOCS / "index.html").read_text(encoding="utf-8"))
+        self.assertIn('href="13-attention-basics.html"', (DOCS / "chapters" / "12-efficientnet.html").read_text(encoding="utf-8"))
+        self.assertIn('id="attentionMatrix"', source)
+        self.assertIn('src="../assets/js/attention-basics.js?', source)
+        glossary = (DOCS / "assets" / "js" / "glossary.js").read_text(encoding="utf-8")
+        self.assertIn('"13": "13-attention-basics.html"', glossary)
 
     def test_user_facing_pages_avoid_book_authorship_wording(self):
         for page in DOCS.rglob("*.html"):

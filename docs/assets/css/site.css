@@ -214,6 +214,7 @@ code, pre { font-family: var(--mono); }
 .learning-objectives ul { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 34px; margin: 0; padding-left: 19px; color: #45515e; font-size: 19.5px; }
 .lesson-section { position: relative; padding: 66px 0 70px; border-bottom: 1px solid var(--line); }
 .section-number { position: absolute; top: 71px; left: -54px; color: #a7afb9; font-family: var(--serif); font-size: 18.85px; }
+@media (max-width: 1300px) { .section-number { display: none; } }
 .lesson-heading { max-width: 720px; margin-bottom: 31px; }
 .lesson-heading h2 { margin: 0; font-family: var(--serif); font-size: 41.6px; font-weight: 600; line-height: 1.35; letter-spacing: -.018em; }
 .lesson-heading h2 > span { color: var(--blue); font-size: .65em; font-weight: 500; }
@@ -1025,6 +1026,30 @@ code, pre { font-family: var(--mono); }
 .efficient-block-flow small { color: var(--muted); font-size: 12px; font-weight: 500; }
 .efficient-preset-lab .mobile-stage-list small { font-size: 12px; }
 
+/* Attention: one query row, three keys, and the resulting value mixture */
+.attention-role-flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; margin: 25px 0; }
+.attention-role-flow > * { display: grid; align-content: center; padding: 12px 14px; border-bottom: 2px solid var(--line-dark); background: var(--surface-soft); font-size: 16px; text-align: center; }
+.attention-role-flow > strong { border-bottom-color: var(--blue); background: var(--blue-soft); color: var(--blue-dark); }
+.attention-role-flow small { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; font-weight: 500; }
+.attention-query-controls { display: flex; gap: 7px; padding: 17px 20px; border-bottom: 1px solid var(--line); }
+.attention-query-controls button { min-width: 95px; padding: 9px 14px; border: 1px solid var(--line-dark); background: #fff; color: var(--ink); font: 700 16px var(--sans); cursor: pointer; transition: transform .18s ease, border-color .18s ease, background .18s ease, color .18s ease; }
+.attention-query-controls button:hover, .attention-query-controls button:focus-visible { transform: translateY(-2px); border-color: var(--blue); background: var(--blue-soft); }
+.attention-query-controls button.is-current { border-color: var(--blue); background: var(--blue); color: #fff; }
+.attention-lab-inner { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr); }
+.attention-matrix-wrap { min-width: 0; padding: 20px; border-right: 1px solid var(--line); }
+.attention-matrix { width: 100%; border-collapse: collapse; text-align: center; font-family: var(--serif); font-size: 18px; font-variant-numeric: tabular-nums; }
+.attention-matrix caption { margin-bottom: 12px; color: var(--muted); font-family: var(--sans); font-size: 14px; line-height: 1.4; text-align: left; }
+.attention-matrix th, .attention-matrix td { padding: 12px 7px; border: 1px solid var(--line); }
+.attention-matrix thead th, .attention-matrix tbody th { background: var(--surface-soft); font-family: var(--sans); font-size: 15px; }
+.attention-matrix tr.is-current th { background: var(--blue); color: #fff; }
+.attention-matrix tr.is-current td { outline: 2px solid var(--blue); outline-offset: -2px; }
+.attention-steps { display: grid; align-content: start; }
+.attention-steps > div { display: grid; gap: 4px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.attention-steps > div:last-child { border-bottom: 0; }
+.attention-steps span { color: var(--muted); font-size: 14px; font-weight: 700; }
+.attention-steps strong { color: var(--blue-dark); font: 700 19px var(--serif); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.attention-steps small { color: var(--muted); font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
+
 /* Tables, summary, exercises */
 .comparison-table-wrap { overflow-x: auto; }
 .comparison-table { width: 100%; border-collapse: collapse; border: 1px solid var(--line-dark); background: #fff; font-size: 18.2px; }
@@ -1098,6 +1123,8 @@ code, pre { font-family: var(--mono); }
   .chapter-page .site-footer { width: 100%; margin-left: 0; }
 }
 @media (max-width: 820px) {
+  .attention-lab-inner { grid-template-columns: 1fr; }
+  .attention-matrix-wrap { border-right: 0; border-bottom: 1px solid var(--line); }
   .landing-hero { grid-template-columns: 1fr; padding-top: 58px; }
   .hero-visual { max-width: 620px; }
   .method-grid { grid-template-columns: 1fr 1fr; }

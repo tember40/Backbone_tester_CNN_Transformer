@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Self-Attention의 Q·K·V, 점수, softmax, 가중합과 ViT 코드의 연결을 단계별로 실습하는 인공지능 기초 자료">
+  <title>13장. Attention 기초 · Backbone Lab</title>
+  <link rel="stylesheet" href="../assets/css/site.css?v=20261002b">
+  <script src="../assets/js/glossary.js?v=20261002b" defer></script>
+  <script src="../assets/js/attention-basics.js?v=20261002a" defer></script>
+</head>
+<body class="chapter-page">
+  <header class="site-header">
+    <a class="brand" href="../index.html" aria-label="Backbone Lab 홈"><span class="brand-mark">KW</span><span><strong>인공지능 기초</strong><small><span lang="en">Backbone Lab</span> 학습 자료</small></span></a>
+    <div class="chapter-progress" aria-label="현재 과정"><span>제5부 · Transformer</span><div><i style="width: 33%"></i></div><strong>1 / 3</strong></div>
+    <nav class="header-actions"><a href="../index.html#curriculum">전체 목차</a><a class="button button-small" href="https://github.com/tember40/Backbone_tester_CNN_Transformer/blob/main/backbone/ViT.py">실제 코드</a></nav>
+  </header>
+  <div class="chapter-layout">
+    <aside class="chapter-sidebar" aria-label="단원 목차"><p class="sidebar-label">Attention 기초</p><nav>
+      <a class="is-current" href="#overview"><span>13.0</span>학습 안내</a>
+      <a href="#paper"><span>13.1</span>출발점</a>
+      <a href="#tokens"><span>13.2</span>토큰</a>
+      <a href="#qkv"><span>13.3</span>Q·K·V</a>
+      <a href="#scores"><span>13.4</span>유사도 점수</a>
+      <a href="#softmax"><span>13.5</span>가중치 실습</a>
+      <a href="#multihead"><span>13.6</span>여러 Head</a>
+      <a href="#code"><span>13.7</span>실제 코드</a>
+      <a href="#bridge"><span>13.8</span>ViT로 연결</a>
+      <a href="#checkpoint"><span>13.9</span>연습문제</a>
+    </nav></aside>
+    <main class="chapter-content"><article>
+      <header class="chapter-hero" id="overview">
+        <div class="chapter-kicker"><span>제5부</span><span>Transformer</span><span>선수 지식: 3·4·5장</span></div>
+        <h1><small>제13장 · 각 위치가 무엇을 참고할지 정하다</small><span lang="en">Attention 기초</span></h1>
+        <p class="chapter-lead">합성곱은 작은 이웃을 같은 필터로 읽었습니다. <span lang="en">Self-Attention</span>은 한 토큰이 다른 토큰들을 얼마나 참고할지 입력에 따라 계산합니다. 이 장에서는 세 개의 작은 벡터만 사용해 <strong>점수 → 가중치 → 값의 가중합</strong>을 직접 따라가 봅니다. 다음 장에서 이 토큰들이 이미지 패치가 됩니다.</p>
+        <div class="learning-objectives"><h2>학습 목표</h2><ul>
+          <li>Query·Key·Value가 점수와 출력에 맡는 역할을 구분할 수 있습니다.</li>
+          <li>스케일된 내적, 행별 softmax, Value 가중합을 숫자로 추적할 수 있습니다.</li>
+          <li>Attention 행렬이 토큰 수 N에 따라 N×N으로 커지는 이유를 설명할 수 있습니다.</li>
+          <li>이 저장소의 ViT 코드에서 여러 Head와 [CLS] 토큰의 위치를 찾을 수 있습니다.</li>
+        </ul></div>
+      </header>
+
+      <section class="lesson-section" id="paper">
+        <div class="section-number">13.1</div><div class="lesson-heading"><p class="eyebrow">출발점</p><h2><span>13.1</span> Attention은 이미지에서 시작하지 않았다</h2></div>
+        <div class="paper-card"><div class="paper-meta"><span lang="en">Ashish Vaswani et al.</span><span lang="en">NeurIPS 2017</span></div><h3 lang="en">Attention Is All You Need</h3><p>원 논문은 주로 기계 번역을 다루며, 순서 속 각 위치가 다른 위치의 정보를 모으는 <span lang="en">scaled dot-product attention</span>과 여러 Head를 제시했습니다. 이미지 모델 ViT는 이 계산을 이미지 패치의 열에 적용합니다. Attention의 수식과 이미지 적용은 서로 다른 연구 단계입니다.</p><a class="text-link" href="https://proceedings.neurips.cc/paper_files/paper/2017/hash/3f5ee243547dee91fbd053c1c4a845aa-Abstract.html">원 논문 보기 <span aria-hidden="true">↗</span></a></div>
+        <p>“어디를 본다”는 표현은 모든 토큰에 같은 한 번의 고정 연결을 만든다는 뜻이 아닙니다. 현재 입력에서 만들어진 Query와 Key의 유사도를 토대로 <strong>토큰마다 다른 가중치</strong>를 계산한다는 뜻입니다. Attention 가중치가 곧 모델의 완전한 판단 근거라는 의미로 해석하지는 마세요.</p>
+      </section>
+
+      <section class="lesson-section" id="tokens">
+        <div class="section-number">13.2</div><div class="lesson-heading"><p class="eyebrow">입력의 단위</p><h2><span>13.2</span> 먼저 배열을 토큰의 열로 본다</h2></div>
+        <p>언어 모델의 토큰은 단어나 부분 단어일 수 있고, 이미지 ViT의 토큰은 일정한 이미지 패치를 벡터로 바꾼 것입니다. 이 장의 실습에서는 위치 A·B·C를 실제 사진이 아닌 <strong>2차원 숫자 벡터</strong> 세 개로 줄여 계산을 보여줍니다. 각 토큰이 어떤 위치의 정보를 더 많이 모으는지 확인하는 데 집중하세요.</p>
+        <div class="comparison-table-wrap"><table class="comparison-table"><thead><tr><th>토큰</th><th>실습 벡터</th><th>그림으로 생각하면</th></tr></thead><tbody><tr><th>A</th><td>[1, 0]</td><td>첫 번째 패치</td></tr><tr><th>B</th><td>[0, 1]</td><td>두 번째 패치</td></tr><tr><th>C</th><td>[1, 1]</td><td>두 성분을 모두 가진 패치</td></tr></tbody></table></div>
+        <p>실제 <code>backbone/ViT.py</code>에서는 32×32 이미지를 4×4 패치로 나눕니다. 패치가 8×8=64개이고 [CLS] 토큰을 앞에 하나 붙여 <strong>65개 토큰</strong>이 Attention에 들어갑니다. 이 계산은 다음 장에서 이미지 위에 직접 표시합니다.</p>
+      </section>
+
+      <section class="lesson-section" id="qkv">
+        <div class="section-number">13.3</div><div class="lesson-heading"><p class="eyebrow">역할 나누기</p><h2><span>13.3</span> Query는 묻고, Key는 비교되고, Value는 전달된다</h2></div>
+        <p>한 토큰의 <span lang="en">Query (Q)</span>는 “어떤 정보와 잘 맞는가”를 묻는 벡터입니다. 모든 토큰의 <span lang="en">Key (K)</span>와 Query를 비교해 점수를 만들고, 그 점수로 계산한 가중치를 각 <span lang="en">Value (V)</span>에 곱해 더합니다. 같은 입력에서 Q·K·V를 만들지만, 실제 모델에서는 <strong>서로 다른 학습 가능한 선형 변환</strong>의 출력입니다.</p>
+        <div class="attention-role-flow" aria-label="Q K V의 계산 흐름"><span>입력 토큰</span><strong>Q × K<sup>T</sup><small>누구와 맞는가?</small></strong><strong>softmax<small>얼마나 참고할까?</small></strong><strong>가중치 × V<small>무슨 정보를 모을까?</small></strong><span>새 표현</span></div>
+        <p>아래 숫자 실습은 계산을 단순화하려고 Q=K=V=[토큰 벡터]로 둡니다. 이는 세 선형 변환이 항등 변환인 <strong>특수한 예시</strong>일 뿐, 실제 모델의 Q·K·V가 언제나 같다는 뜻이 아닙니다.</p>
+      </section>
+
+      <section class="lesson-section" id="scores">
+        <div class="section-number">13.4</div><div class="lesson-heading"><p class="eyebrow">첫 단계 · 유사도</p><h2><span>13.4</span> 내적을 √d<sub>k</sub>로 나눈다</h2></div>
+        <div class="equation-card resnet-equation"><strong>점수 S = QK<sup>T</sup> / √d<sub>k</sub></strong><span aria-hidden="true">→</span><strong>가중치 A = softmax(S)</strong></div>
+        <p>실습 벡터의 Key 차원은 2이므로 √2로 나눕니다. 예를 들어 Query A=[1,0]과 Key C=[1,1]의 내적은 1이고, 스케일한 점수는 약 0.707입니다. 차원이 커질 때 내적 크기가 과하게 커져 softmax가 한쪽으로 치우치는 일을 완화하려는 조정입니다. 0.707은 확률이 아니라 <strong>softmax 이전 점수</strong>입니다.</p>
+      </section>
+
+      <section class="lesson-section" id="softmax">
+        <div class="section-number">13.5</div><div class="lesson-heading"><p class="eyebrow">실습 13.1 · 한 행씩 읽기</p><h2><span>13.5</span> 점수에서 Value 가중합까지</h2><p>Query를 바꾸면 표에서 해당 행의 점수·가중치·출력이 함께 바뀝니다. 각 행의 softmax는 세 Key 방향으로 합이 1이 됩니다. 먼저 A를 선택한 채 숫자를 읽고 B·C로 바꿔 보세요.</p></div>
+        <div class="lab-panel attention-lab"><div class="attention-query-controls" role="group" aria-label="Query 토큰 선택"><button type="button" data-query="0" class="is-current" aria-pressed="true">Query A</button><button type="button" data-query="1" aria-pressed="false">Query B</button><button type="button" data-query="2" aria-pressed="false">Query C</button></div><div class="attention-lab-inner"><div class="attention-matrix-wrap"><table class="attention-matrix"><caption>전체 Attention 가중치: 행은 Query, 열은 Key</caption><thead><tr><th scope="col">Q \ K</th><th scope="col">A</th><th scope="col">B</th><th scope="col">C</th></tr></thead><tbody id="attentionMatrix"></tbody></table></div><div class="attention-steps" aria-live="polite"><div><span>① Q·K 내적 / √2</span><strong id="attentionScores">—</strong></div><div><span>② softmax 가중치</span><strong id="attentionWeights">—</strong><small id="attentionWeightSum">—</small></div><div><span>③ Σ 가중치 × V</span><strong id="attentionOutput">—</strong><small id="attentionBreakdown">—</small></div></div></div></div>
+        <p>색이 진할수록 해당 Query가 그 Key의 Value를 더 많이 반영한다는 뜻입니다. 이 실습에서 C는 A와 B의 성분을 모두 가지므로 여러 Query에서 높은 점수를 얻기 쉽습니다. 표는 <strong>가중치</strong>이지 원본 이미지의 주목 지도나 학습된 ViT의 실제 Attention 결과가 아닙니다.</p>
+      </section>
+
+      <section class="lesson-section" id="multihead">
+        <div class="section-number">13.6</div><div class="lesson-heading"><p class="eyebrow">여러 관점으로 반복</p><h2><span>13.6</span> Multi-Head는 한 표를 복사하는가?</h2></div>
+        <p>아닙니다. Head마다 Q·K·V의 서로 다른 성분을 사용하므로 각자 다른 가중치 표를 만들 수 있습니다. 이 저장소의 <code>vit_tiny</code>는 <code>heads=3</code>, <code>dim_head=64</code>이며 내부 Q·K·V를 [배치, 3, 토큰, 64] 모양으로 나눕니다. Head 출력을 다시 합친 뒤 선형 변환으로 모델 차원 192에 돌려놓습니다.</p>
+        <p>토큰이 N개라면 Head 하나의 점수·가중치 행렬에는 N×N개 칸이 있습니다. 이 프로젝트의 기본 설정은 패치 64개+[CLS] 1개이므로 <strong>Head마다 65×65=4,225칸</strong>입니다. Head가 3개라면 한 층에서 이 크기의 표가 3개 생깁니다. 이미지가 커지거나 패치가 작아져 N이 늘면 이 부분의 저장·계산 부담도 커집니다.</p>
+      </section>
+
+      <section class="lesson-section" id="code">
+        <div class="section-number">13.7</div><div class="lesson-heading"><p class="eyebrow">실제 프로젝트 코드</p><h2><span>13.7</span> 수식이 어느 줄에서 실행되는가?</h2><p>아래는 <code>backbone/ViT.py</code>의 Attention 경로에서 필요한 줄을 순서대로 발췌했습니다. Head 분리, 스케일, softmax, Value 합산을 클릭하며 앞의 세 단계와 대응해 보세요.</p></div>
+        <div class="code-study"><div class="code-window"><div class="code-toolbar"><span>backbone/ViT.py · Attention</span><button class="copy-button" type="button" data-copy-target="attentionCode">코드 복사</button></div><pre id="attentionCode" class="line-code"><code><span data-line="1">self.scale = dim_head ** -0.5</span>
+<span data-line="2">self.to_qkv = nn.Linear(dim, inner_dim * 3, bias = False)</span>
+<span data-line="3">qkv = self.to_qkv(x).chunk(3, dim = -1)</span>
+<span data-line="4">q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h = self.heads), qkv)</span>
+<span data-line="5">dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale</span>
+<span data-line="6">attn = self.attend(dots)</span>
+<span data-line="7">attn = self.dropout(attn)</span>
+<span data-line="8">out = torch.matmul(attn, v)</span>
+<span data-line="9">out = rearrange(out, 'b h n d -> b n (h d)')</span>
+<span data-line="10">return self.to_out(out)</span></code></pre></div><div class="code-notes" role="list" aria-label="코드 해설"><button type="button" data-highlight="1-2"><span>① 준비</span><strong>스케일과 QKV 투영</strong><small>Key 차원으로 스케일하고 세 벡터를 만듭니다.</small></button><button type="button" data-highlight="3-4"><span>② Head 분리</span><strong>[b, h, n, d]</strong><small>Head마다 토큰 열을 따로 읽습니다.</small></button><button type="button" data-highlight="5-7"><span>③ 가중치</span><strong>QKᵀ → softmax</strong><small>토큰 쌍 점수를 행별 비율로 바꿉니다.</small></button><button type="button" data-highlight="8-10"><span>④ 새 표현</span><strong>AV → 출력 투영</strong><small>Value를 모아 Head를 다시 합칩니다.</small></button></div></div>
+        <p><code>self.attend</code>는 마지막 축에 적용하는 <code>nn.Softmax(dim = -1)</code>입니다. 따라서 각 Query 행에서 모든 Key에 대한 가중치 합이 1이 됩니다. 추론 시 Dropout은 꺼지지만, 학습 시에는 softmax 뒤 Dropout이 적용되어 개별 숫자 예시와 달라질 수 있습니다.</p>
+      </section>
+
+      <section class="lesson-section" id="bridge">
+        <div class="section-number">13.8</div><div class="lesson-heading"><p class="eyebrow">다음 장으로</p><h2><span>13.8</span> 이미지는 어떻게 토큰이 되는가?</h2></div>
+        <p>Attention 수식은 토큰의 순서나 이미지의 위·아래·좌·우를 스스로 알지 못합니다. 이 저장소의 ViT는 이미지를 패치로 펼쳐 선형층에 넣고, 앞에 학습 가능한 [CLS] 토큰을 붙인 다음 <code>pos_embedding</code>을 더합니다. 이 위치 정보가 있어야 같은 숫자 토큰이라도 어디서 왔는지 구별할 수 있습니다.</p>
+        <div class="comparison-table-wrap"><table class="comparison-table"><thead><tr><th>단계</th><th>이 저장소의 32×32 설정</th></tr></thead><tbody><tr><th>패치 분할</th><td>4×4 패치 64개</td></tr><tr><th>토큰 추가</th><td>[CLS] 1개 → 전체 65개</td></tr><tr><th>위치 정보</th><td>학습 가능한 위치 임베딩을 더함</td></tr><tr><th>분류</th><td>기본 <code>pool='cls'</code>에서 [CLS]의 마지막 표현 사용</td></tr></tbody></table></div>
+        <p>이 연결은 14장 Vision Transformer에서 이미지 격자와 실제 모델 구조로 확장합니다. 논문 속 원래 ViT 설정과 이 저장소의 32×32 CIFAR-10용 작은 변형을 그때 구분해 보겠습니다. <a class="text-link" href="https://arxiv.org/abs/2010.11929">ViT 원 논문 보기 <span aria-hidden="true">↗</span></a></p>
+      </section>
+
+      <section class="lesson-section" id="checkpoint">
+        <div class="section-number">13.9</div><div class="lesson-heading"><p class="eyebrow">정리와 연습문제</p><h2><span>13.9</span> 한 Query의 행을 설명해 보기</h2></div>
+        <div class="chapter-summary-box"><h3>13장 핵심 정리</h3><ul><li>Q와 K의 내적을 √d<sub>k</sub>로 스케일해 토큰 쌍의 점수를 만듭니다.</li><li>행별 softmax가 점수를 합이 1인 가중치로 바꾸고, 그 가중치로 V를 더합니다.</li><li>실습의 Q=K=V는 숫자 학습용 특수 예시이며 실제 모델에서는 별도 투영을 학습합니다.</li><li>Multi-Head는 서로 다른 성분을 여러 Head에서 처리하고, 이미지에서는 패치·위치 임베딩이 필요합니다.</li></ul></div>
+        <dl class="key-terms"><div><dt lang="en">Query</dt><dd>어떤 Key와 잘 맞는지 묻는 벡터</dd></div><div><dt lang="en">Softmax</dt><dd>한 Query 행의 점수를 합 1의 가중치로 변환</dd></div><div><dt lang="en">Value</dt><dd>가중치로 모아 새 토큰 표현을 만드는 정보</dd></div></dl>
+        <div class="quiz-list chapter-quiz-spacing"><fieldset class="quiz" data-answer="b"><legend><span>Q1</span>softmax를 적용하는 방향은?</legend><label><input type="radio" name="q1" value="a"> 토큰 전체의 모든 행을 한 번에</label><label><input type="radio" name="q1" value="b"> 각 Query 행의 Key 점수들끼리</label><label><input type="radio" name="q1" value="c"> Value 차원마다만</label><p class="quiz-feedback"></p></fieldset><fieldset class="quiz" data-answer="a"><legend><span>Q2</span>최종 가중합에 직접 곱해지는 것은?</legend><label><input type="radio" name="q2" value="a"> Value</label><label><input type="radio" name="q2" value="b"> Key만</label><label><input type="radio" name="q2" value="c"> 위치 임베딩만</label><p class="quiz-feedback"></p></fieldset><fieldset class="quiz" data-answer="c"><legend><span>Q3</span>기본 vit_tiny의 Attention 토큰 수는?</legend><label><input type="radio" name="q3" value="a"> 16개</label><label><input type="radio" name="q3" value="b"> 64개</label><label><input type="radio" name="q3" value="c"> 패치 64개와 [CLS] 1개로 65개</label><p class="quiz-feedback"></p></fieldset><button class="button" id="checkQuiz" type="button">정답 확인</button><p class="quiz-score" id="quizScore" aria-live="polite"></p></div>
+      </section>
+      <section class="local-run-card"><div><p class="eyebrow">직접 실행</p><h2>CIFAR-10에서 ViT-Tiny 빠르게 학습하기</h2><p>Transformer 추가 의존성을 설치한 뒤 데이터 다운로드와 1 epoch 학습·검증을 실행합니다. 논문의 대규모 사전학습 성능을 재현하는 명령은 아닙니다.</p></div><div class="command-block"><code>pip install -e ".[transformers]"</code><button class="copy-button" type="button" data-copy-text="pip install -e &quot;.[transformers]&quot;">복사</button></div><div class="command-block"><code>cifar10-lab train --model vit_tiny --quick</code><button class="copy-button" type="button" data-copy-text="cifar10-lab train --model vit_tiny --quick">복사</button></div></section>
+      <nav class="chapter-pagination" aria-label="단원 이동"><a href="12-efficientnet.html"><small>이전</small><strong>12장 · EfficientNet</strong></a><span class="disabled"><small>다음</small><strong>14장 · Vision Transformer</strong></span></nav>
+    </article></main>
+    <aside id="chapterGlossary" class="chapter-glossary" aria-label="핵심 용어" data-chapter="13"><div class="glossary-heading"><h2>핵심 용어</h2></div><p class="glossary-intro">영어 용어를 눌러 뜻과 등장 위치를 확인하세요.</p><div class="glossary-list"></div></aside>
+  </div>
+  <footer class="site-footer"><div class="footer-copy"><strong>Backbone Lab · 실제 코드로 배우는 인공지능 기초</strong><p>이 자료는 학습의 출발점입니다. 개념과 결과는 원 논문, 공식 문서, 실제 코드와 함께 확인해 주세요.</p></div><a href="https://github.com/tember40/Backbone_tester_CNN_Transformer">GitHub에서 보기</a></footer>
+</body>
+</html>
