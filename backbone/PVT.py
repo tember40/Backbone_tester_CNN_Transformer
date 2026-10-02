@@ -223,26 +223,31 @@ class PyramidVisionTransformer(nn.Module):
 
 
 def pvt_tiny(img_size=224, num_classes=10, **kwargs):
+    # At 32×32, the 224px SRA ratios would leave only one K/V token per stage.
+    # Keep the paper-scale ratios for larger inputs while making CIFAR-10 attention nontrivial.
+    sr_ratios = kwargs.pop("sr_ratios", [2, 1, 1, 1] if img_size == 32 else [8, 4, 2, 1])
     model = PyramidVisionTransformer(img_size=img_size, patch_size=4, num_classes=num_classes, 
                                     embed_dims=[64, 128, 320, 512], num_heads=[1, 2, 5, 8], mlp_ratio=[8, 8, 4, 4],
-                                    depths=[2, 2, 2, 2], sr_ratios=[8, 4, 2, 1], **kwargs)
+                                    depths=[2, 2, 2, 2], sr_ratios=sr_ratios, **kwargs)
     return model
 
 def pvt_small(img_size=224, num_classes=10, **kwargs):
+    sr_ratios = kwargs.pop("sr_ratios", [2, 1, 1, 1] if img_size == 32 else [8, 4, 2, 1])
     model = PyramidVisionTransformer(img_size=img_size, patch_size=4, num_classes=num_classes, 
                                     embed_dims=[64, 128, 320, 512], num_heads=[1, 2, 5, 8], mlp_ratio=[8, 8, 4, 4],
-                                    depths=[3, 4, 6, 3], sr_ratios=[8, 4, 2, 1], **kwargs)
+                                    depths=[3, 4, 6, 3], sr_ratios=sr_ratios, **kwargs)
     return model
 
 def pvt_medium(img_size=224, num_classes=10, **kwargs):
+    sr_ratios = kwargs.pop("sr_ratios", [2, 1, 1, 1] if img_size == 32 else [8, 4, 2, 1])
     model = PyramidVisionTransformer(img_size=img_size, patch_size=4, num_classes=num_classes, 
                                     embed_dims=[64, 128, 320, 512], num_heads=[1, 2, 5, 8], mlp_ratio=[8, 8, 4, 4],
-                                    depths=[3, 4, 18, 3], sr_ratios=[8, 4, 2, 1], **kwargs)
+                                    depths=[3, 4, 18, 3], sr_ratios=sr_ratios, **kwargs)
     return model
 
 def pvt_large(img_size=224, num_classes=10, **kwargs):
+    sr_ratios = kwargs.pop("sr_ratios", [2, 1, 1, 1] if img_size == 32 else [8, 4, 2, 1])
     model = PyramidVisionTransformer(img_size=img_size, patch_size=4, num_classes=num_classes, 
                                     embed_dims=[64, 128, 320, 512], num_heads=[1, 2, 5, 8], mlp_ratio=[8, 8, 4, 4],
-                                    depths=[3, 8, 27, 3], sr_ratios=[8, 4, 2, 1], **kwargs)
+                                    depths=[3, 8, 27, 3], sr_ratios=sr_ratios, **kwargs)
     return model
-

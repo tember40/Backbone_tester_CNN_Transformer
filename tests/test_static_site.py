@@ -493,15 +493,15 @@ class StaticSiteTests(unittest.TestCase):
 
     def test_home_page_timeline_and_private_curriculum_states(self):
         home = (DOCS / "index.html").read_text(encoding="utf-8")
-        self.assertEqual(home.count('data-year="'), 10)
-        self.assertEqual(home.count('class="timeline-step'), 10)
+        self.assertEqual(home.count('data-year="'), 11)
+        self.assertEqual(home.count('class="timeline-step'), 11)
         self.assertIn('src="assets/js/home.js?', home)
         self.assertIn('id="timelineDescription"', home)
         self.assertIn('id="timelineSource"', home)
         self.assertIn('id="timelineChapter"', home)
         self.assertNotIn("학습 가능", home)
-        self.assertEqual(home.count('class="is-locked"'), 4)
-        self.assertEqual(home.count('class="private-label">비공개'), 4)
+        self.assertEqual(home.count('class="is-locked"'), 3)
+        self.assertEqual(home.count('class="private-label">비공개'), 3)
         self.assertNotIn("lock-icon", home)
         self.assertIn("아직 제작 중인 단원", home)
 
@@ -651,6 +651,33 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('href="14-vision-transformer.html"', (DOCS / "chapters" / "13-attention-basics.html").read_text(encoding="utf-8"))
         glossary = (DOCS / "assets" / "js" / "glossary.js").read_text(encoding="utf-8")
         self.assertIn('"14": "14-vision-transformer.html"', glossary)
+
+    def test_pvt_chapter_matches_implementation_and_sra_lab(self):
+        source = (DOCS / "chapters" / "15-pvt.html").read_text(encoding="utf-8")
+        for section_id in (
+            "overview", "paper", "pyramid", "stage-lab", "sra", "cifar",
+            "code", "scope", "experiment", "checkpoint",
+        ):
+            self.assertIn(f'id="{section_id}"', source)
+        implementation = (ROOT / "backbone" / "PVT.py").read_text(encoding="utf-8")
+        for code_line in (
+            "self.proj = nn.Conv2d(in_chans, embed_dim, kernel_size=patch_size, stride=patch_size)",
+            "x = self.proj(x).flatten(2).transpose(1, 2)",
+            "self.sr = nn.Conv2d(dim, dim, kernel_size=sr_ratio, stride=sr_ratio)",
+            "attn = (q @ k.transpose(-2, -1)) * self.scale",
+            "return x.mean(dim=1)",
+            'sr_ratios = kwargs.pop("sr_ratios", [2, 1, 1, 1] if img_size == 32 else [8, 4, 2, 1])',
+        ):
+            self.assertIn(code_line, implementation)
+            self.assertIn(code_line, source)
+        for marker in ('data-pvt-mode="cifar"', 'data-pvt-mode="naive"',
+                       'data-pvt-mode="paper"', 'id="pvtQGrid"',
+                       'id="pvtKVGrid"', 'src="../assets/js/pvt.js?'):
+            self.assertIn(marker, source)
+        self.assertIn('href="chapters/15-pvt.html"', (DOCS / "index.html").read_text(encoding="utf-8"))
+        self.assertIn('href="15-pvt.html"', (DOCS / "chapters" / "14-vision-transformer.html").read_text(encoding="utf-8"))
+        glossary = (DOCS / "assets" / "js" / "glossary.js").read_text(encoding="utf-8")
+        self.assertIn('"15": "15-pvt.html"', glossary)
 
     def test_user_facing_pages_avoid_book_authorship_wording(self):
         for page in DOCS.rglob("*.html"):

@@ -19,11 +19,12 @@
     "12": "12-efficientnet.html",
     "13": "13-attention-basics.html",
     "14": "14-vision-transformer.html",
+    "15": "15-pvt.html",
   };
   const chapterNames = {
     "01": "퍼셉트론", "02": "선형 분리와 XOR", "03": "다층 퍼셉트론",
     "04": "합성곱과 필터", "05": "특징맵과 활성화",
-    "06": "Pooling과 수용영역", "07": "AlexNet", "08": "VGG", "09": "ResNet과 확장 모델", "10": "SENet", "11": "MobileNetV2", "12": "EfficientNet", "13": "Attention 기초", "14": "Vision Transformer",
+    "06": "Pooling과 수용영역", "07": "AlexNet", "08": "VGG", "09": "ResNet과 확장 모델", "10": "SENet", "11": "MobileNetV2", "12": "EfficientNet", "13": "Attention 기초", "14": "Vision Transformer", "15": "PVT",
   };
   const term = (english, korean, meaning, chapter, section) =>
     ({english, korean, meaning, chapter, section});
@@ -112,6 +113,12 @@
     transformerEncoder: term("Transformer Encoder", "트랜스포머 인코더", "Attention과 MLP 블록을 반복하여 토큰 표현을 갱신합니다.", "14", "encoder"),
     inductiveBias: term("Inductive Bias", "구조적 가정", "모델 구조가 학습 전부터 갖는 가정입니다. CNN의 지역성·가중치 공유가 대표적입니다.", "14", "paper"),
     transferLearning: term("Transfer Learning", "전이 학습", "큰 데이터에서 학습한 표현을 다른 분류 과제에 활용하는 방법입니다.", "14", "experiment"),
+    pvt: term("Pyramid Vision Transformer", "피라미드 비전 트랜스포머", "네 단계의 공간 격자에서 서로 다른 규모의 특징을 만들고 SRA로 앞 단계의 Attention 비용을 줄이는 모델입니다.", "15", "paper"),
+    featurePyramid: term("Feature Pyramid", "특징 피라미드", "공간 크기가 다른 여러 단계의 특징맵을 함께 사용하는 구조입니다.", "15", "pyramid"),
+    progressiveShrinking: term("Progressive Shrinking", "점진적 공간 축소", "다음 단계로 갈 때 가로·세로 격자를 줄이고 채널을 늘리는 설계입니다.", "15", "pyramid"),
+    densePrediction: term("Dense Prediction", "위치별 예측", "이미지 전체에 점수 하나를 내는 분류와 달리 물체 위치나 픽셀마다 결과를 내는 작업입니다.", "15", "paper"),
+    sra: term("Spatial-Reduction Attention (SRA)", "공간 축소 어텐션", "Query 위치는 유지하고 Key·Value를 만들 입력의 공간 위치만 줄여 비교 표를 작게 만듭니다.", "15", "sra"),
+    srRatio: term("Spatial-Reduction Ratio", "공간 축소 비율", "SRA에서 K/V 입력의 가로·세로를 각각 얼마나 줄일지 정하는 r값입니다.", "15", "cifar"),
   };
   const chapterWords = {
     "01": [["perceptron", "anatomy"], ["weightedSum", "calculator"], ["weight", "anatomy"], ["bias", "anatomy"], ["decisionBoundary", "learning"], ["learningRate", "learning"]],
@@ -128,6 +135,7 @@
     "12": [["efficientnet", "paper"], ["nas", "paper"], ["resolution", "dimensions"], ["compoundScaling", "compound"], ["phi", "compound"], ["mbconv", "mbconv"], ["squeeze", "mbconv"], ["widthMultiplier", "presets"]],
     "13": [["selfAttention", "paper"], ["token", "tokens"], ["query", "qkv"], ["key", "qkv"], ["value", "qkv"], ["scaledDotProduct", "scores"], ["softmax", "softmax"], ["multiHead", "multihead"], ["classToken", "bridge"]],
     "14": [["vit", "paper"], ["inductiveBias", "paper"], ["imagePatch", "patches"], ["patchEmbedding", "embedding"], ["positionEmbedding", "embedding"], ["transformerEncoder", "encoder"], ["classToken", "classification"], ["multiHead", "encoder"], ["transferLearning", "experiment"]],
+    "15": [["pvt", "paper"], ["densePrediction", "paper"], ["featurePyramid", "pyramid"], ["progressiveShrinking", "pyramid"], ["sra", "sra"], ["srRatio", "cifar"], ["query", "stage-lab"], ["key", "stage-lab"], ["globalAverage", "scope"]],
   };
 
   const currentChapter = rail.dataset.chapter;

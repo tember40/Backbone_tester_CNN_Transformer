@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Pyramid Vision Transformer의 4단계 특징 피라미드와 Spatial-Reduction Attention을 실제 CIFAR-10 코드와 함께 분석하는 인공지능 기초 자료">
+  <title>15장. Pyramid Vision Transformer · Backbone Lab</title>
+  <link rel="stylesheet" href="../assets/css/site.css?v=20261002d">
+  <script src="../assets/js/glossary.js?v=20261002d" defer></script>
+  <script src="../assets/js/pvt.js?v=20261002a" defer></script>
+</head>
+<body class="chapter-page">
+  <header class="site-header">
+    <a class="brand" href="../index.html" aria-label="Backbone Lab 홈"><span class="brand-mark">KW</span><span><strong>인공지능 기초</strong><small><span lang="en">Backbone Lab</span> 학습 자료</small></span></a>
+    <div class="chapter-progress" aria-label="현재 과정"><span>제5부 · Transformer</span><div><i style="width: 100%"></i></div><strong>3 / 3</strong></div>
+    <nav class="header-actions"><a href="../index.html#curriculum">전체 목차</a><a class="button button-small" href="https://github.com/tember40/Backbone_tester_CNN_Transformer/blob/main/backbone/PVT.py">실제 코드</a></nav>
+  </header>
+  <div class="chapter-layout">
+    <aside class="chapter-sidebar" aria-label="단원 목차"><p class="sidebar-label">PVT</p><nav>
+      <a class="is-current" href="#overview"><span>15.0</span>학습 안내</a>
+      <a href="#paper"><span>15.1</span>논문의 문제</a>
+      <a href="#pyramid"><span>15.2</span>4단계 피라미드</a>
+      <a href="#stage-lab"><span>15.3</span>단계별 실습</a>
+      <a href="#sra"><span>15.4</span>공간 축소 Attention</a>
+      <a href="#cifar"><span>15.5</span>CIFAR-10 조정</a>
+      <a href="#code"><span>15.6</span>실제 코드</a>
+      <a href="#scope"><span>15.7</span>논문과 구현</a>
+      <a href="#experiment"><span>15.8</span>실험 해석</a>
+      <a href="#checkpoint"><span>15.9</span>연습문제</a>
+    </nav></aside>
+    <main class="chapter-content"><article>
+      <header class="chapter-hero" id="overview">
+        <div class="chapter-kicker"><span>제5부</span><span>Transformer</span><span>선수 지식: 13·14장</span></div>
+        <h1><small>제15장 · 토큰을 줄이며 여러 크기의 특징을 남기다</small><span lang="en">Pyramid Vision Transformer</span></h1>
+        <p class="chapter-lead">ViT는 같은 크기의 토큰 열을 끝까지 처리했습니다. <span lang="en">PVT</span>는 이미지를 네 단계의 점점 작은 공간 격자로 바꾸고, 앞 단계의 많은 토큰을 다룰 때는 <strong>Query는 유지하고 Key·Value 쪽만 줄이는 Attention</strong>을 사용합니다. 이 장에서는 논문의 목적과 이 저장소의 CIFAR-10 분류 구현을 구분해 읽습니다.</p>
+        <div class="learning-objectives"><h2>학습 목표</h2><ul>
+          <li>네 단계에서 해상도·토큰 수·채널 수가 어떻게 바뀌는지 설명할 수 있습니다.</li>
+          <li>Spatial-Reduction Attention의 Query 수와 Key/Value 수를 따로 계산할 수 있습니다.</li>
+          <li>224×224 설정의 축소 비율이 32×32에서 왜 그대로 맞지 않는지 설명할 수 있습니다.</li>
+          <li>원 논문의 다중 규모·분류 방식과 현재 저장소의 실제 출력 범위를 구분할 수 있습니다.</li>
+        </ul></div>
+      </header>
+
+      <section class="lesson-section" id="paper">
+        <div class="section-number">15.1</div><div class="lesson-heading"><p class="eyebrow">논문 리뷰 · 문제와 제안</p><h2><span>15.1</span> 이미지 한 장의 분류를 넘어서는 백본</h2></div>
+        <div class="paper-card"><div class="paper-meta"><span lang="en">Wenhai Wang et al.</span><span lang="en">ICCV 2021</span></div><h3 lang="en">Pyramid Vision Transformer: A Versatile Backbone for Dense Prediction without Convolutions</h3><p>원 논문은 단일 규모 토큰 열을 쓰는 ViT를 검출·분할처럼 위치별 예측이 필요한 작업에 적용하기 어려운 점에 주목했습니다. 제안한 두 핵심은 <strong>단계마다 공간 크기를 줄여 여러 해상도의 특징을 만들기</strong>와 <strong>Key·Value의 공간 수를 줄여 Attention 비용 낮추기</strong>입니다. 논문은 분류뿐 아니라 검출·분할에도 평가를 제시합니다.</p><a class="text-link" href="https://arxiv.org/abs/2102.12122">원 논문 보기 <span aria-hidden="true">↗</span></a></div>
+        <p>여기서 <span lang="en">dense prediction</span>은 이미지 전체에 점수 하나를 내는 분류와 달리, 물체의 위치나 픽셀별 범주를 예측하는 일을 말합니다. 작은 물체와 큰 물체를 함께 보려면 서로 다른 공간 크기의 특징이 유용합니다. 다만 이 저장소의 실행 경로는 <strong>CIFAR-10 분류만 수행</strong>하므로, 논문의 검출·분할 성능을 이 페이지에서 재현하지는 않습니다.</p>
+      </section>
+
+      <section class="lesson-section" id="pyramid">
+        <div class="section-number">15.2</div><div class="lesson-heading"><p class="eyebrow">하나의 열에서 네 크기의 격자로</p><h2><span>15.2</span> 앞에서는 촘촘하게, 뒤에서는 넓게 읽는다</h2></div>
+        <p>첫 단계는 입력을 4×4 패치로 나눕니다. 다음 세 단계는 직전 특징맵을 각각 2×2 단위로 묶어 공간 가로·세로를 절반으로 줄입니다. 대신 채널은 64 → 128 → 320 → 512로 늘어납니다. 이것이 <span lang="en">progressive shrinking</span>입니다. 각 단계 내부의 Encoder는 토큰 수를 유지하고, <strong>단계 사이 PatchEmbed</strong>가 격자 크기를 바꿉니다.</p>
+        <div class="pvt-stage-flow" aria-label="CIFAR-10 32×32 입력에서 PVT-Tiny의 네 단계"><div><span>입력</span><strong>32×32×3</strong></div><b aria-hidden="true">→</b><div><span>1단계 · /4</span><strong>8×8×64</strong><small>64개 토큰</small></div><b aria-hidden="true">→</b><div><span>2단계 · /8</span><strong>4×4×128</strong><small>16개 토큰</small></div><b aria-hidden="true">→</b><div><span>3단계 · /16</span><strong>2×2×320</strong><small>4개 토큰</small></div><b aria-hidden="true">→</b><div><span>4단계 · /32</span><strong>1×1×512</strong><small>1개 토큰</small></div></div>
+        <p>논문의 대표 224×224 입력이라면 같은 단계가 56×56, 28×28, 14×14, 7×7 격자가 됩니다. 즉 <strong>네 단계라는 구조는 같아도 각 단계에 남는 공간 정보의 양은 입력 크기에 크게 좌우</strong>됩니다. 특히 CIFAR-10의 마지막 1×1 단계에서는 위치별 예측을 위한 격자가 더는 남지 않습니다.</p>
+      </section>
+
+      <section class="lesson-section" id="stage-lab">
+        <div class="section-number">15.3</div><div class="lesson-heading"><p class="eyebrow">실습 15.1 · Q와 K/V를 분리해서 보기</p><h2><span>15.3</span> 어느 단계에서 몇 개를 비교할까?</h2><p>입력 크기를 고르고 1~4단계를 누르세요. 왼쪽은 모든 위치에서 만드는 Query, 오른쪽은 축소 후 Key·Value의 위치를 그린 도식입니다. 큰 격자는 최대 8×8칸으로 <strong>축약 표시</strong>하므로 정확한 수는 아래 지표를 읽어야 합니다.</p></div>
+        <div class="lab-panel pvt-stage-lab"><div class="pvt-mode-controls" role="group" aria-label="PVT Attention 설정 비교"><button type="button" data-pvt-mode="cifar" class="is-current" aria-pressed="true">32×32 · 현재 프로젝트</button><button type="button" data-pvt-mode="naive" aria-pressed="false">32×32 · 논문 비율 그대로</button><button type="button" data-pvt-mode="paper" aria-pressed="false">224×224 · 논문 규모</button></div><div class="pvt-stage-list" role="group" aria-label="PVT 단계 선택"><button type="button" data-pvt-stage="0" class="is-current" aria-pressed="true"><span>1단계</span><strong id="pvtStageOne">8×8</strong><small>채널 64</small></button><button type="button" data-pvt-stage="1" aria-pressed="false"><span>2단계</span><strong id="pvtStageTwo">4×4</strong><small>채널 128</small></button><button type="button" data-pvt-stage="2" aria-pressed="false"><span>3단계</span><strong id="pvtStageThree">2×2</strong><small>채널 320</small></button><button type="button" data-pvt-stage="3" aria-pressed="false"><span>4단계</span><strong id="pvtStageFour">1×1</strong><small>채널 512</small></button></div><div class="pvt-stage-detail"><div class="pvt-stage-copy"><span id="pvtModeLabel">32×32 CIFAR-10 조정 설정</span><h3 id="pvtStageTitle">1단계 · 8×8 특징 격자</h3><p id="pvtStageDescription">Query는 64곳 모두에서 만들고, Key·Value는 2×2 공간 축소 뒤 16곳에서 만듭니다.</p><dl><div><dt>채널 / Head / 블록</dt><dd id="pvtStageStructure">64 / 1 / 2</dd></div><div><dt>SRA 축소 비율 r</dt><dd id="pvtStageRatio">2</dd></div></dl></div><div class="pvt-sra-diagram" aria-label="Query 격자와 축소된 Key Value 격자"><div><strong>Query · 모든 위치</strong><small id="pvtQLabel">8×8 = 64</small><div class="pvt-mini-grid is-query" id="pvtQGrid" aria-hidden="true"></div></div><b aria-hidden="true">→</b><div><strong>Key / Value · 축소 후</strong><small id="pvtKVLabel">4×4 = 16</small><div class="pvt-mini-grid is-key" id="pvtKVGrid" aria-hidden="true"></div></div></div></div><div class="pvt-cost-strip" aria-live="polite"><div><span>Query 수</span><strong id="pvtQueryCount">64</strong></div><div><span>Key/Value 수</span><strong id="pvtKeyCount">16</strong></div><div><span>Head당 SRA 표</span><strong id="pvtReducedCells">1,024</strong></div><div><span>축소 전 표</span><strong id="pvtFullCells">4,096</strong></div></div><p class="pvt-stage-warning" id="pvtStageWarning">축소 후에도 Key·Value 위치가 16개 남아 여러 위치를 비교할 수 있습니다.</p></div>
+        <p>위 수는 <strong>Head 하나의 Attention 표 칸 수</strong>이며 모델 전체 FLOPs나 메모리 사용량이 아닙니다. 여러 Head, 블록 반복, 선형 투영과 Conv2d 축소의 비용도 추가됩니다. `32×32 · 논문 비율 그대로`는 문제를 보여주는 비교용이며 현재 프로젝트의 기본 실행 설정은 아닙니다.</p>
+      </section>
+
+      <section class="lesson-section" id="sra">
+        <div class="section-number">15.4</div><div class="lesson-heading"><p class="eyebrow">공간 축소 Attention</p><h2><span>15.4</span> Query는 남기고 Key·Value만 줄인다</h2></div>
+        <p>13장의 일반 Self-Attention은 Query N개와 Key N개를 비교해 N×N 표를 만듭니다. PVT의 <span lang="en">Spatial-Reduction Attention (SRA)</span>은 <strong>Query는 원래 N개</strong>로 두고, Key·Value를 만들 입력을 공간상 r×r 묶음으로 축소합니다. 정사각 격자 H×W가 r로 나누어떨어지면 Key·Value 위치는 (H/r)×(W/r)개입니다. 따라서 표는 <strong>N<sub>Q</sub>×N<sub>KV</sub></strong>가 됩니다.</p>
+        <div class="equation-card resnet-equation"><strong>Q: N = H·W</strong><span aria-hidden="true">→</span><strong>K/V: N / r²</strong><span aria-hidden="true">→</span><strong>Attention: N × (N / r²)</strong></div>
+        <p>이 코드의 <code>self.sr</code>는 <code>kernel_size=r, stride=r</code>인 Conv2d입니다. 여러 이웃 토큰을 학습 가능한 방식으로 합쳐 K/V 입력을 만들고 LayerNorm을 적용합니다. 이는 <strong>r=1일 때는 실행되지 않습니다.</strong> 논문 제목의 “without Convolutions”는 CNN 블록을 백본의 주 연산으로 쌓지 않는다는 취지로 읽어야 하며, 코드에 Conv2d 연산이 전혀 없다는 뜻은 아닙니다.</p>
+      </section>
+
+      <section class="lesson-section" id="cifar">
+        <div class="section-number">15.5</div><div class="lesson-heading"><p class="eyebrow">작은 이미지에서 생기는 예외</p><h2><span>15.5</span> 224용 비율을 32에 그대로 옮기면?</h2></div>
+        <p>논문의 224×224 규모에서 단계별 격자는 56·28·14·7이고 축소 비율은 8·4·2·1입니다. 모두 K/V 격자가 7×7=49곳으로 남습니다. 같은 비율을 CIFAR-10의 8·4·2·1 격자에 쓰면 <strong>매 단계 K/V가 1곳</strong>이 됩니다. 여러 위치 중 고르는 Attention을 살펴보려는 학습 목적에는 맞지 않습니다.</p>
+        <div class="comparison-table-wrap"><table class="comparison-table"><thead><tr><th>32×32 설정</th><th>1단계 K/V</th><th>2단계 K/V</th><th>3단계 K/V</th><th>4단계 K/V</th></tr></thead><tbody><tr><th>224용 r=[8,4,2,1] 그대로</th><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><th>현재 프로젝트 r=[2,1,1,1]</th><td>16</td><td>16</td><td>4</td><td>1</td></tr></tbody></table></div>
+        <p>이번 수정은 <code>pvt_tiny(img_size=32)</code> 등 생성 함수의 기본값에만 적용됩니다. 224 입력의 원래 비율은 그대로 유지하고, <code>sr_ratios</code>를 명시하면 사용자가 덮어쓸 수 있습니다. 마지막 1×1 단계의 K/V=1은 피라미드 구조상 피할 수 없습니다. 이 조정은 <strong>교육용 CIFAR-10 변형</strong>이지 논문 결과를 그대로 재현했다는 뜻이 아닙니다.</p>
+      </section>
+
+      <section class="lesson-section" id="code">
+        <div class="section-number">15.6</div><div class="lesson-heading"><p class="eyebrow">실제 프로젝트 코드</p><h2><span>15.6</span> 격자 축소는 어느 줄에서 일어나는가?</h2><p><code>backbone/PVT.py</code>에서 PatchEmbed와 SRA, CIFAR용 비율을 발췌했습니다. 오른쪽 설명을 눌러 계산 그림과 대응해 보세요.</p></div>
+        <div class="code-study"><div class="code-window"><div class="code-toolbar"><span>backbone/PVT.py · 핵심 경로</span><button class="copy-button" type="button" data-copy-target="pvtCode">코드 복사</button></div><pre id="pvtCode" class="line-code"><code><span data-line="1">self.proj = nn.Conv2d(in_chans, embed_dim, kernel_size=patch_size, stride=patch_size)</span>
+<span data-line="2">x = self.proj(x).flatten(2).transpose(1, 2)</span>
+<span data-line="3">q = self.q(x).reshape(B, N, self.num_heads, C // self.num_heads).permute(0, 2, 1, 3)</span>
+<span data-line="4">self.sr = nn.Conv2d(dim, dim, kernel_size=sr_ratio, stride=sr_ratio)</span>
+<span data-line="5">x_ = x.permute(0, 2, 1).reshape(B, C, H, W)</span>
+<span data-line="6">x_ = self.sr(x_).reshape(B, C, -1).permute(0, 2, 1)</span>
+<span data-line="7">kv = self.kv(x_).reshape(B, -1, 2, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)</span>
+<span data-line="8">attn = (q @ k.transpose(-2, -1)) * self.scale</span>
+<span data-line="9">attn = attn.softmax(dim=-1)</span>
+<span data-line="10">return x.mean(dim=1) # Global Average Pooling</span>
+<span data-line="11">sr_ratios = kwargs.pop("sr_ratios", [2, 1, 1, 1] if img_size == 32 else [8, 4, 2, 1])</span></code></pre></div><div class="code-notes" role="list" aria-label="PVT 코드 해설"><button type="button" data-highlight="1-2"><span>① 피라미드</span><strong>PatchEmbed</strong><small>단계 사이의 격자를 4배 또는 2배 줄입니다.</small></button><button type="button" data-highlight="3-3"><span>② Query</span><strong>원래 토큰 전체</strong><small>공간 위치마다 Query를 유지합니다.</small></button><button type="button" data-highlight="4-7"><span>③ Key·Value</span><strong>Conv2d로 공간 축소</strong><small>r&gt;1인 단계에서만 실행됩니다.</small></button><button type="button" data-highlight="8-9"><span>④ 가중치</span><strong>Q × Kᵀ → softmax</strong><small>N<sub>Q</sub>×N<sub>KV</sub> 표를 만듭니다.</small></button><button type="button" data-highlight="10-11"><span>⑤ 실습 변형</span><strong>분류와 32×32 설정</strong><small>GAP으로 분류하고 작은 입력의 r을 조정합니다.</small></button></div></div>
+        <p>이 발췌는 서로 다른 클래스·메서드의 줄을 학습 순서로 모았으므로 독립 실행 코드가 아닙니다. <code>r=1</code>일 때는 <code>self.sr</code> 대신 전체 <code>x</code>에서 K/V를 만듭니다. 자세한 분기와 네 단계 반복은 상단의 실제 코드 링크에서 확인할 수 있습니다.</p>
+      </section>
+
+      <section class="lesson-section" id="scope">
+        <div class="section-number">15.7</div><div class="lesson-heading"><p class="eyebrow">논문과 저장소를 분리해서 읽기</p><h2><span>15.7</span> 지금 코드가 논문 전체를 재현하지는 않는다</h2></div>
+        <p>원 논문은 각 단계의 특징 피라미드 F1~F4를 검출·분할 헤드에 제공하고, 단계별 위치 임베딩을 더합니다. 분류에서는 마지막 단계에 학습 가능한 분류 토큰을 붙입니다. 현재 저장소의 <code>backbone/PVT.py</code>는 중간 단계에서 2D 특징맵으로 잠시 바꾸지만 <strong>F1~F4를 외부로 반환하지 않고</strong>, 학습 가능한 위치 임베딩·[CLS] 토큰도 두지 않습니다. 대신 마지막 토큰 평균을 선형 분류층에 넣습니다.</p>
+        <div class="comparison-table-wrap"><table class="comparison-table"><thead><tr><th>항목</th><th>원 논문 PVT</th><th>현재 저장소</th></tr></thead><tbody><tr><th>다중 규모 출력</th><td>F1~F4를 다운스트림 작업에 활용</td><td>중간 단계에서 만들지만 공개 반환값은 분류 점수</td></tr><tr><th>위치 정보</th><td>단계별 위치 임베딩</td><td>별도 위치 임베딩 매개변수 없음</td></tr><tr><th>분류 집계</th><td>마지막 단계 [CLS] 토큰</td><td>마지막 토큰 평균, 32×32에서는 1개 평균</td></tr><tr><th>평가 범위</th><td>ImageNet 분류와 검출·분할</td><td>CIFAR-10 분류 실행</td></tr></tbody></table></div>
+        <p>따라서 이 프로젝트로 <strong>피라미드와 SRA의 계산 원리</strong>는 확인할 수 있지만, 현재 명령만으로 논문의 검출·분할 수치를 재현할 수는 없습니다. 앞으로 그런 작업을 추가하려면 중간 특징맵을 반환하는 백본 인터페이스, 검출·분할 헤드, 해당 데이터와 평가 절차가 필요합니다.</p>
+      </section>
+
+      <section class="lesson-section" id="experiment">
+        <div class="section-number">15.8</div><div class="lesson-heading"><p class="eyebrow">직접 실행 후 읽기</p><h2><span>15.8</span> 작은 데이터의 결과를 과장하지 않기</h2></div>
+        <p><code>cifar10-lab train --model pvt_tiny --quick</code>은 저장소의 모델 등록을 통해 32×32 입력과 조정된 SRA 비율로 짧은 학습을 실행합니다. 이는 파이프라인과 분류 출력이 작동하는지 보는 실습입니다. 논문의 ImageNet·검출·분할 실험과 데이터, 출력 헤드, 학습 절차가 모두 다릅니다.</p>
+        <p>ViT와 PVT를 비교할 때는 정확도만 적지 말고 같은 분할·epoch·증강·최적화 조건, 모델 크기, 학습 시간, 여러 시드를 함께 기록하세요. 특히 PVT의 마지막 단계가 CIFAR-10에서는 1×1인 점과 현재 구현이 위치 임베딩을 생략한 점을 비교 해석에 포함해야 합니다.</p>
+      </section>
+
+      <section class="lesson-section" id="checkpoint">
+        <div class="section-number">15.9</div><div class="lesson-heading"><p class="eyebrow">정리와 연습문제</p><h2><span>15.9</span> 어느 수가 줄고, 무엇은 남는가?</h2></div>
+        <div class="chapter-summary-box"><h3>15장 핵심 정리</h3><ul><li>PVT는 네 단계에서 공간 격자를 줄이고 채널을 늘려 여러 크기의 특징을 만듭니다.</li><li>SRA는 Query 위치를 유지하며 K/V 위치를 축소해 Head당 Attention 표를 N<sub>Q</sub>×N<sub>KV</sub>로 만듭니다.</li><li>32×32에는 원래 r=[8,4,2,1]이 모든 K/V를 1개로 만들어, 이 프로젝트는 [2,1,1,1]로 조정합니다.</li><li>현재 저장소의 PVT는 분류용 변형이며 원 논문의 위치 임베딩·[CLS]·검출/분할 출력까지 재현하지 않습니다.</li></ul></div>
+        <dl class="key-terms"><div><dt lang="en">Feature Pyramid</dt><dd>여러 공간 크기의 특징을 단계별로 만드는 구조</dd></div><div><dt lang="en">SRA</dt><dd>Key/Value의 공간 수를 줄이는 Attention</dd></div><div><dt lang="en">Dense Prediction</dt><dd>위치나 픽셀마다 결과를 내는 작업</dd></div></dl>
+        <div class="quiz-list chapter-quiz-spacing"><fieldset class="quiz" data-answer="b"><legend><span>Q1</span>32×32 입력에서 2단계 토큰 수는?</legend><label><input type="radio" name="q1" value="a"> 64개</label><label><input type="radio" name="q1" value="b"> 16개</label><label><input type="radio" name="q1" value="c"> 4개</label><p class="quiz-feedback"></p></fieldset><fieldset class="quiz" data-answer="a"><legend><span>Q2</span>SRA가 공간 축소하는 쪽은?</legend><label><input type="radio" name="q2" value="a"> Key·Value 입력</label><label><input type="radio" name="q2" value="b"> Query만</label><label><input type="radio" name="q2" value="c"> 최종 클래스 수</label><p class="quiz-feedback"></p></fieldset><fieldset class="quiz" data-answer="c"><legend><span>Q3</span>현재 저장소의 PVT 분류 집계는?</legend><label><input type="radio" name="q3" value="a"> [CLS] 하나</label><label><input type="radio" name="q3" value="b"> F1~F4 모두 연결</label><label><input type="radio" name="q3" value="c"> 마지막 토큰 열의 평균</label><p class="quiz-feedback"></p></fieldset><button class="button" id="checkQuiz" type="button">정답 확인</button><p class="quiz-score" id="quizScore" aria-live="polite"></p></div>
+      </section>
+      <section class="local-run-card"><div><p class="eyebrow">직접 실행</p><h2>CIFAR-10에서 PVT-Tiny 확인하기</h2><p>Transformer 추가 의존성을 설치한 뒤 데이터 다운로드와 짧은 1 epoch 학습·검증을 실행합니다. 사용되는 32×32용 SRA 비율은 15.5절과 같습니다.</p></div><div class="command-block"><code>pip install -e ".[transformers]"</code><button class="copy-button" type="button" data-copy-text="pip install -e &quot;.[transformers]&quot;">복사</button></div><div class="command-block"><code>cifar10-lab train --model pvt_tiny --quick</code><button class="copy-button" type="button" data-copy-text="cifar10-lab train --model pvt_tiny --quick">복사</button></div></section>
+      <nav class="chapter-pagination" aria-label="단원 이동"><a href="14-vision-transformer.html"><small>이전</small><strong>14장 · Vision Transformer</strong></a><span class="disabled"><small>다음</small><strong>16장 · ConvNeXt</strong></span></nav>
+    </article></main>
+    <aside id="chapterGlossary" class="chapter-glossary" aria-label="핵심 용어" data-chapter="15"><div class="glossary-heading"><h2>핵심 용어</h2></div><p class="glossary-intro">영어 용어를 눌러 뜻과 등장 위치를 확인하세요.</p><div class="glossary-list"></div></aside>
+  </div>
+  <footer class="site-footer"><div class="footer-copy"><strong>Backbone Lab · 실제 코드로 배우는 인공지능 기초</strong><p>이 자료는 학습의 출발점입니다. 개념과 결과는 원 논문, 공식 문서, 실제 코드와 함께 확인해 주세요.</p></div><a href="https://github.com/tember40/Backbone_tester_CNN_Transformer">GitHub에서 보기</a></footer>
+</body>
+</html>

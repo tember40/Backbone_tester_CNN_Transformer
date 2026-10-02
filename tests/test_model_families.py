@@ -39,6 +39,38 @@ class ModelFamilyTests(unittest.TestCase):
         failures = [result for result in results if result["status"] != "ok"]
         self.assertEqual(failures, [])
 
+    def test_pvt_cifar_attention_keeps_multiple_key_value_positions(self):
+        model = create_model("pvt_tiny", num_classes=10, image_size=32).eval()
+        stages = [model.block1[0].attn, model.block2[0].attn,
+                  model.block3[0].attn, model.block4[0].attn]
+        self.assertEqual([stage.sr_ratio for stage in stages], [2, 1, 1, 1])
+        self.assertEqual([model.patch_embed1.H, model.patch_embed2.H,
+                          model.patch_embed3.H, model.patch_embed4.H], [8, 4, 2, 1])
+        attention_shapes = []
+        hooks = [stage.attn_drop.register_forward_hook(
+            lambda _module, _inputs, output: attention_shapes.append(tuple(output.shape))
+        ) for stage in stages]
+        try:
+            with torch.no_grad():
+                output = model(torch.randn(1, 3, 32, 32))
+        finally:
+            for hook in hooks:
+                hook.remove()
+        self.assertEqual(tuple(output.shape), (1, 10))
+        self.assertEqual(attention_shapes, [(1, 1, 64, 16), (1, 2, 16, 16),
+                                            (1, 5, 4, 4), (1, 8, 1, 1)])
+
+    def test_pvt_paper_scale_ratios_and_explicit_override_remain_available(self):
+        from backbone.PVT import pvt_tiny
+
+        original = pvt_tiny(img_size=224)
+        self.assertEqual([original.block1[0].attn.sr_ratio,
+                          original.block2[0].attn.sr_ratio,
+                          original.block3[0].attn.sr_ratio,
+                          original.block4[0].attn.sr_ratio], [8, 4, 2, 1])
+        overridden = pvt_tiny(img_size=32, sr_ratios=[1, 1, 1, 1])
+        self.assertEqual(overridden.block1[0].attn.sr_ratio, 1)
+
     def test_alexnet_exposes_feature_maps_and_receptive_fields(self):
         model = create_model("alexnet", num_classes=10, image_size=32).eval()
         image = torch.randn(1, 3, 32, 32)
