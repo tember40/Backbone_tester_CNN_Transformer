@@ -20,11 +20,12 @@
     "13": "13-attention-basics.html",
     "14": "14-vision-transformer.html",
     "15": "15-pvt.html",
+    "16": "16-convnext.html",
   };
   const chapterNames = {
     "01": "퍼셉트론", "02": "선형 분리와 XOR", "03": "다층 퍼셉트론",
     "04": "합성곱과 필터", "05": "특징맵과 활성화",
-    "06": "Pooling과 수용영역", "07": "AlexNet", "08": "VGG", "09": "ResNet과 확장 모델", "10": "SENet", "11": "MobileNetV2", "12": "EfficientNet", "13": "Attention 기초", "14": "Vision Transformer", "15": "PVT",
+    "06": "Pooling과 수용영역", "07": "AlexNet", "08": "VGG", "09": "ResNet과 확장 모델", "10": "SENet", "11": "MobileNetV2", "12": "EfficientNet", "13": "Attention 기초", "14": "Vision Transformer", "15": "PVT", "16": "ConvNeXt",
   };
   const term = (english, korean, meaning, chapter, section) =>
     ({english, korean, meaning, chapter, section});
@@ -119,6 +120,13 @@
     densePrediction: term("Dense Prediction", "위치별 예측", "이미지 전체에 점수 하나를 내는 분류와 달리 물체 위치나 픽셀마다 결과를 내는 작업입니다.", "15", "paper"),
     sra: term("Spatial-Reduction Attention (SRA)", "공간 축소 어텐션", "Query 위치는 유지하고 Key·Value를 만들 입력의 공간 위치만 줄여 비교 표를 작게 만듭니다.", "15", "sra"),
     srRatio: term("Spatial-Reduction Ratio", "공간 축소 비율", "SRA에서 K/V 입력의 가로·세로를 각각 얼마나 줄일지 정하는 r값입니다.", "15", "cifar"),
+    convnext: term("ConvNeXt", "컨브넥스트", "ResNet 계열 CNN의 학습·설계 요소를 현대화해 Attention 없이 구성한 이미지 백본입니다.", "16", "paper"),
+    patchifyStem: term("Patchify Stem", "패치형 입력 단계", "4×4 stride 4 합성곱으로 입력의 가로·세로를 각각 4분의 1로 줄이는 첫 단계입니다.", "16", "architecture"),
+    layerNorm: term("Layer Normalization", "층 정규화", "이 구현의 블록에서는 한 공간 위치의 채널 벡터를 정규화합니다.", "16", "training-parts"),
+    gelu: term("GELU", "가우스 오차 선형 유닛", "채널 확장 후 쓰는 매끄러운 비선형 활성화 함수입니다.", "16", "block"),
+    layerScale: term("Layer Scale", "층별 잔차 크기 조절", "블록 출력의 채널별 크기를 학습 가능한 gamma로 조절한 뒤 입력에 더합니다.", "16", "training-parts"),
+    dropPath: term("DropPath / Stochastic Depth", "확률적 잔차 생략", "학습 중 샘플별로 잔차 가지 전체를 확률적으로 생략합니다. 이 저장소의 기본 Tiny 설정에서는 비율이 0입니다.", "16", "training-parts"),
+    channelsLast: term("Channels Last", "채널 마지막 배열", "특징 텐서를 (N,H,W,C) 순서로 두는 배열 형태로, 블록 안의 LayerNorm과 Linear에 사용됩니다.", "16", "block"),
   };
   const chapterWords = {
     "01": [["perceptron", "anatomy"], ["weightedSum", "calculator"], ["weight", "anatomy"], ["bias", "anatomy"], ["decisionBoundary", "learning"], ["learningRate", "learning"]],
@@ -136,6 +144,7 @@
     "13": [["selfAttention", "paper"], ["token", "tokens"], ["query", "qkv"], ["key", "qkv"], ["value", "qkv"], ["scaledDotProduct", "scores"], ["softmax", "softmax"], ["multiHead", "multihead"], ["classToken", "bridge"]],
     "14": [["vit", "paper"], ["inductiveBias", "paper"], ["imagePatch", "patches"], ["patchEmbedding", "embedding"], ["positionEmbedding", "embedding"], ["transformerEncoder", "encoder"], ["classToken", "classification"], ["multiHead", "encoder"], ["transferLearning", "experiment"]],
     "15": [["pvt", "paper"], ["densePrediction", "paper"], ["featurePyramid", "pyramid"], ["progressiveShrinking", "pyramid"], ["sra", "sra"], ["srRatio", "cifar"], ["query", "stage-lab"], ["key", "stage-lab"], ["globalAverage", "scope"]],
+    "16": [["convnext", "paper"], ["patchifyStem", "architecture"], ["depthwise", "block"], ["channelsLast", "block"], ["layerNorm", "training-parts"], ["gelu", "block"], ["layerScale", "training-parts"], ["dropPath", "training-parts"], ["receptiveField", "kernel-lab"], ["shortcut", "block"]],
   };
 
   const currentChapter = rail.dataset.chapter;

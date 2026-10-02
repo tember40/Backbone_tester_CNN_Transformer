@@ -71,6 +71,32 @@ class ModelFamilyTests(unittest.TestCase):
         overridden = pvt_tiny(img_size=32, sr_ratios=[1, 1, 1, 1])
         self.assertEqual(overridden.block1[0].attn.sr_ratio, 1)
 
+    def test_convnext_tiny_cifar_stage_shapes_and_block_design(self):
+        model = create_model("convnext_tiny", num_classes=10, image_size=32).eval()
+        self.assertEqual([len(stage) for stage in model.stages], [3, 3, 9, 3])
+        self.assertEqual([stage[0].dwconv.in_channels for stage in model.stages],
+                         [96, 192, 384, 768])
+        self.assertTrue(all(stage[0].dwconv.groups == stage[0].dwconv.in_channels
+                            and stage[0].dwconv.kernel_size == (7, 7)
+                            for stage in model.stages))
+        self.assertEqual(model.stages[0][0].pwconv1.out_features, 4 * 96)
+        self.assertEqual(model.stages[0][0].pwconv2.out_features, 96)
+        self.assertTrue(torch.all(model.stages[0][0].gamma == 1e-6))
+        self.assertIsInstance(model.stages[0][0].drop_path, torch.nn.Identity)
+        shapes = []
+        hooks = [stage.register_forward_hook(
+            lambda _module, _inputs, output: shapes.append(tuple(output.shape))
+        ) for stage in model.stages]
+        try:
+            with torch.no_grad():
+                output = model(torch.randn(1, 3, 32, 32))
+        finally:
+            for hook in hooks:
+                hook.remove()
+        self.assertEqual(shapes, [(1, 96, 8, 8), (1, 192, 4, 4),
+                                  (1, 384, 2, 2), (1, 768, 1, 1)])
+        self.assertEqual(tuple(output.shape), (1, 10))
+
     def test_alexnet_exposes_feature_maps_and_receptive_fields(self):
         model = create_model("alexnet", num_classes=10, image_size=32).eval()
         image = torch.randn(1, 3, 32, 32)

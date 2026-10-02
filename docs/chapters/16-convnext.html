@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ConvNeXt 논문의 CNN 재설계 과정을 실제 코드와 7×7 depthwise 커널 실습으로 살펴보는 인공지능 기초 자료">
+  <title>16장. ConvNeXt · Backbone Lab</title>
+  <link rel="stylesheet" href="../assets/css/site.css?v=20261002e">
+  <script src="../assets/js/glossary.js?v=20261002e" defer></script>
+  <script src="../assets/js/convnext.js?v=20261002a" defer></script>
+</head>
+<body class="chapter-page">
+  <header class="site-header">
+    <a class="brand" href="../index.html" aria-label="Backbone Lab 홈"><span class="brand-mark">KW</span><span><strong>인공지능 기초</strong><small><span lang="en">Backbone Lab</span> 학습 자료</small></span></a>
+    <div class="chapter-progress" aria-label="현재 과정"><span>제6부 · 현대 CNN</span><div><i style="width: 33.33%"></i></div><strong>1 / 3</strong></div>
+    <nav class="header-actions"><a href="../index.html#curriculum">전체 목차</a><a class="button button-small" href="https://github.com/tember40/Backbone_tester_CNN_Transformer/blob/main/backbone/ConvNeXt.py">실제 코드</a></nav>
+  </header>
+  <div class="chapter-layout">
+    <aside class="chapter-sidebar" aria-label="단원 목차"><p class="sidebar-label">ConvNeXt</p><nav>
+      <a class="is-current" href="#overview"><span>16.0</span>학습 안내</a>
+      <a href="#paper"><span>16.1</span>논문의 질문</a>
+      <a href="#modernize"><span>16.2</span>CNN 재설계</a>
+      <a href="#architecture"><span>16.3</span>4단계 구조</a>
+      <a href="#block"><span>16.4</span>블록 구조</a>
+      <a href="#kernel-lab"><span>16.5</span>커널 실습</a>
+      <a href="#training-parts"><span>16.6</span>학습 안정화</a>
+      <a href="#code"><span>16.7</span>실제 코드</a>
+      <a href="#cifar"><span>16.8</span>CIFAR-10의 차이</a>
+      <a href="#experiment"><span>16.9</span>실험 해석</a>
+      <a class="has-long-number" href="#checkpoint"><span>16.10</span>연습문제</a>
+    </nav></aside>
+    <main class="chapter-content"><article>
+      <header class="chapter-hero" id="overview">
+        <div class="chapter-kicker"><span>제6부</span><span>현대 CNN</span><span>선수 지식: 6·9·11·14·15장</span></div>
+        <h1><small>제16장 · Transformer 시대에 CNN을 다시 설계하다</small><span lang="en">ConvNeXt</span></h1>
+        <p class="chapter-lead">ViT와 PVT를 본 뒤에는 “좋은 이미지 백본을 만들려면 반드시 Attention이 필요한가?”라는 질문을 던질 수 있습니다. <span lang="en">ConvNeXt</span>는 ResNet 계열 CNN의 구성과 학습 방식을 차례로 바꾸어 그 질문을 실험했습니다. 이 장에서는 <strong>무엇이 합성곱으로 남고, 무엇이 현대적으로 바뀌었는지</strong> 실제 구현과 함께 읽습니다.</p>
+        <div class="learning-objectives"><h2>학습 목표</h2><ul>
+          <li>ResNet식 stem·블록과 ConvNeXt의 설계 차이를 구분할 수 있습니다.</li>
+          <li>ConvNeXt-Tiny의 네 단계에서 격자·채널·블록 수를 계산할 수 있습니다.</li>
+          <li>7×7 depthwise, 채널별 LayerNorm, 4배 확장 Linear, 잔차 연결의 순서를 설명할 수 있습니다.</li>
+          <li>32×32에서 큰 커널이 실제로 읽는 특징 위치와 논문 규모의 결과를 구분할 수 있습니다.</li>
+        </ul></div>
+      </header>
+
+      <section class="lesson-section" id="paper">
+        <div class="section-number">16.1</div><div class="lesson-heading"><p class="eyebrow">논문 리뷰 · 비교의 출발점</p><h2><span>16.1</span> CNN이 뒤처진 이유는 연산 자체일까?</h2></div>
+        <div class="paper-card"><div class="paper-meta"><span lang="en">Zhuang Liu et al.</span><span lang="en">CVPR 2022</span></div><h3 lang="en">A ConvNet for the 2020s</h3><p>저자들은 표준 ResNet에서 출발해 학습 절차와 설계 요소를 단계적으로 현대화했습니다. 결과인 ConvNeXt는 <strong>Self-Attention을 쓰지 않는 CNN</strong>입니다. 논문의 분류·검출·분할 비교는 “CNN 대 Transformer”라는 이름만으로 성능 차이를 설명하기 어렵다는 점을 보여줍니다. 다만 수치는 논문의 데이터·학습 조건에서 얻은 결과입니다.</p><a class="text-link" href="https://openaccess.thecvf.com/content/CVPR2022/papers/Liu_A_ConvNet_for_the_2020s_CVPR_2022_paper.pdf">원 논문 보기 <span aria-hidden="true">↗</span></a></div>
+        <p>여기서 “현대화”는 Transformer를 CNN 안에 넣는다는 뜻이 아닙니다. 패치처럼 입력을 나누는 stem, 공간과 채널 처리를 나누는 블록, LayerNorm과 GELU 같은 선택을 CNN 경로에 적용해 비교한 것입니다. 논문에서 사용한 긴 학습·증강·최적화 설정도 비교에 영향을 주므로, <strong>아키텍처 변경 하나가 모든 성능 향상을 만들었다고 단정하면 안 됩니다.</strong></p>
+      </section>
+
+      <section class="lesson-section" id="modernize">
+        <div class="section-number">16.2</div><div class="lesson-heading"><p class="eyebrow">ResNet에서 이어지는 흐름</p><h2><span>16.2</span> 익숙한 CNN 부품을 어떻게 바꿨나?</h2></div>
+        <div class="comparison-table-wrap"><table class="comparison-table"><thead><tr><th>설계 축</th><th>9장 ResNet의 출발점</th><th>이 저장소의 ConvNeXt-Tiny</th></tr></thead><tbody><tr><th>입력 축소</th><td>7×7 stride 2 + MaxPool</td><td>4×4 stride 4 합성곱 stem</td></tr><tr><th>주 블록의 공간 처리</th><td>3×3 일반 합성곱</td><td>7×7 depthwise 합성곱</td></tr><tr><th>채널 처리</th><td>블록에 따라 3×3 또는 1×1 합성곱</td><td>C → 4C → C Linear</td></tr><tr><th>정규화·활성화</th><td>BatchNorm·ReLU</td><td>LayerNorm·GELU</td></tr><tr><th>층별 배치</th><td>ResNet18: [2,2,2,2]</td><td>ConvNeXt-Tiny: [3,3,9,3]</td></tr></tbody></table></div>
+        <p>“더 큰 7×7 필터”가 곧바로 일반 7×7 합성곱을 뜻하지는 않습니다. <span lang="en">depthwise convolution</span>은 채널마다 별도의 공간 필터 하나를 적용하고, 다음 Linear 층이 같은 위치의 채널을 섞습니다. 11장의 MobileNetV2와 연결되는 부분이지만, <strong>ConvNeXt 블록은 MobileNetV2의 역잔차 블록과 배열 순서·정규화·활성화가 다릅니다.</strong></p>
+      </section>
+
+      <section class="lesson-section" id="architecture">
+        <div class="section-number">16.3</div><div class="lesson-heading"><p class="eyebrow">ConvNeXt-Tiny의 공간 흐름</p><h2><span>16.3</span> 네 단계의 격자를 따라가자</h2></div>
+        <p>저장소의 <code>convnext_tiny</code>는 단계별 채널 <strong>[96, 192, 384, 768]</strong>, 블록 수 <strong>[3, 3, 9, 3]</strong>으로 구성됩니다. 입력 stem이 가로·세로를 4분의 1로 줄이고, 단계 사이의 2×2 stride 2 합성곱이 다시 절반씩 줄입니다. 각 단계의 블록 안에서는 공간 크기가 유지됩니다.</p>
+        <div class="convnext-stage-flow" aria-label="32×32 CIFAR-10 입력에서 ConvNeXt-Tiny의 네 단계"><div><span>입력</span><strong>32×32×3</strong></div><b aria-hidden="true">→</b><div><span>stem + 1단계</span><strong>8×8×96</strong><small>블록 3개</small></div><b aria-hidden="true">→</b><div><span>2단계</span><strong>4×4×192</strong><small>블록 3개</small></div><b aria-hidden="true">→</b><div><span>3단계</span><strong>2×2×384</strong><small>블록 9개</small></div><b aria-hidden="true">→</b><div><span>4단계</span><strong>1×1×768</strong><small>블록 3개</small></div></div>
+        <p>224×224 입력에서는 격자가 56→28→14→7입니다. PVT와 공간 단계 수는 비슷하지만, ConvNeXt는 각 격자에서 합성곱으로 공간 이웃을 처리하며 Attention의 Query·Key 표를 만들지 않습니다. 현재 코드의 최종 공개 출력도 네 특징맵이 아니라 <strong>전역 평균 → LayerNorm → 10개 분류 점수</strong>입니다.</p>
+      </section>
+
+      <section class="lesson-section" id="block">
+        <div class="section-number">16.4</div><div class="lesson-heading"><p class="eyebrow">한 블록을 분해하기</p><h2><span>16.4</span> 공간 처리와 채널 처리를 나눈다</h2></div>
+        <div class="convnext-block-flow" aria-label="ConvNeXt 블록의 연산 순서"><div><span>입력</span><strong>H×W×C</strong></div><b>→</b><div><span>공간</span><strong>7×7 DWConv</strong></div><b>→</b><div><span>정규화</span><strong>LayerNorm</strong></div><b>→</b><div><span>채널</span><strong>Linear C→4C</strong></div><b>→</b><div><span>비선형</span><strong>GELU</strong></div><b>→</b><div><span>채널</span><strong>Linear 4C→C</strong></div><b>→</b><div><span>안정화</span><strong>Layer Scale</strong></div><b>→</b><div><span>잔차</span><strong>+ 입력</strong></div></div>
+        <p>Depthwise 7×7의 공간 가중치는 C채널에 대해 <strong>49C개</strong>입니다(편향 제외). C→4C→C 두 Linear의 가중치는 <strong>8C²개</strong>입니다. 예를 들어 첫 단계 C=96이면 각각 4,704개와 73,728개입니다. 따라서 “depthwise라서 블록 전체가 49C개의 가중치만 가진다”는 설명은 틀립니다. 이 숫자는 구조 이해용이며 실제 연산 시간·메모리 사용량과 같지 않습니다.</p>
+        <p><code>permute(0, 2, 3, 1)</code>는 채널을 마지막으로 옮겨 같은 공간 위치의 C개 값에 LayerNorm과 Linear를 적용하기 위한 배열 변환입니다. 이것은 이미지를 ViT의 토큰 열로 바꾸어 Attention을 수행한다는 뜻이 아닙니다. 마지막에는 원래 <code>(N,C,H,W)</code>로 돌리고 ResNet처럼 입력과 더합니다.</p>
+      </section>
+
+      <section class="lesson-section" id="kernel-lab">
+        <div class="section-number">16.5</div><div class="lesson-heading"><p class="eyebrow">실습 16.1 · 커널과 실제 입력의 겹침</p><h2><span>16.5</span> 7×7은 항상 49곳을 볼까?</h2><p>단계와 커널 크기를 고르고 격자의 출력 위치를 눌러 보세요. 왼쪽은 그 위치를 계산할 때 참조하는 실제 특징칸, 오른쪽은 커널의 각 칸이 실제 입력을 읽는지 0 패딩을 만나는지 보여줍니다. 3×3은 차이를 보기 위한 비교 설정이며 현재 모델의 기본 커널은 7×7입니다.</p></div>
+        <div class="lab-panel convnext-kernel-lab"><div class="convnext-stage-controls" role="group" aria-label="ConvNeXt 단계 선택"><button type="button" data-convnext-stage="0" class="is-current" aria-pressed="true"><span>1단계</span><strong>8×8</strong><small>채널 96</small></button><button type="button" data-convnext-stage="1" aria-pressed="false"><span>2단계</span><strong>4×4</strong><small>채널 192</small></button><button type="button" data-convnext-stage="2" aria-pressed="false"><span>3단계</span><strong>2×2</strong><small>채널 384</small></button><button type="button" data-convnext-stage="3" aria-pressed="false"><span>4단계</span><strong>1×1</strong><small>채널 768</small></button></div><div class="convnext-kernel-controls" role="group" aria-label="커널 크기 비교"><span>공간 필터</span><button type="button" data-convnext-kernel="7" class="is-current" aria-pressed="true">7×7 · 실제 코드</button><button type="button" data-convnext-kernel="3" aria-pressed="false">3×3 · 비교</button></div><div class="convnext-kernel-workspace"><div><span class="convnext-lab-label">특징 격자 · 출력 위치를 선택하세요</span><h3 id="convnextStageTitle">1단계 · 8×8 격자</h3><p id="convnextStageInfo">채널 96 · 블록 3개</p><div class="convnext-grid" id="convnextGrid" aria-label="출력 위치 선택 격자"></div></div><div><span class="convnext-lab-label">필터 창 · 회색은 패딩</span><h3 id="convnextKernelLabel">7×7 depthwise 커널</h3><p>선택 위치: <strong id="convnextPosition">5행 5열</strong></p><div class="convnext-window" id="convnextWindow" aria-hidden="true"></div></div></div><div class="convnext-kernel-metrics" aria-live="polite"><div><span>실제 입력 위치</span><strong id="convnextActive">49</strong></div><div><span>커널 공간 가중치/채널</span><strong id="convnextWeights">49</strong></div><div><span>실제 위치와 겹친 비율</span><strong id="convnextCoverage">100%</strong></div></div><p class="convnext-kernel-explanation" id="convnextExplanation">선택한 출력 위치에서 49개의 실제 입력 칸이 7×7 창에 들어옵니다.</p></div>
+        <p>이것은 <strong>블록 한 개, 채널 한 개의 한 출력 위치</strong>에 대한 도식입니다. 여러 블록을 거치며 누적 수용영역은 커지지만, CIFAR-10의 4단계 1×1 격자에서는 해당 블록의 depthwise 커널 중심만 실제 특징값과 겹칩니다. “7×7을 썼으니 마지막 단계에서 49개 서로 다른 위치를 읽는다”는 해석은 맞지 않습니다.</p>
+      </section>
+
+      <section class="lesson-section" id="training-parts">
+        <div class="section-number">16.6</div><div class="lesson-heading"><p class="eyebrow">정규화와 잔차의 크기</p><h2><span>16.6</span> LayerNorm, Layer Scale, DropPath는 같은 기능일까?</h2></div>
+        <dl class="convnext-concepts"><div><dt lang="en">LayerNorm</dt><dd>블록 안에서는 채널을 마지막으로 둔 위치별 벡터를 정규화합니다. stem과 단계 사이에서는 <code>channels_first</code> 분기를 사용합니다. BatchNorm처럼 배치 통계를 학습 중에 누적하는 구조는 아닙니다.</dd></div><div><dt lang="en">Layer Scale</dt><dd><code>gamma</code>는 C개 채널마다 하나씩 있는 학습 변수입니다. 기본 초기값 10⁻⁶을 블록의 변환 결과에 곱한 뒤 입력과 더합니다. 0으로 고정하는 것이 아니라 학습 중 변합니다.</dd></div><div><dt lang="en">DropPath</dt><dd>학습 중 일부 샘플의 <strong>잔차 가지 전체</strong>를 확률적으로 건너뜁니다. 추론에서는 작동하지 않습니다. 이 저장소의 기본 <code>convnext_tiny</code>는 <code>drop_path_rate=0</code>이라 실제로는 Identity입니다.</dd></div></dl>
+        <p>세 요소는 각각 값의 정규화, 잔차 가지의 초기 크기, 학습 중 가지의 확률적 생략을 담당합니다. 역할을 섞어서 “LayerNorm이 드롭아웃을 한다”거나 “Layer Scale이 공간 크기를 줄인다”고 이해하지 않도록 주의하세요.</p>
+      </section>
+
+      <section class="lesson-section" id="code">
+        <div class="section-number">16.7</div><div class="lesson-heading"><p class="eyebrow">실제 프로젝트 코드</p><h2><span>16.7</span> 각 설명은 어느 코드에 대응할까?</h2><p><code>backbone/ConvNeXt.py</code>의 여러 위치를 한 흐름으로 발췌했습니다. 오른쪽 항목을 누르면 해당 줄이 강조됩니다.</p></div>
+        <div class="code-study"><div class="code-window"><div class="code-toolbar"><span>backbone/ConvNeXt.py · 핵심 경로</span><button class="copy-button" type="button" data-copy-target="convnextCode">코드 복사</button></div><pre id="convnextCode" class="line-code"><code><span data-line="1">self.dwconv = nn.Conv2d(dim, dim, kernel_size=7, padding=3, groups=dim)</span>
+<span data-line="2">self.norm = LayerNorm(dim, eps=1e-6)</span>
+<span data-line="3">self.pwconv1 = nn.Linear(dim, 4 * dim)</span>
+<span data-line="4">self.act = nn.GELU()</span>
+<span data-line="5">self.pwconv2 = nn.Linear(4 * dim, dim)</span>
+<span data-line="6">self.gamma = nn.Parameter(layer_scale_init_value * torch.ones((dim)),</span>
+<span data-line="7">x = x.permute(0, 2, 3, 1)</span>
+<span data-line="8">x = input + self.drop_path(x)</span>
+<span data-line="9">nn.Conv2d(in_chans, dims[0], kernel_size=4, stride=4),</span>
+<span data-line="10">nn.Conv2d(dims[i], dims[i+1], kernel_size=2, stride=2),</span>
+<span data-line="11">return self.norm(x.mean([-2, -1]))</span>
+<span data-line="12">model = ConvNeXt(depths=[3, 3, 9, 3], dims=[96, 192, 384, 768], num_classes=num_classes, **kwargs)</span></code></pre></div><div class="code-notes" role="list" aria-label="ConvNeXt 코드 해설"><button type="button" data-highlight="1-1"><span>① 공간</span><strong>채널별 7×7</strong><small><code>groups=dim</code>이 depthwise를 만듭니다.</small></button><button type="button" data-highlight="2-5"><span>② 채널</span><strong>정규화와 4배 확장</strong><small>Linear가 같은 공간 위치의 채널을 섞습니다.</small></button><button type="button" data-highlight="6-8"><span>③ 잔차</span><strong>크기 조절 후 더하기</strong><small>channels-last로 계산한 뒤 되돌립니다.</small></button><button type="button" data-highlight="9-10"><span>④ 단계</span><strong>stem과 다운샘플링</strong><small>첫 단계 /4, 이후 단계마다 /2입니다.</small></button><button type="button" data-highlight="11-12"><span>⑤ 출력</span><strong>전역 요약과 Tiny 설정</strong><small>마지막 채널 벡터를 10개 점수로 바꿉니다.</small></button></div></div>
+        <p>발췌는 블록 초기화·forward·네트워크 초기화·생성 함수의 줄을 모은 것으로 단독 실행 코드는 아닙니다. <code>gamma</code> 정의는 조건부 표현식의 첫 줄만 보였으므로 전체 조건은 실제 코드에서 확인하세요. 특히 <code>drop_path_rate</code>를 별도로 주지 않으면 기본값은 0입니다.</p>
+      </section>
+
+      <section class="lesson-section" id="cifar">
+        <div class="section-number">16.8</div><div class="lesson-heading"><p class="eyebrow">논문 규모와 작은 이미지</p><h2><span>16.8</span> 같은 구조라도 32×32에서는 다르게 읽힌다</h2></div>
+        <div class="comparison-table-wrap"><table class="comparison-table"><thead><tr><th>입력</th><th>1단계</th><th>2단계</th><th>3단계</th><th>4단계</th></tr></thead><tbody><tr><th>논문 규모 224×224</th><td>56×56</td><td>28×28</td><td>14×14</td><td>7×7</td></tr><tr><th>CIFAR-10 32×32</th><td>8×8</td><td>4×4</td><td>2×2</td><td>1×1</td></tr></tbody></table></div>
+        <p>이 저장소는 기본 Tiny 구조를 작은 이미지에 그대로 적용하고, <code>num_classes=10</code>인 분류 헤드를 사용합니다. 따라서 블록 수·채널 수·7×7 depthwise는 같아도 마지막 단계의 공간 정보와 큰 커널이 실제로 읽는 위치가 달라집니다. 32×32 실험은 <strong>논문의 ImageNet 정확도를 재현하는 실험이 아니라 구조와 실행 경로를 익히는 실습</strong>입니다.</p>
+        <p>현재 <code>forward_features</code>는 네 단계의 결과를 내부에서 지나가지만 F1~F4를 외부로 반환하지 않습니다. 검출·분할에서 다중 규모 특징을 활용하려면 별도의 출력 인터페이스와 헤드가 필요합니다. 15장 PVT와 “둘 다 4단계니까 같은 종류의 연산”이라고 묶지 말고, PVT의 Attention과 ConvNeXt의 합성곱을 분리해서 비교하세요.</p>
+      </section>
+
+      <section class="lesson-section" id="experiment">
+        <div class="section-number">16.9</div><div class="lesson-heading"><p class="eyebrow">직접 실행 후 비교하기</p><h2><span>16.9</span> 결과를 해석할 때 무엇을 맞춰야 할까?</h2></div>
+        <p><code>cifar10-lab train --model convnext_tiny --quick</code>은 데이터 다운로드와 짧은 1 epoch 학습·검증을 실행합니다. 첫 실행은 연결과 출력 형상을 확인하는 단계입니다. ConvNeXt-Tiny는 현재 10클래스 설정에서도 약 <strong>2,783만 개 매개변수</strong>를 가지므로, 작은 CPU 환경에서는 quick 실행도 시간이 걸릴 수 있습니다.</p>
+        <p>ResNet18·PVT-Tiny·ConvNeXt-Tiny를 비교한다면 동일한 데이터 분할, 입력 크기, epoch, 증강, 최적화 조건과 시드를 기록하세요. 모델별 매개변수 수·학습 시간·메모리 사용량도 함께 보세요. 짧은 CIFAR-10 실행 결과만으로 논문의 ImageNet·검출·분할 우열을 일반화하지 마세요.</p>
+      </section>
+
+      <section class="lesson-section" id="checkpoint">
+        <div class="section-number">16.10</div><div class="lesson-heading"><p class="eyebrow">정리와 연습문제</p><h2><span>16.10</span> 현대 CNN의 핵심을 다시 말해 보기</h2></div>
+        <div class="chapter-summary-box"><h3>16장 핵심 정리</h3><ul><li>ConvNeXt는 Attention 없이 ResNet 계열 CNN을 현대적인 구조와 학습 조건으로 다시 검토한 모델입니다.</li><li>4×4 stem과 세 번의 2×2 다운샘플링으로 네 단계 공간 격자를 만듭니다.</li><li>블록은 7×7 depthwise → LayerNorm → C→4C→C Linear → Layer Scale → 잔차 덧셈으로 이어집니다.</li><li>32×32의 마지막 1×1 단계에서는 7×7 필터의 49곳 중 중심만 실제 특징 위치와 겹칩니다.</li></ul></div>
+        <dl class="key-terms"><div><dt lang="en">Patchify Stem</dt><dd>4×4 stride 4 합성곱으로 입력을 처음 축소하는 부분</dd></div><div><dt lang="en">Depthwise Convolution</dt><dd>채널마다 별도의 공간 필터를 적용하는 합성곱</dd></div><div><dt lang="en">Layer Scale</dt><dd>잔차 가지의 채널별 크기를 학습하는 변수</dd></div></dl>
+        <div class="quiz-list chapter-quiz-spacing"><fieldset class="quiz" data-answer="b"><legend><span>Q1</span>32×32 입력에서 ConvNeXt-Tiny의 3단계 격자는?</legend><label><input type="radio" name="q1" value="a"> 8×8</label><label><input type="radio" name="q1" value="b"> 2×2</label><label><input type="radio" name="q1" value="c"> 7×7</label><p class="quiz-feedback"></p></fieldset><fieldset class="quiz" data-answer="a"><legend><span>Q2</span><code>groups=dim</code>인 7×7 합성곱의 주된 역할은?</legend><label><input type="radio" name="q2" value="a"> 채널별 공간 처리</label><label><input type="radio" name="q2" value="b"> 모든 채널을 한 필터에서 혼합</label><label><input type="radio" name="q2" value="c"> Query와 Key의 내적</label><p class="quiz-feedback"></p></fieldset><fieldset class="quiz" data-answer="c"><legend><span>Q3</span>현재 <code>convnext_tiny</code> 기본 설정에서 DropPath는?</legend><label><input type="radio" name="q3" value="a"> 항상 50% 적용</label><label><input type="radio" name="q3" value="b"> 추론할 때만 적용</label><label><input type="radio" name="q3" value="c"> 비율 0으로 Identity</label><p class="quiz-feedback"></p></fieldset><button class="button" id="checkQuiz" type="button">정답 확인</button><p class="quiz-score" id="quizScore" aria-live="polite"></p></div>
+      </section>
+      <section class="local-run-card"><div><p class="eyebrow">직접 실행</p><h2>CIFAR-10에서 ConvNeXt-Tiny 확인하기</h2><p>프로젝트 의존성을 설치한 뒤 짧은 학습을 실행합니다. 데이터는 첫 실행 시 내려받습니다. 실행 환경에 따라 시간과 결과가 달라집니다.</p></div><div class="command-block"><code>pip install -e .</code><button class="copy-button" type="button" data-copy-text="pip install -e .">복사</button></div><div class="command-block"><code>cifar10-lab train --model convnext_tiny --quick</code><button class="copy-button" type="button" data-copy-text="cifar10-lab train --model convnext_tiny --quick">복사</button></div></section>
+      <nav class="chapter-pagination" aria-label="단원 이동"><a href="15-pvt.html"><small>이전</small><strong>15장 · PVT</strong></a><span class="disabled"><small>다음</small><strong>17장 · CNN과 Transformer</strong></span></nav>
+    </article></main>
+    <aside id="chapterGlossary" class="chapter-glossary" aria-label="핵심 용어" data-chapter="16"><div class="glossary-heading"><h2>핵심 용어</h2></div><p class="glossary-intro">영어 용어를 눌러 뜻과 등장 위치를 확인하세요.</p><div class="glossary-list"></div></aside>
+  </div>
+  <footer class="site-footer"><div class="footer-copy"><strong>Backbone Lab · 실제 코드로 배우는 인공지능 기초</strong><p>이 자료는 학습의 출발점입니다. 개념과 결과는 원 논문, 공식 문서, 실제 코드와 함께 확인해 주세요.</p></div><a href="https://github.com/tember40/Backbone_tester_CNN_Transformer">GitHub에서 보기</a></footer>
+</body>
+</html>

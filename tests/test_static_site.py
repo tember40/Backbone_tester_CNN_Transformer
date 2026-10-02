@@ -500,8 +500,8 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('id="timelineSource"', home)
         self.assertIn('id="timelineChapter"', home)
         self.assertNotIn("학습 가능", home)
-        self.assertEqual(home.count('class="is-locked"'), 3)
-        self.assertEqual(home.count('class="private-label">비공개'), 3)
+        self.assertEqual(home.count('class="is-locked"'), 2)
+        self.assertEqual(home.count('class="private-label">비공개'), 2)
         self.assertNotIn("lock-icon", home)
         self.assertIn("아직 제작 중인 단원", home)
 
@@ -678,6 +678,37 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('href="15-pvt.html"', (DOCS / "chapters" / "14-vision-transformer.html").read_text(encoding="utf-8"))
         glossary = (DOCS / "assets" / "js" / "glossary.js").read_text(encoding="utf-8")
         self.assertIn('"15": "15-pvt.html"', glossary)
+
+    def test_convnext_chapter_matches_implementation_and_kernel_lab(self):
+        source = (DOCS / "chapters" / "16-convnext.html").read_text(encoding="utf-8")
+        for section_id in (
+            "overview", "paper", "modernize", "architecture", "block",
+            "kernel-lab", "training-parts", "code", "cifar", "experiment",
+            "checkpoint",
+        ):
+            self.assertIn(f'id="{section_id}"', source)
+        implementation = (ROOT / "backbone" / "ConvNeXt.py").read_text(encoding="utf-8")
+        for code_line in (
+            "self.dwconv = nn.Conv2d(dim, dim, kernel_size=7, padding=3, groups=dim)",
+            "self.norm = LayerNorm(dim, eps=1e-6)",
+            "self.pwconv1 = nn.Linear(dim, 4 * dim)",
+            "self.pwconv2 = nn.Linear(4 * dim, dim)",
+            "x = x.permute(0, 2, 3, 1)",
+            "x = input + self.drop_path(x)",
+            "return self.norm(x.mean([-2, -1]))",
+            "depths=[3, 3, 9, 3], dims=[96, 192, 384, 768]",
+        ):
+            self.assertIn(code_line, implementation)
+            self.assertIn(code_line, source)
+        for marker in ('data-convnext-stage="0"', 'data-convnext-stage="3"',
+                       'data-convnext-kernel="7"', 'data-convnext-kernel="3"',
+                       'id="convnextGrid"', 'id="convnextWindow"',
+                       'src="../assets/js/convnext.js?'):
+            self.assertIn(marker, source)
+        self.assertIn('href="chapters/16-convnext.html"', (DOCS / "index.html").read_text(encoding="utf-8"))
+        self.assertIn('href="16-convnext.html"', (DOCS / "chapters" / "15-pvt.html").read_text(encoding="utf-8"))
+        glossary = (DOCS / "assets" / "js" / "glossary.js").read_text(encoding="utf-8")
+        self.assertIn('"16": "16-convnext.html"', glossary)
 
     def test_user_facing_pages_avoid_book_authorship_wording(self):
         for page in DOCS.rglob("*.html"):
