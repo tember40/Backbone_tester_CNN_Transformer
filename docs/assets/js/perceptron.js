@@ -63,20 +63,25 @@
     const lines = $$('[data-line]', code);
     const notes = $$('.code-notes button[data-highlight]');
 
-    notes.forEach((note) => {
-      note.addEventListener("click", () => {
-        const [start, end] = note.dataset.highlight.split("-").map(Number);
-        notes.forEach((item) => item.classList.toggle("is-active", item === note));
-        lines.forEach((line) => {
-          const number = Number(line.dataset.line);
-          line.classList.toggle("is-highlighted", number >= start && number <= end);
-        });
+    function selectNote(note, { scroll = false } = {}) {
+      const [start, end] = note.dataset.highlight.split("-").map(Number);
+      notes.forEach((item) => item.classList.toggle("is-active", item === note));
+      lines.forEach((line) => {
+        const number = Number(line.dataset.line);
+        line.classList.toggle("is-highlighted", number >= start && number <= end);
+      });
+      if (scroll) {
         const first = $(`[data-line="${start}"]`, code);
         first?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-      });
+      }
+    }
+
+    notes.forEach((note) => {
+      note.addEventListener("click", () => selectNote(note, { scroll: true }));
     });
 
-    notes[0]?.click();
+    // Initial highlighting must not navigate away from the page top or hash.
+    if (notes[0]) selectNote(notes[0]);
   }
 
   const FEATURES = [[0, 0], [0, 1], [1, 0], [1, 1]];
