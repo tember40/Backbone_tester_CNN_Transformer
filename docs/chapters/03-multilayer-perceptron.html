@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="은닉층, 비선형 활성화, 순전파와 역전파를 실제 코드와 XOR 시각화로 이해하는 다층 퍼셉트론 학습 자료">
   <title>3장. 다층 퍼셉트론 · Backbone Lab</title>
-  <link rel="stylesheet" href="../assets/css/site.css?v=20261001h">
+  <link rel="stylesheet" href="../assets/css/site.css?v=20261020a">
   <script src="../assets/js/glossary.js?v=20261001e" defer></script>
-  <script src="../assets/js/multilayer-perceptron.js?v=20260918a" defer></script>
+  <script src="../assets/js/multilayer-perceptron.js?v=20261020a" defer></script>
 </head>
 <body class="chapter-page">
   <header class="site-header">
@@ -117,6 +117,8 @@
             <strong>정의 3.1 · 은닉 표현</strong>
             <p>입력이 은닉층을 통과한 뒤 얻는 중간 벡터입니다. 원래 좌표에서 섞여 있던 데이터가 이 공간에서는 더 쉽게 나뉠 수 있습니다.</p>
           </aside>
+          <h3>배치 차원을 포함한 shape 추적</h3>
+          <p>네 XOR 표본을 한 번에 넣으면 입력은 (4,2), 첫 선형층 출력과 Tanh 출력은 각각 (4,4)입니다. 첫 번째 4는 표본 수, 두 번째 4는 은닉 뉴런 수이므로 역할이 다릅니다. 출력층은 (4,1)을 만들고 <code>squeeze(-1)</code>가 마지막 길이 1 축만 제거해 (4,)가 됩니다. 정답도 (4,)여야 각 표본의 logit과 맞춰 손실을 계산할 수 있습니다.</p>
         </section>
 
         <section class="lesson-section" id="forward">
@@ -170,6 +172,7 @@
             <div><span>활성화 없음</span><strong>선형 + 선형 = 선형</strong><p>여러 층을 쌓아도 하나의 선형 변환으로 합쳐져 결정경계가 여전히 하나입니다.</p></div>
             <div><span>비선형 활성화</span><strong>여러 경계를 조합</strong><p>ReLU나 Tanh가 중간 값을 꺾어 단일 직선으로 만들 수 없는 영역을 표현합니다.</p></div>
           </div>
+          <p>여기서 고정한 두 ReLU 뉴런은 h₁=max(0,x₁−x₂), h₂=max(0,x₂−x₁)입니다. 따라서 h₁+h₂=|x₁−x₂|가 되어, 이 네 이진 입력에서는 ‘서로 다른가’를 표현합니다. (0,0)과 (1,1)은 은닉 표현 (0,0), (1,0)은 (1,0), (0,1)은 (0,1)로 옮겨집니다. 출력은 새 표현에서 h₁+h₂≥0.5라는 하나의 직선으로 분리합니다. 학습이 끝난 모든 MLP가 반드시 이 표현을 만든다는 뜻은 아닙니다.</p>
         </section>
 
         <section class="lesson-section" id="learning">
@@ -190,6 +193,26 @@
             <div class="equation-arrow">→</div>
             <div><small>갱신</small><p>w − η · ∂L/∂w</p></div>
           </div>
+          <h3>예제 3.2 · 기울기 하나를 숫자로 끝까지 계산하기</h3>
+          <p>계산을 줄이기 위해 은닉 뉴런 하나만 둔 <strong>설명용 2→1→1 Tanh 네트워크</strong>를 사용합니다. TinyMLP의 4개 은닉 뉴런 중 하나를 읽는 연습이며, 이 예제 자체가 XOR을 모두 푼다는 뜻은 아닙니다. 입력 x=(1,0), 정답 y=1, 은닉 가중치 w=(0.5,−0.5), 은닉 편향 b=0, 출력 가중치 v=1, 출력 편향 c=0으로 고정합니다.</p>
+          <div class="equation-card" aria-label="수치 역전파 예제의 순전파">
+            <div><small>은닉 가중합 → Tanh</small><p>a=0.5 → h≈0.4621</p></div><div class="equation-arrow" aria-hidden="true">→</div><div><small>logit → sigmoid</small><p>z=vh+c≈0.4621 → p≈0.6135</p></div>
+          </div>
+          <p>이진 교차엔트로피 L=−[y ln p+(1−y) ln(1−p)]에서 이번 정답은 1이므로 L=−ln p≈0.4885입니다. sigmoid와 손실을 합쳐 미분하면 <strong>∂L/∂z=p−y≈−0.3865</strong>가 됩니다. 이는 1장의 정수 오차 y−ŷ와 부호·의미가 다른 값입니다. Tanh의 미분은 1−h²입니다.</p>
+          <div class="comparison-table-wrap"><table class="comparison-table">
+            <caption>한 표본의 손실을 기준으로 한 역전파 — 반올림 전 값으로 계산</caption>
+            <thead><tr><th scope="col">연결</th><th scope="col">연쇄법칙</th><th scope="col">기울기</th><th scope="col">η=0.1 갱신 후</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">출력 가중치 v</th><td>(p−y)h</td><td>−0.1786</td><td>1.0179</td></tr>
+              <tr><th scope="row">출력 편향 c</th><td>p−y</td><td>−0.3865</td><td>0.0386</td></tr>
+              <tr><th scope="row">은닉 가중치 w₁</th><td>(p−y)v(1−h²)x₁</td><td>−0.3039</td><td>0.5304</td></tr>
+              <tr><th scope="row">은닉 가중치 w₂</th><td>(p−y)v(1−h²)x₂</td><td>0</td><td>−0.5000</td></tr>
+              <tr><th scope="row">은닉 편향 b</th><td>(p−y)v(1−h²)</td><td>−0.3039</td><td>0.0304</td></tr>
+            </tbody>
+          </table></div>
+          <p>기울기는 모두 <strong>갱신 전의 같은 파라미터</strong>로 계산하고, 마지막에 한꺼번에 뺍니다. 바뀐 v를 은닉층 기울기 계산에 섞지 않습니다. 이번에는 x₂=0이어서 w₂의 기울기만 0이고, 은닉 편향은 여전히 갱신됩니다. 갱신 후 같은 표본의 손실은 약 0.4532로 내려갑니다. 한 번의 손실 감소가 전체 데이터나 새 데이터의 성능 향상을 보장하지는 않습니다.</p>
+          <p>네 표본 손실을 평균 내는 브라우저 실험은 각 표본의 기울기를 4로 나누어 합칩니다. 실제 PyTorch 학습에서는 <code>optimizer.zero_grad()</code>로 이전 기울기를 비운 뒤 <code>loss.backward()</code>를 수행합니다. backward는 기울기를 계산·누적할 뿐, 가중치를 갱신하는 명령은 아닙니다.</p>
+          <p><a class="text-link" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.BCEWithLogitsLoss.html">BCEWithLogitsLoss 공식 문서</a>에서 sigmoid와 손실을 결합하는 이유를 확인할 수 있습니다.</p>
           <aside class="callout callout-question">
             <strong>생각해 보기</strong>
             <p>학습률 η가 지나치게 크면 손실이 줄어드는 지점을 건너뛸 수 있습니다. 반대로 너무 작으면 어떤 현상이 나타날까요?</p>
@@ -249,6 +272,8 @@
             <h2><span>3.6</span> 무작위 경계가 XOR 영역으로 변하는 과정</h2>
             <p>네 개의 XOR 표본 전체로 작은 2-4-1 네트워크를 학습합니다. epoch를 조금씩 진행하며 손실과 결정 영역의 변화를 비교하세요.</p>
           </div>
+          <p>학습 전에는 아래의 세 예제를 구분하세요. 구조와 학습 방법이 다르므로 동일한 epoch의 숫자가 일치할 필요는 없습니다.</p>
+          <div class="comparison-table-wrap"><table class="comparison-table"><caption>설명 예제·브라우저 실험·Python 실습의 역할</caption><thead><tr><th scope="col">대상</th><th scope="col">구조</th><th scope="col">파라미터와 갱신</th></tr></thead><tbody><tr><th scope="row">3.3절 순전파</th><td>2→2→1, ReLU</td><td>고정 가중치, 학습하지 않음</td></tr><tr><th scope="row">아래 브라우저 학습</th><td>2→4→1, Tanh</td><td>고정된 난수 초기화, 네 표본 평균 기울기로 경사하강</td></tr><tr><th scope="row">Python train_tiny_mlp</th><td>2→4→1, Tanh</td><td>PyTorch 초기화(seed=42 기본값), Adam 기본 설정</td></tr></tbody></table></div>
           <div class="mlp-training-lab lab-panel">
             <div class="training-toolbar">
               <label>학습률<select id="mlpLearningRate"><option value="0.1">0.1</option><option value="0.3" selected>0.3</option><option value="0.5">0.5</option></select></label>

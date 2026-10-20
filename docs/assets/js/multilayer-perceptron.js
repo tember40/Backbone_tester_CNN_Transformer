@@ -87,6 +87,13 @@
     let model;
     let timer = null;
 
+    function stopAuto() {
+      if (timer) window.clearInterval(timer);
+      timer = null;
+      controls.step.disabled = false;
+      controls.hundred.disabled = false;
+    }
+
     function seededRandom(seed = 19) {
       let state = seed >>> 0;
       return () => {
@@ -168,8 +175,7 @@
     }
 
     function reset() {
-      if (timer) window.clearInterval(timer);
-      timer = null;
+      stopAuto();
       controls.auto.textContent = "자동 학습";
       model = createModel();
       const metrics = evaluate();
@@ -185,20 +191,24 @@
 
     function toggleAuto() {
       if (timer) {
-        window.clearInterval(timer);
-        timer = null;
+        stopAuto();
         controls.auto.textContent = "계속 학습";
         return;
       }
+      if (model.epoch >= 2000) reset();
       controls.auto.textContent = "일시정지";
+      controls.step.disabled = true;
+      controls.hundred.disabled = true;
       timer = window.setInterval(() => {
         const metrics = trainMany(10);
         render(metrics, "여러 epoch를 연속 실행하며 결정 영역을 갱신하고 있습니다.");
         if (model.epoch >= 2000 || (metrics.accuracy === 1 && metrics.loss < 0.03)) {
-          window.clearInterval(timer);
-          timer = null;
+          stopAuto();
           controls.auto.textContent = "다시 학습";
-          render(metrics, "네 표본을 모두 분류했고 손실도 충분히 낮아졌습니다.");
+          const converged = metrics.accuracy === 1 && metrics.loss < 0.03;
+          render(metrics, converged
+            ? "네 학습 표본을 모두 분류했고 손실도 0.03 미만이 되었습니다. 새 데이터에 대한 성능을 검증한 것은 아닙니다."
+            : "자동 학습의 2000 epoch 한도에 도달했습니다. 목표 손실에 도달하지 않았으므로 현재 정확도와 손실을 확인하세요. 다시 학습하면 초기화합니다.");
         }
       }, 45);
     }
@@ -226,8 +236,8 @@
 
     controls.rate.addEventListener("change", reset);
     controls.reset.addEventListener("click", reset);
-    controls.step.addEventListener("click", () => render(trainOneEpoch()));
-    controls.hundred.addEventListener("click", () => render(trainMany(100)));
+    controls.step.addEventListener("click", () => { if (!timer) render(trainOneEpoch()); });
+    controls.hundred.addEventListener("click", () => { if (!timer) render(trainMany(100)); });
     controls.auto.addEventListener("click", toggleAuto);
 
     function drawDecisionSurface(context, canvas) {

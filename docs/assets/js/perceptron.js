@@ -118,6 +118,7 @@
         lastPrediction: null,
         lastTarget: null,
         lastError: null,
+        transition: null,
         logs: [],
       };
       controls.run.textContent = "자동 학습";
@@ -145,13 +146,13 @@
       const epoch = Math.floor(state.step / FEATURES.length) + 1;
       const sample = FEATURES[sampleIndex];
       const target = targets()[sampleIndex];
-      const prediction = predict(sample);
-      const error = target - prediction;
       const rate = Number(controls.rate.value);
+      const transition = BackboneFoundations.perceptronStep(state.weights, state.bias, sample, target, rate);
+      const { prediction, error } = transition;
 
-      state.weights[0] += rate * error * sample[0];
-      state.weights[1] += rate * error * sample[1];
-      state.bias += rate * error;
+      state.weights = transition.weightsAfter;
+      state.bias = transition.biasAfter;
+      state.transition = transition;
       state.currentSample = sampleIndex;
       state.lastPrediction = prediction;
       state.lastTarget = target;
@@ -225,7 +226,29 @@
 
       renderTruthTable();
       renderLog();
-      drawBoundary(context, canvas, state.weights, state.bias, targets(), state.currentSample, predict);
+      renderStepTrace();
+      drawBoundary(context, canvas, state.weights, state.bias, targets(), state.currentSample, predict, state.transition);
+    }
+
+    function renderStepTrace() {
+      const entry = state.transition;
+      if (!entry) {
+        $("#stepTraceSummary").textContent = "‘한 단계’를 누르면 갱신 전 점수와 변화량이 표시됩니다.";
+        $("#stepTraceRows").innerHTML = '<tr><th scope="row">대기</th><td colspan="3">표본을 아직 처리하지 않았습니다.</td></tr>';
+        return;
+      }
+      $("#stepTraceSummary").textContent =
+        `x=(${entry.sample.join(", ")}), y=${entry.target}, η=${entry.rate} · ` +
+        `갱신 전 z=${signed(entry.scoreBefore)}, ŷ=${entry.prediction} → e=${entry.target}−${entry.prediction}=${entry.error}`;
+      const rows = [
+        ["w₁", entry.weightsBefore[0], entry.deltaWeights[0], entry.weightsAfter[0]],
+        ["w₂", entry.weightsBefore[1], entry.deltaWeights[1], entry.weightsAfter[1]],
+        ["b", entry.biasBefore, entry.deltaBias, entry.biasAfter],
+        ["현재 표본의 z", entry.scoreBefore, entry.scoreAfter - entry.scoreBefore, entry.scoreAfter],
+      ];
+      $("#stepTraceRows").innerHTML = rows.map(([label, before, delta, after]) =>
+        `<tr><th scope="row">${label}</th><td>${signed(before)}</td><td>${signed(delta)}</td><td>${signed(after)}</td></tr>`
+      ).join("") + `<tr><th scope="row">현재 표본의 예측</th><td>${entry.prediction}</td><td>z ≥ 0 판정</td><td>${entry.predictionAfter}</td></tr>`;
     }
 
     function renderTruthTable() {
@@ -261,7 +284,7 @@
     reset();
   }
 
-  function drawBoundary(context, canvas, weights, bias, targets, currentSample, predict) {
+  function drawBoundary(context, canvas, weights, bias, targets, currentSample, predict, transition) {
     const { width, height } = canvas;
     const margin = 54;
     const xMin = -0.25;
@@ -296,22 +319,34 @@
       context.beginPath(); context.moveTo(margin, toY(tick)); context.lineTo(width - margin, toY(tick)); context.stroke();
     });
 
-    const [w1, w2] = weights;
-    context.strokeStyle = "#7c192d";
-    context.lineWidth = 4;
-    context.beginPath();
-    if (Math.abs(w2) > 1e-9) {
-      const leftY = -(w1 * xMin + bias) / w2;
-      const rightY = -(w1 * xMax + bias) / w2;
-      context.moveTo(toX(xMin), toY(leftY));
-      context.lineTo(toX(xMax), toY(rightY));
+    function strokeBoundary(lineWeights, lineBias, dashed) {
+      const [w1, w2] = lineWeights;
+      context.save();
+      context.beginPath();
+      context.rect(margin, margin, plotWidth, plotHeight);
+      context.clip();
+      context.setLineDash(dashed ? [8, 6] : []);
+      context.strokeStyle = dashed ? "#6f625f" : "#7c192d";
+      context.lineWidth = dashed ? 2 : 4;
+      context.beginPath();
+      if (Math.abs(w2) > 1e-9) {
+        context.moveTo(toX(xMin), toY(-(w1 * xMin + lineBias) / w2));
+        context.lineTo(toX(xMax), toY(-(w1 * xMax + lineBias) / w2));
+      } else if (Math.abs(w1) > 1e-9) {
+        const x = -lineBias / w1;
+        context.moveTo(toX(x), margin);
+        context.lineTo(toX(x), height - margin);
+      }
       context.stroke();
+      context.restore();
+    }
+    if (transition && transition.error !== 0) strokeBoundary(transition.weightsBefore, transition.biasBefore, true);
+    strokeBoundary(weights, bias, false);
+    const [w1, w2] = weights;
+    if (Math.abs(w2) > 1e-9) {
       $("#boundaryLabel").textContent = `${signed(w1)}x₁ + ${signed(w2)}x₂ + ${signed(bias)} = 0`;
     } else if (Math.abs(w1) > 1e-9) {
       const x = -bias / w1;
-      context.moveTo(toX(x), margin);
-      context.lineTo(toX(x), height - margin);
-      context.stroke();
       $("#boundaryLabel").textContent = `x₁ = ${signed(x)}`;
     } else {
       $("#boundaryLabel").textContent = "가중치가 모두 0이라 경계 방향이 없습니다";
@@ -322,7 +357,9 @@
       const y = toY(sample[1]);
       const correct = predict(sample) === targets[index];
       context.beginPath();
-      context.arc(x, y, index === currentSample ? 15 : 12, 0, Math.PI * 2);
+      const radius = index === currentSample ? 15 : 12;
+      if (targets[index] === 1) context.rect(x - radius, y - radius, radius * 2, radius * 2);
+      else context.arc(x, y, radius, 0, Math.PI * 2);
       context.fillStyle = targets[index] ? "#39735f" : "#7c192d";
       context.fill();
       context.lineWidth = index === currentSample ? 5 : 3;
@@ -332,6 +369,7 @@
       context.font = "bold 15px Segoe UI";
       context.textAlign = "center";
       context.fillText(`(${sample.join(",")})`, x, y - 21);
+      context.fillText(correct ? "✓" : "×", x, y + 36);
     });
 
     context.fillStyle = "#6f625f";

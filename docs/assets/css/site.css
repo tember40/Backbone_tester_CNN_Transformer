@@ -328,6 +328,11 @@ code, pre { font-family: var(--mono); }
 .plot-heading span { color: var(--muted); font-size: 15.6px; text-align: right; }
 #boundaryCanvas { display: block; width: 100%; height: auto; aspect-ratio: 5 / 4; border: 1px solid var(--line); background: #fbfcfd; }
 .training-status { padding: 20px; background: #fff; }
+.plot-legend { margin: 12px 0 0; color: var(--muted); font-size: 16px; line-height: 1.6; }
+.perceptron-trace { padding: 20px; border-top: 1px solid var(--line); }
+.perceptron-trace h3 { margin: 0; font-size: 21px; }
+.perceptron-trace > p { font-size: 18px; overflow-wrap: anywhere; }
+.perceptron-trace caption { padding: 8px 0; color: var(--muted); font-size: 16px; text-align: left; }
 .status-grid { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); }
 .status-grid div { padding: 9px 10px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .status-grid div:nth-child(2n) { border-right: 0; }
@@ -1556,6 +1561,13 @@ code, pre { font-family: var(--mono); }
   .next-model-card, .key-terms { grid-template-columns: 1fr; }
   .chapter-pagination { grid-template-columns: 1fr; }
   .site-footer { align-items: flex-start; flex-direction: column; gap: 7px; }
+}
+@media (max-width: 650px) {
+  /* Formula stages need a full line each; narrow flex columns split symbols. */
+  .equation-card { flex-direction: column; gap: 12px; }
+  .equation-card > div:not(.equation-arrow) { width: 100%; min-width: 0; }
+  .equation-card p { overflow-wrap: anywhere; }
+  .equation-card .equation-arrow { transform: rotate(90deg); }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

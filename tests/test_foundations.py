@@ -11,6 +11,33 @@ from cifar10_lab.foundations import (
 
 
 class FoundationsTests(unittest.TestCase):
+    def test_single_hidden_neuron_chain_rule_matches_autograd(self):
+        """Independently verify the worked backprop example in chapter 3."""
+        weights = torch.tensor([0.5, -0.5], dtype=torch.float64, requires_grad=True)
+        bias = torch.tensor(0.0, dtype=torch.float64, requires_grad=True)
+        output_weight = torch.tensor(1.0, dtype=torch.float64, requires_grad=True)
+        output_bias = torch.tensor(0.0, dtype=torch.float64, requires_grad=True)
+        sample = torch.tensor([1.0, 0.0], dtype=torch.float64)
+        target = torch.tensor(1.0, dtype=torch.float64)
+        hidden = torch.tanh(sample @ weights + bias)
+        logit = hidden * output_weight + output_bias
+        loss = torch.nn.functional.binary_cross_entropy_with_logits(logit, target)
+        loss.backward()
+        delta_output = torch.sigmoid(logit.detach()) - target
+        delta_hidden = delta_output * output_weight.detach() * (1 - hidden.detach() ** 2)
+        self.assertTrue(torch.allclose(weights.grad, delta_hidden * sample))
+        self.assertAlmostEqual(bias.grad.item(), delta_hidden.item(), places=12)
+        self.assertAlmostEqual(output_weight.grad.item(), (delta_output * hidden).item(), places=12)
+        self.assertAlmostEqual(output_bias.grad.item(), delta_output.item(), places=12)
+        self.assertAlmostEqual(hidden.item(), 0.4621171573, places=9)
+        self.assertAlmostEqual(loss.item(), 0.4885484392, places=9)
+        with torch.no_grad():
+            for parameter in (weights, bias, output_weight, output_bias):
+                parameter -= 0.1 * parameter.grad
+            updated_logit = output_weight * torch.tanh(sample @ weights + bias) + output_bias
+            updated_loss = torch.nn.functional.binary_cross_entropy_with_logits(updated_logit, target)
+        self.assertAlmostEqual(updated_loss.item(), 0.4531941133, places=9)
+
     def test_and_gate_is_learned_by_one_perceptron(self):
         features, targets = make_logic_gate("AND")
         model = ClassicPerceptron(learning_rate=0.1)
