@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="합성곱 필터가 이미지의 작은 영역을 읽어 특징맵을 만드는 과정을 실제 코드와 단계별 시각화로 이해하는 학습 자료">
   <title>4장. 합성곱과 필터 · Backbone Lab</title>
-  <link rel="stylesheet" href="../assets/css/site.css?v=20261001h">
-  <script src="../assets/js/glossary.js?v=20261001e" defer></script>
-  <script src="../assets/js/convolution-filters.js?v=20260918a" defer></script>
+  <link rel="stylesheet" href="../assets/css/site.css?v=20261020b">
+  <script src="../assets/js/glossary.js?v=20261020b" defer></script>
+  <script src="../assets/js/cnn-math.js?v=20261020b" defer></script>
+  <script src="../assets/js/convolution-filters.js?v=20261020b" defer></script>
 </head>
 <body class="chapter-page">
   <header class="site-header">
@@ -103,8 +104,11 @@
           </div>
           <aside class="callout">
             <strong>정의 4.1 · 가중치 공유</strong>
-            <p>필터가 왼쪽 위에 있든 오른쪽 아래에 있든 같은 가중치를 사용하는 규칙입니다. 덕분에 모델은 같은 모양을 위치와 무관하게 탐지할 수 있고 파라미터 수도 줄어듭니다.</p>
+            <p>필터가 왼쪽 위에 있든 오른쪽 아래에 있든 같은 가중치를 사용하는 규칙입니다. 같은 국소 패턴을 여러 위치에서 같은 계산으로 검사하며 파라미터 수도 줄어듭니다.</p>
           </aside>
+          <h3>입력이 이동하면 응답 위치도 이동합니다</h3>
+          <p>보폭 1에서 경계 효과를 제외하면, 입력의 무늬를 한 칸 옮겼을 때 그에 대한 특징맵 응답도 한 칸 옮겨집니다. 이를 이동 <span lang="en">equivariance</span>(등변성)라고 합니다. 어디로 옮기든 특징맵 전체가 똑같아지는 <span lang="en">invariance</span>(불변성)와는 다릅니다. 패딩 부근과 보폭이 1보다 큰 경우에는 같은 관계가 그대로 성립하지 않을 수 있습니다.</p>
+          <p>앞 장의 MLP는 펼친 픽셀 위치마다 별도의 가중치를 두었습니다. 합성곱은 이웃 픽셀의 관계를 유지하고 같은 가중치를 재사용하는 구조적 선택입니다. 작은 필터를 사용한다는 이유만으로 모든 데이터에서 MLP보다 성능이 좋다고 보장하는 것은 아닙니다.</p>
         </section>
 
         <section class="lesson-section" id="calculation">
@@ -143,6 +147,9 @@
             <strong>먼저 예상해 보기</strong>
             <p>세로 경계 입력에 세로선 탐지 필터를 적용하면 특징맵의 어느 열에서 큰 양수가 나타날까요? 입력과 필터의 방향을 바꾸어 확인해 보세요.</p>
           </aside>
+          <h3>첫 번째 출력 3을 손으로 확인하기</h3>
+          <p>기본 세로 경계의 왼쪽 위 3×3 패치는 세 행 모두 (0,0,1)입니다. 필터의 각 행은 (−1,0,1)이므로 행마다 0×(−1)+0×0+1×1=1입니다. 세 행을 더하면 출력의 첫 칸은 3입니다. 오른쪽 끝 위치의 패치는 모두 (1,1,1)이어서 각 행의 합이 0이고 출력도 0입니다. 밝은 영역 자체보다 <strong>좌우 값의 차이</strong>를 검출한다는 뜻입니다.</p>
+          <p>이 실험은 편향 0, 보폭 1, 패딩 0의 단일 채널 상호상관입니다. 필터는 학습한 값이 아니라 계산 원리를 보이기 위해 직접 정한 값입니다. 아래 갤러리는 같은 크기로 표시하려고 패딩 1을 사용하므로 가장자리에는 입력 밖의 0도 계산에 들어갑니다.</p>
         </section>
 
         <section class="lesson-section" id="geometry">
@@ -169,9 +176,11 @@
             </div>
           </div>
           <div class="geometry-notes">
-            <div><span>패딩</span><strong>가장자리 밖에 값을 덧댐</strong><p>가장자리 픽셀도 중심 픽셀처럼 여러 번 계산에 참여하게 합니다.</p></div>
+            <div><span>패딩</span><strong>가장자리 밖에 값을 덧댐</strong><p>출력 크기와 가장자리의 계산 위치를 조절합니다. 가장자리 반응에는 덧붙인 값도 섞입니다.</p></div>
             <div><span>보폭</span><strong>필터가 이동하는 간격</strong><p>보폭이 커지면 계산 위치와 출력 해상도가 함께 줄어듭니다.</p></div>
           </div>
+          <p>이 절의 N은 <strong>한 축의 공간 크기</strong>이며, 다음 장의 NCHW에서 N은 <strong>배치 크기</strong>입니다. 같은 글자라도 역할이 다르니 문맥을 확인하세요. 출력 크기 식은 dilation=1인 경우이고, 일반적인 유효 커널은 K<sub>eff</sub>=D(K−1)+1입니다. dilation D가 2인 3×3 필터는 한 축에서 5칸 범위를 건너 읽으므로 일반 식에는 K 대신 5를 넣습니다.</p>
+          <p>N=6, K=3, P=0, S=2라면 시작 위치는 0과 2뿐이어서 출력은 2칸입니다. 4에서 시작하면 커널이 입력을 벗어나므로 제외합니다. 패딩을 포함한 입력보다 커널이 커지는 조합은 출력이 음수인 이미지가 아니라 <strong>계산할 수 없는 설정</strong>입니다. 실제 인자와 기본값은 <a class="text-link" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Conv2d.html">Conv2d 공식 문서</a>에서 확인할 수 있습니다.</p>
         </section>
 
         <section class="lesson-section" id="code">
@@ -225,7 +234,7 @@
           <div class="lesson-heading">
             <p class="eyebrow">실습 4.1 · 필터 비교</p>
             <h2><span>4.6</span> 하나의 입력에서 서로 다른 특징맵 꺼내기</h2>
-            <p>같은 입력을 네 필터에 통과시켜 보세요. 밝은 영역은 해당 필터가 찾는 변화가 강한 위치이고, 어두운 영역은 반대 방향 또는 약한 응답입니다.</p>
+            <p>같은 입력을 네 필터에 통과시켜 보세요. 초록은 양수, 적갈색은 음수 응답입니다. 부호와 크기는 필터 계수의 방향에 따라 달라지므로 ‘밝으면 좋은 특징’으로 해석하지 않습니다.</p>
           </div>
           <div class="filter-gallery lab-panel">
             <div class="training-toolbar">
@@ -244,6 +253,7 @@
             <strong>관찰할 값</strong>
             <p>입력에 없는 특징을 필터가 새로 만드는 것은 아닙니다. 같은 픽셀 배열을 서로 다른 기준으로 비교해 특정 방향의 변화나 주변 평균을 두드러지게 표현합니다.</p>
           </aside>
+          <p class="lab-reading-note" id="galleryScale" aria-live="polite">네 출력은 같은 색 척도로 표시합니다.</p>
         </section>
 
         <section class="lesson-section" id="checkpoint">

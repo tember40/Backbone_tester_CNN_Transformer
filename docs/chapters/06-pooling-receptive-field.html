@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="CNN의 최대·평균 풀링 계산과 출력 크기, 층별 수용영역 누적을 실제 코드와 대화형 시각화로 이해하는 학습 자료">
   <title>6장. Pooling과 수용영역 · Backbone Lab</title>
-  <link rel="stylesheet" href="../assets/css/site.css?v=20261001h">
+  <link rel="stylesheet" href="../assets/css/site.css?v=20261020b">
   <script src="../assets/js/glossary.js?v=20261001e" defer></script>
-  <script src="../assets/js/pooling-receptive-field.js?v=20261001a" defer></script>
+  <script src="../assets/js/cnn-math.js?v=20261020b" defer></script>
+  <script src="../assets/js/pooling-receptive-field.js?v=20261020b" defer></script>
 </head>
 <body class="chapter-page">
   <header class="site-header">
@@ -122,7 +123,7 @@
               <label>커널 K<input id="poolKernelSize" type="range" min="2" max="3" value="2"><output id="poolKernelSizeValue">2</output></label>
               <label>보폭 S<input id="poolStride" type="range" min="1" max="3" value="2"><output id="poolStrideValue">2</output></label>
             </div>
-            <div class="pool-geometry-visual"><div class="pool-geometry-grid" id="poolGeometryGrid" aria-label="풀링이 사용하는 입력 영역"></div></div>
+            <div class="pool-geometry-visual"><div class="pool-geometry-grid" id="poolGeometryGrid" aria-label="풀링이 사용하는 입력 영역"></div><p class="lab-reading-note">채운 칸: 창에 포함 · 빗금 칸: 어떤 창에도 포함되지 않음</p></div>
             <div class="pool-geometry-result">
               <span>출력 한 변</span><strong id="poolGeometryFormula">—</strong>
               <div><p>shape</p><b id="poolGeometryShape">—</b></div>
@@ -131,6 +132,8 @@
             </div>
           </div>
           <div class="equation-card"><p>패딩이 없을 때</p><strong>H<sub>out</sub> = ⌊(H<sub>in</sub> − K) / S⌋ + 1</strong><span>W도 같은 식으로 계산합니다.</span></div>
+          <p>기본 설정은 padding=0, dilation=1, ceil_mode=False입니다. 예를 들어 N=5, K=2, S=2면 시작 위치는 0과 2이고, 마지막 좌표 4는 사용하지 않습니다. 반면 N=8, K=2, S=3에서는 마지막 창이 끝까지 닿아도 중간 좌표 2와 5를 건너뜁니다. <strong>마지막 창의 끝만 보아서는 사용한 모든 칸을 알 수 없습니다.</strong> 슬라이더로 두 경우의 빗금 영역을 확인하세요.</p>
+          <p>풀링은 각 채널에서 독립적으로 작동하므로 [N,C,H,W]의 N과 C는 그대로이고 H와 W만 바뀝니다. 겹치는 창에서는 한 입력값이 여러 출력에 영향을 줄 수 있습니다. 다른 옵션을 적용할 때는 <a class="text-link" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.MaxPool2d.html">MaxPool2d 공식 문서</a>의 출력 조건을 확인하세요.</p>
         </section>
 
         <section class="lesson-section" id="comparison">
@@ -142,8 +145,8 @@
           </div>
           <div class="pool-comparison lab-panel">
             <div class="training-toolbar">
-              <label>입력 무늬<select id="poolPattern"><option value="edge" selected>수직 경계</option><option value="spot">작은 강한 반응</option><option value="noise">잡음</option></select></label>
-              <p id="comparisonObservation">최대 풀링은 밝은 영역을 넓게 남기고, 평균 풀링은 경계를 더 부드럽게 만듭니다.</p>
+              <label>입력 무늬<select id="poolPattern"><option value="edge" selected>수직 경계 · 창과 일치</option><option value="edge-shifted">수직 경계 · 한 칸 이동</option><option value="spot">작은 강한 반응</option><option value="noise">잡음</option></select></label>
+              <p id="comparisonObservation">현재 창과 입력의 위치 관계를 비교합니다.</p>
             </div>
             <div class="pool-comparison-grid">
               <figure><figcaption><strong>입력</strong><span id="comparisonInputRange">—</span></figcaption><canvas id="comparisonInput" width="256" height="256" aria-label="비교 실험 입력"></canvas><small>8 × 8</small></figure>
@@ -151,6 +154,10 @@
               <figure><figcaption><strong>평균 풀링</strong><span id="comparisonAverageRange">—</span></figcaption><canvas id="comparisonAverage" width="256" height="256" aria-label="평균 풀링 결과"></canvas><small>4 × 4</small></figure>
             </div>
           </div>
+          <p class="lab-reading-note" id="comparisonDifference" aria-live="polite">최대·평균 결과의 차이를 계산합니다.</p>
+          <h3>작은 이동에 언제 같은 결과가 나올까?</h3>
+          <p>한 2×2 창 안에서 유일한 큰 값의 위치만 바뀌고 값 자체가 같다면 최대 풀링 결과는 같습니다. 하지만 그 값이 창 경계를 넘어가면 다른 출력 칸이 바뀝니다. 평균 풀링도 창 안 값의 합이 바뀌면 변합니다. 따라서 풀링은 어떤 작은 이동에 덜 민감할 수 있지만 <strong>모든 이동에 불변인 연산</strong>은 아닙니다.</p>
+          <p>기본 수직 경계는 창 경계와 정확히 일치해 각 창의 값이 모두 같습니다. 이 경우에는 최대와 평균 출력도 같습니다. 한 칸 이동한 경계에서는 한 창 안에 0.15와 0.90이 섞여 평균 0.525와 최대 0.90이 달라집니다. 설정을 바꾸기 전에 두 출력이 다른 칸 수를 예상해 보세요.</p>
           <div class="pool-tradeoffs">
             <div><span>최대 풀링</span><strong>강한 특징의 존재를 보존</strong><p>작은 위치 변화에 강하지만 우연히 큰 잡음도 선택할 수 있습니다.</p></div>
             <div><span>평균 풀링</span><strong>영역의 전체 수준을 보존</strong><p>반응을 부드럽게 요약하지만 작은 강한 특징이 약해질 수 있습니다.</p></div>
@@ -191,13 +198,17 @@
             <strong>자동 미분은 최대 풀링의 선택 위치도 기억한다</strong>
             <p>역전파에서 최대 풀링은 정방향 때 선택한 최댓값 위치로만 기울기를 보냅니다. 평균 풀링은 창 안의 모든 위치에 기울기를 나누어 전달합니다.</p>
           </aside>
+          <h3>같은 창을 거꾸로 따라가는 기울기</h3>
+          <p>6.2절의 첫 창은 위 행 (1,3), 아래 행 (5,0)입니다. 출력은 최대 5, 평균 2.25입니다. 뒤에서 이 출력으로 기울기 1이 들어왔다고 가정하면 입력으로 돌아가는 값은 다음과 같습니다.</p>
+          <div class="comparison-table-wrap"><table class="comparison-table"><caption>한 창의 역전파 예제 — 최댓값이 유일하고, 창은 겹치지 않습니다.</caption><thead><tr><th scope="col">입력 위치</th><th scope="col">입력값</th><th scope="col">최대 풀링 기울기</th><th scope="col">평균 풀링 기울기</th></tr></thead><tbody><tr><th scope="row">왼쪽 위</th><td>1</td><td>0</td><td>0.25</td></tr><tr><th scope="row">오른쪽 위</th><td>3</td><td>0</td><td>0.25</td></tr><tr><th scope="row">왼쪽 아래</th><td>5</td><td>1</td><td>0.25</td></tr><tr><th scope="row">오른쪽 아래</th><td>0</td><td>0</td><td>0.25</td></tr></tbody></table></div>
+          <p>입력값 5를 다시 보내는 것이 아니라, 그 위치로 <strong>뒤에서 받은 기울기 1</strong>을 보냅니다. 평균 풀링은 네 값이 각각 결과의 1/4에 기여하므로 1/4씩 전달합니다. 겹치는 창이면 같은 입력 위치로 온 기울기를 더합니다. 최대값이 같은 위치가 여러 개인 경우에는 사용한 연산의 선택 규칙도 확인해야 합니다.</p>
         </section>
 
         <section class="lesson-section" id="receptive-field">
           <div class="section-number">6.6</div>
           <div class="lesson-heading">
             <p class="eyebrow">실습 6.2 · 누적되는 관찰 범위</p>
-            <h2><span>6.6</span> 깊은 층의 한 칸은 입력의 어디까지 볼까</h2>
+            <h2><span>6.6</span> 한 특징값이 보는 입력 범위</h2>
             <p>수용영역은 한 특징값에 영향을 줄 수 있는 입력 영역입니다. 층을 선택해 커널 크기와 이전 층의 점프가 수용영역을 어떻게 넓히는지 확인하세요.</p>
           </div>
           <div class="rf-lab lab-panel">
@@ -206,7 +217,7 @@
               <label>현재 층<input id="rfStage" type="range" min="0" max="5" value="0"><output id="rfStageValue">0 / 5</output></label>
             </div>
             <div class="rf-main">
-              <div class="rf-input-field" aria-label="32×32 입력에서 현재 수용영역"><span>입력 32 × 32</span><i id="rfOverlay"><b>현재 한 특징값이 보는 영역</b></i></div>
+              <div class="rf-input-field" aria-label="32×32 입력과 이론적 수용영역의 크기 비교"><span>입력 32 × 32</span><i id="rfOverlay" aria-hidden="true"></i><small class="rf-display-label">중앙에 맞춘 크기 비교도</small></div>
               <div class="rf-readout">
                 <span id="rfLayerName">입력</span><strong id="rfSize">1 × 1</strong>
                 <p>수용영역</p>
@@ -216,6 +227,7 @@
             </div>
             <div class="rf-stage-list" id="rfStageList" aria-label="수용영역 계산 단계"></div>
           </div>
+          <p class="lab-reading-note" id="rfDisplayNote" aria-live="polite">수용영역의 크기와 정확한 시작 위치를 구분해 읽습니다.</p>
           <div class="rf-formulas">
             <div><span>수용영역</span><strong>r<sub>out</sub> = r<sub>in</sub> + (K − 1) × j<sub>in</sub></strong><p>현재 커널이 이전 특징맵의 몇 칸을 더 포함하는지 계산합니다.</p></div>
             <div><span>점프</span><strong>j<sub>out</sub> = j<sub>in</sub> × S</strong><p>현재 층의 인접한 두 값이 입력에서 몇 픽셀 떨어져 있는지 뜻합니다.</p></div>
@@ -224,6 +236,10 @@
             <strong>이론적 수용영역과 실제 영향은 같을까?</strong>
             <p>이론적 수용영역은 연결 가능한 최대 범위입니다. 실제 학습된 모델에서는 중앙 부근 입력이 더 큰 영향을 주는 경우가 많으므로, 수용영역 크기만으로 모델이 모든 위치를 똑같이 활용한다고 해석하면 안 됩니다.</p>
           </aside>
+          <h3>커널만 더하면 안 되는 이유</h3>
+          <p>짧은 Conv 3→Pool 2→Conv 3 경로를 따로 계산해 봅시다. 입력에서는 r=1, j=1입니다. 3×3 합성곱(stride 1)을 지나면 r=3, j=1이고, 2×2 풀링(stride 2)을 지나면 r=3+(2−1)×1=4, j=2입니다. 다음 3×3 합성곱은 원본 입력에서 2칸씩 떨어진 이전 특징을 읽으므로 r=4+(3−1)×2=8이 됩니다. 같은 3×3이라도 <strong>앞 층의 점프</strong> 때문에 늘어나는 범위가 다릅니다.</p>
+          <p>실험의 AlexNet 설정은 이 저장소의 CIFAR-10용 <code>features</code>에서 합성곱·풀링의 순서를 따릅니다. 공간 범위를 늘리지 않는 ReLU·LRN은 목록에서 생략합니다. Conv 3 → Pool 2 → Conv 5 → Pool 2 → Conv 3 → Conv 3 → Conv 3 → Pool 2를 따라 r은 3, 4, 12, 14, 22, 30, 38, 42가 되고 최종 j는 8입니다. 입력 32보다 큰 42는 패딩을 포함한 이론적 범위이지 서로 다른 실제 픽셀 42개를 읽는다는 뜻이 아닙니다.</p>
+          <p>이 계산은 공간 연산이 순서대로 이어지는 경로의 공식입니다. dilation이 있으면 K 대신 유효 커널 D(K−1)+1을 사용합니다. 잔차 연결이나 여러 가지가 합쳐지는 모델 전체에 <code>named_modules()</code> 순서를 그대로 적용하면 안 됩니다. 정확한 시작점과 여러 경로의 계산은 <a class="text-link" href="https://distill.pub/2019/computing-receptive-fields/">수용영역 계산 설명과 코드</a>에서 더 확인할 수 있습니다.</p>
         </section>
 
         <section class="lesson-section" id="checkpoint">

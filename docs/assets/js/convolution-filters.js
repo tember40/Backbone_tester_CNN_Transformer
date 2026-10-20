@@ -32,19 +32,7 @@
   }
 
   function convolveValid(image, kernel) {
-    const outputHeight = image.length - kernel.length + 1;
-    const outputWidth = image[0].length - kernel[0].length + 1;
-    return Array.from({ length: outputHeight }, (_, outputRow) =>
-      Array.from({ length: outputWidth }, (_, outputColumn) => {
-        let sum = 0;
-        kernel.forEach((kernelRow, row) => {
-          kernelRow.forEach((weight, column) => {
-            sum += image[outputRow + row][outputColumn + column] * weight;
-          });
-        });
-        return sum;
-      })
-    );
+    return BackboneCNNMath.correlate2D(image, kernel);
   }
 
   function initializeConvolutionTrace() {
@@ -167,15 +155,18 @@
       const k = Number(kernel.value);
       const p = Number(padding.value);
       const s = Number(stride.value);
-      const output = Math.floor((n + 2 * p - k) / s) + 1;
+      const output = BackboneCNNMath.outputSize(n, k, s, p);
       $("#shapeInputValue").textContent = n;
       $("#shapeInputLabel").textContent = `${n} × ${n}`;
-      $("#shapeOutput").textContent = `${output} × ${output}`;
-      $("#shapeSubstitution").textContent = `⌊(${n} + 2×${p} − ${k}) / ${s}⌋ + 1 = ${output}`;
+      $("#shapeOutput").textContent = output ? `${output} × ${output}` : "계산 불가";
+      $("#shapeSubstitution").textContent = output
+        ? `⌊(${n} + 2×${p} − ${k}) / ${s}⌋ + 1 = ${output}`
+        : `입력 + 패딩 ${n + 2 * p} < 커널 ${k}: 놓을 수 있는 창이 없습니다.`;
       let interpretation = `필터 중심이 한 축에서 ${output}개 위치를 방문합니다.`;
       if (output === n) interpretation = `${k}×${k} 필터와 패딩 ${p}, 보폭 ${s}은 가로·세로 크기를 유지합니다.`;
       if (output < n) interpretation = `출력이 입력보다 작아져 공간 해상도가 ${n}에서 ${output}(으)로 줄어듭니다.`;
       if (output > n) interpretation = `큰 패딩 때문에 출력이 입력보다 ${output - n}칸 커집니다.`;
+      if (!output) interpretation = `패딩을 포함한 ${n + 2 * p}칸보다 커널 ${k}칸이 큽니다. 입력·패딩을 늘리거나 커널을 줄이세요.`;
       $("#shapeInterpretation").textContent = interpretation;
     }
 
@@ -220,30 +211,14 @@
   }
 
   function convolveSame(image, kernel) {
-    const size = image.length;
-    return Array.from({ length: size }, (_, row) =>
-      Array.from({ length: size }, (_, column) => {
-        let sum = 0;
-        kernel.forEach((kernelRow, kernelY) => {
-          kernelRow.forEach((weight, kernelX) => {
-            const imageY = row + kernelY - 1;
-            const imageX = column + kernelX - 1;
-            const pixel = imageY >= 0 && imageY < size && imageX >= 0 && imageX < size
-              ? image[imageY][imageX]
-              : 0;
-            sum += pixel * weight;
-          });
-        });
-        return sum;
-      })
-    );
+    return BackboneCNNMath.correlate2D(image, kernel, {padding: 1});
   }
 
-  function drawMatrix(canvas, matrix, isInput = false) {
+  function drawMatrix(canvas, matrix, isInput = false, scale = null) {
     const context = canvas.getContext("2d");
     const size = matrix.length;
     const cell = canvas.width / size;
-    const maximum = Math.max(0.001, ...matrix.flat().map(Math.abs));
+    const maximum = scale ?? Math.max(0.001, ...matrix.flat().map(Math.abs));
     context.clearRect(0, 0, canvas.width, canvas.height);
     matrix.forEach((row, rowIndex) => {
       row.forEach((value, columnIndex) => {
@@ -277,10 +252,14 @@
     function render() {
       const image = createGalleryPattern(patternControl.value);
       drawMatrix(inputCanvas, image, true);
-      $$('canvas[data-filter]').forEach((canvas) => {
-        drawMatrix(canvas, convolveSame(image, KERNELS[canvas.dataset.filter]));
+      const canvases = $$('canvas[data-filter]');
+      const maps = canvases.map(canvas => convolveSame(image, KERNELS[canvas.dataset.filter]));
+      const scale = Math.max(0.001, ...maps.flat(2).map(Math.abs));
+      canvases.forEach((canvas, index) => {
+        drawMatrix(canvas, maps[index], false, scale);
       });
       $("#galleryObservation").textContent = observations[patternControl.value];
+      $("#galleryScale").textContent = `출력 네 장의 공통 색 범위: −${formatNumber(scale)} ~ +${formatNumber(scale)}. 초록은 양수, 적갈색은 음수, 옅을수록 0에 가깝습니다.`;
     }
     patternControl.addEventListener("change", render);
     render();

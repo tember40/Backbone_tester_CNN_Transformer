@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="CNN 특징맵의 채널 구조와 ReLU 활성화 전후 변화를 실제 코드와 대화형 시각화로 이해하는 학습 자료">
   <title>5장. 특징맵과 활성화 · Backbone Lab</title>
-  <link rel="stylesheet" href="../assets/css/site.css?v=20261001h">
+  <link rel="stylesheet" href="../assets/css/site.css?v=20261020b">
   <script src="../assets/js/glossary.js?v=20261001e" defer></script>
-  <script src="../assets/js/feature-maps-activations.js?v=20260919a" defer></script>
+  <script src="../assets/js/cnn-math.js?v=20261020b" defer></script>
+  <script src="../assets/js/feature-maps-activations.js?v=20261020b" defer></script>
 </head>
 <body class="chapter-page">
   <header class="site-header">
@@ -131,8 +132,24 @@
           </div>
           <aside class="callout">
             <strong>정의 5.1 · 출력 채널</strong>
-            <p>서로 다른 필터 묶음이 만든 특징맵의 개수입니다. `nn.Conv2d(3, 64, 3)`의 64가 출력 채널 수이며, 각 필터는 RGB 세 채널을 모두 읽습니다.</p>
+            <p>기본 groups=1에서, 서로 다른 필터 묶음이 만든 특징맵의 개수입니다. <code>nn.Conv2d(3,64,3,padding=1)</code>의 64가 출력 채널 수이며, 각 필터는 RGB 세 채널을 모두 읽습니다. 위 도식의 32×32를 유지하려고 padding=1, stride=1을 사용합니다.</p>
           </aside>
+          <p><code>nn.Conv2d(3,64,3)</code>처럼 패딩을 생략하면 기본값은 0이므로 32×32 입력에서 공간 크기는 30×30이 됩니다. 출력 채널 64개는 그대로입니다. 반대로 padding=1을 줘도 채널 수가 늘어나지는 않습니다. 아래 예제에서 배치 차원 2와 채널 차원 64를 분리해 확인할 수 있습니다.</p>
+          <div class="code-window"><div class="code-toolbar"><span>Python · 채널과 공간 크기 확인</span></div><pre class="line-code"><code>import torch
+from torch import nn
+
+x = torch.zeros(2, 3, 32, 32)  # 이미지 두 장
+print(tuple(nn.Conv2d(3, 64, 3)(x).shape))             # (2, 64, 30, 30)
+print(tuple(nn.Conv2d(3, 64, 3, padding=1)(x).shape))  # (2, 64, 32, 32)</code></pre></div>
+          <h3>RGB 세 채널이 한 출력 값으로 합쳐지는 계산</h3>
+          <p>4장의 단일 채널 계산을 RGB로 확장하면 채널마다 별도의 2×2 커널을 곱하고 그 결과를 더합니다. 아래는 실제 사진이 아닌 작은 수치 예제입니다. 행렬은 위쪽 행부터 읽으며, 같은 공간 위치의 세 패치를 사용합니다.</p>
+          <div class="comparison-table-wrap"><table class="comparison-table">
+            <caption>설명용 2×2 RGB 패치 → 출력 채널 하나의 한 위치</caption>
+            <thead><tr><th scope="col">입력 채널</th><th scope="col">입력 패치의 행</th><th scope="col">커널의 행</th><th scope="col">곱의 합</th></tr></thead>
+            <tbody><tr><th scope="row">R</th><td>(1,2) / (3,4)</td><td>(1,0) / (0,−1)</td><td>1−4=−3</td></tr><tr><th scope="row">G</th><td>(0,1) / (2,0)</td><td>(0,1) / (1,0)</td><td>1+2=3</td></tr><tr><th scope="row">B</th><td>(1,1) / (1,1)</td><td>(1,0) / (0,1)</td><td>1+1=2</td></tr></tbody>
+          </table></div>
+          <div class="equation-card" aria-label="입력 채널 기여량 합산"><div><small>세 채널 합 + 출력 채널의 편향</small><p>z=(−3)+3+2−0.5=1.5</p></div><div class="equation-arrow" aria-hidden="true">→</div><div><small>ReLU 적용</small><p>a=max(0,1.5)=1.5</p></div></div>
+          <p>입력 채널의 부분 결과 세 개가 출력 채널 세 개가 되는 것이 아닙니다. <strong>세 기여량을 합쳐 출력 한 값</strong>을 만들고, 편향은 출력 채널마다 하나씩 더합니다. 또 다른 출력 채널을 만들려면 새 RGB 커널 묶음과 새 편향이 필요합니다. Depthwise convolution처럼 입력 채널을 나누어 처리하는 경우는 11장에서 별도로 다룹니다.</p>
         </section>
 
         <section class="lesson-section" id="activation">
@@ -162,13 +179,15 @@
             </div>
           </div>
           <div class="relu-reading">
-            <div><span>z &lt; 0</span><strong>0으로 차단</strong><p>현재 필터와 반대 방향이거나 약한 반응을 다음 층에 전달하지 않습니다.</p></div>
+            <div><span>z &lt; 0</span><strong>0으로 차단</strong><p>음수 응답을 0으로 바꿉니다. 큰 음수의 정보도 사라지므로 단순히 잡음만 골라 지우는 연산은 아닙니다.</p></div>
             <div><span>z &gt; 0</span><strong>값을 그대로 전달</strong><p>양수 구간의 기울기가 1이어서 깊은 네트워크의 학습을 단순하게 만듭니다.</p></div>
           </div>
           <aside class="callout callout-question">
             <strong>0이 많으면 항상 좋은가?</strong>
             <p>희소한 표현은 불필요한 반응을 줄일 수 있지만, 모든 입력에서 한 뉴런의 출력이 계속 0이면 기울기도 전달되지 않는 ‘죽은 ReLU’가 될 수 있습니다.</p>
           </aside>
+          <p>현재 7×7 값은 실제 모델에서 추출한 것이 아니라 수식으로 만든 예시입니다. 활성화 전·후 그림은 같은 절댓값 척도를 사용하므로, 값이 그대로인 양수는 같은 농도로 보입니다. Leaky ReLU의 음수 기울기는 이 실험에서 0.1로 정했습니다. 음수의 절댓값이 크면 강한 반대 방향 응답일 수 있으므로, 음수를 모두 ‘약한 특징’이라고 부르지 않습니다.</p>
+          <p>출력이 0인 칸이 많다는 한 번의 관찰만으로 죽은 ReLU라고 판단하지 않습니다. 여러 입력과 학습 단계에서 같은 뉴런이 계속 비활성인지 살펴야 합니다. ReLU의 양수 구간 미분이 1이라는 사실도 네트워크 전체의 기울기 소실을 자동으로 막는다는 보장은 아닙니다.</p>
         </section>
 
         <section class="lesson-section" id="code">
@@ -213,7 +232,7 @@
           <div class="lesson-heading">
             <p class="eyebrow">실습 5.1 · 채널 탐색</p>
             <h2><span>5.6</span> 같은 입력을 보는 여섯 개의 채널 비교</h2>
-            <p>입력 무늬와 활성화 표시를 바꾸어 각 채널이 서로 다른 위치에 반응하는지 비교하세요. 이 실험은 학습된 필터의 동작을 설명하기 위한 작은 모의 특징맵입니다.</p>
+            <p>입력 무늬와 활성화 표시를 바꾸어 각 채널이 서로 다른 위치에 반응하는지 비교하세요. 여섯 필터는 학습된 가중치가 아니라 방향과 계산을 알 수 있도록 직접 정한 계수입니다.</p>
           </div>
           <div class="channel-lab lab-panel">
             <div class="training-toolbar">
@@ -227,6 +246,8 @@
             </div>
             <div class="channel-summary" id="channelSummary" aria-live="polite"></div>
           </div>
+          <p class="lab-reading-note" id="channelScale" aria-live="polite">여섯 특징맵은 같은 색 척도를 사용합니다.</p>
+          <p>‘응답 절댓값 합 최대’는 현재 계수와 입력에서 얻은 수치 요약입니다. 필터를 10배 하면 이 값도 커지므로 분류에 가장 중요한 채널이라는 뜻은 아닙니다. 공통 색 척도, 채널별 값 범위와 공간 패턴을 함께 비교하세요. Python 노트북의 자동 색 범위 그림은 채널별로 재조정될 수 있으니 색의 진하기만으로 값 크기를 비교하지 않습니다.</p>
           <aside class="callout callout-question">
             <strong>관찰할 값</strong>
             <p>같은 공간 크기의 특징맵이라도 밝은 위치는 채널마다 다릅니다. 다음 층은 이 채널들을 함께 읽어 선과 모서리의 조합을 더 복잡한 특징으로 만듭니다.</p>

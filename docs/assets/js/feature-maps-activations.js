@@ -92,7 +92,6 @@
       const raw = RAW_ACTIVATIONS.map((row) => row.map((value) => value + bias));
       const after = raw.map((row) => row.map(activate));
       const rawMaximum = Math.max(...raw.flat().map(Math.abs));
-      const afterMaximum = Math.max(...after.flat().map(Math.abs), 0.001);
       const createCells = (matrix, maximum, prefix) => matrix.flatMap((row, rowIndex) =>
         row.map((value, columnIndex) =>
           `<button type="button" data-row="${rowIndex}" data-column="${columnIndex}" ` +
@@ -101,7 +100,7 @@
         )
       ).join("");
       rawGrid.innerHTML = createCells(raw, rawMaximum, "활성화 전");
-      afterGrid.innerHTML = createCells(after, afterMaximum, "활성화 후");
+      afterGrid.innerHTML = createCells(after, rawMaximum, "활성화 후");
 
       const flat = after.flat();
       const positiveRatio = flat.filter((value) => value > 0).length / flat.length;
@@ -197,27 +196,13 @@
   }
 
   function convolveSame(image, kernel) {
-    const size = image.length;
-    return Array.from({ length: size }, (_, row) =>
-      Array.from({ length: size }, (_, column) => {
-        let sum = 0;
-        kernel.forEach((kernelRow, kernelY) => {
-          kernelRow.forEach((weight, kernelX) => {
-            const y = row + kernelY - 1;
-            const x = column + kernelX - 1;
-            const pixel = y >= 0 && y < size && x >= 0 && x < size ? image[y][x] : 0;
-            sum += pixel * weight;
-          });
-        });
-        return sum;
-      })
-    );
+    return BackboneCNNMath.correlate2D(image, kernel, {padding: 1});
   }
 
-  function drawMatrix(canvas, matrix, isInput = false) {
+  function drawMatrix(canvas, matrix, isInput = false, scale = null) {
     const context = canvas.getContext("2d");
     const cell = canvas.width / matrix.length;
-    const maximum = Math.max(0.001, ...matrix.flat().map(Math.abs));
+    const maximum = scale ?? Math.max(0.001, ...matrix.flat().map(Math.abs));
     context.clearRect(0, 0, canvas.width, canvas.height);
     matrix.forEach((row, rowIndex) => {
       row.forEach((value, columnIndex) => {
@@ -256,12 +241,14 @@
         ? rawMaps.map((map) => map.map((row) => row.map((value) => Math.max(0, value))))
         : rawMaps;
       drawMatrix(inputCanvas, image, true);
+      const scale = Math.max(0.001, ...rawMaps.flat(2).map(Math.abs));
       mapList.innerHTML = CHANNEL_KERNELS.map((filter, index) =>
         `<figure><figcaption><strong>C${index + 1}</strong><span>${filter.name}</span></figcaption>` +
-        `<canvas width="216" height="216" data-channel="${index}" aria-label="${filter.name} 특징맵"></canvas></figure>`
+        `<canvas width="216" height="216" data-channel="${index}" role="img" aria-label="${filter.name} 특징맵"></canvas>` +
+        `<small>값 범위 ${formatNumber(Math.min(...displayedMaps[index].flat()))} ~ ${formatNumber(Math.max(...displayedMaps[index].flat()))}</small></figure>`
       ).join("");
       $$('canvas[data-channel]', mapList).forEach((canvas) => {
-        drawMatrix(canvas, displayedMaps[Number(canvas.dataset.channel)]);
+        drawMatrix(canvas, displayedMaps[Number(canvas.dataset.channel)], false, scale);
       });
       const flat = displayedMaps.flat(2);
       const zeroRatio = flat.filter((value) => Math.abs(value) < 1e-9).length / flat.length;
@@ -270,8 +257,9 @@
       $("#channelObservation").textContent = observations[patternControl.value];
       $("#channelSummary").innerHTML =
         `<div><span>출력 shape</span><strong>[1, 6, 18, 18]</strong></div>` +
-        `<div><span>가장 강한 채널</span><strong>C${strongestIndex + 1} · ${CHANNEL_KERNELS[strongestIndex].name}</strong></div>` +
+        `<div><span>응답 절댓값 합 최대</span><strong>C${strongestIndex + 1} · ${CHANNEL_KERNELS[strongestIndex].name}</strong></div>` +
         `<div><span>0의 비율</span><strong>${(zeroRatio * 100).toFixed(0)}%</strong></div>`;
+      $("#channelScale").textContent = `여섯 채널과 ReLU 전후의 공통 색 범위: −${formatNumber(scale)} ~ +${formatNumber(scale)}. 각 채널의 최솟값·최댓값을 함께 읽으세요.`;
     }
     patternControl.addEventListener("change", render);
     activationControl.addEventListener("change", render);

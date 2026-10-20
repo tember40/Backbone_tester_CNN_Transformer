@@ -721,8 +721,11 @@ code, pre { font-family: var(--mono); }
 .rf-main { display: grid; grid-template-columns: minmax(330px, 1fr) minmax(260px, .75fr); min-height: 390px; }
 .rf-input-field { position: relative; display: grid; min-height: 390px; place-items: center; overflow: hidden; border-right: 1px solid var(--line); background-color: #f6f2ee; background-image: linear-gradient(rgba(124,25,45,.09) 1px, transparent 1px), linear-gradient(90deg, rgba(124,25,45,.09) 1px, transparent 1px); background-size: calc(100% / 32) calc(100% / 32); }
 .rf-input-field > span { position: absolute; top: 13px; left: 16px; color: var(--muted); font-size: 13.65px; font-weight: 800; }
-.rf-input-field i { display: grid; width: 5%; height: 5%; max-width: 94%; max-height: 94%; place-items: center; border: 3px solid var(--blue); background: rgba(124,25,45,.20); box-shadow: 0 7px 25px rgba(84,16,31,.18); transition: width .24s ease, height .24s ease; }
-.rf-input-field i b { width: max-content; max-width: 190px; padding: 4px 7px; background: rgba(255,255,255,.9); color: var(--blue-dark); font-size: 12.35px; font-style: normal; text-align: center; }
+.rf-input-field i { display: grid; width: 3.125%; height: 3.125%; max-width: 100%; max-height: 100%; place-items: center; border: 3px solid var(--blue); background: rgba(124,25,45,.20); box-shadow: 0 7px 25px rgba(84,16,31,.18); transition: width .24s ease, height .24s ease; }
+.rf-display-label { position: absolute; bottom: 12px; left: 12px; right: 12px; padding: 4px; color: var(--muted); background: rgba(255,255,255,.9); text-align: center; font-size: 15px; }
+.lab-reading-note { margin: 16px 0; color: var(--muted); font-size: 18px; line-height: 1.7; }
+.channel-map-list figure > small { display: block; margin-top: 7px; color: var(--muted); font-size: 14px; }
+.pool-geometry-grid i:not(.is-used) { background: repeating-linear-gradient(135deg, #f7f6f3, #f7f6f3 3px, #c6bfaa 3px, #c6bfaa 4px); }
 .rf-readout { display: grid; align-content: center; padding: 31px; background: var(--blue-soft); }
 .rf-readout > span { color: var(--blue); font-size: 15.6px; font-weight: 800; }
 .rf-readout > strong { margin-top: 5px; font-family: var(--serif); font-size: 41.6px; line-height: 1.2; }

@@ -16,21 +16,7 @@
   }
 
   function pool(matrix, size = 2, stride = 2, mode = "max") {
-    const output = [];
-    for (let row = 0; row + size <= matrix.length; row += stride) {
-      const outputRow = [];
-      for (let column = 0; column + size <= matrix[0].length; column += stride) {
-        const values = [];
-        for (let y = 0; y < size; y += 1) {
-          for (let x = 0; x < size; x += 1) values.push(matrix[row + y][column + x]);
-        }
-        outputRow.push(mode === "max"
-          ? Math.max(...values)
-          : values.reduce((sum, value) => sum + value, 0) / values.length);
-      }
-      output.push(outputRow);
-    }
-    return output;
+    return BackboneCNNMath.pool2D(matrix, size, stride, mode);
   }
 
   function initializePoolingWalkthrough() {
@@ -96,24 +82,24 @@
       const n = Number(input.value);
       const k = Number(kernel.value);
       const s = Number(stride.value);
-      const output = Math.floor((n - k) / s) + 1;
-      const used = (output - 1) * s + k;
-      const leftover = Math.max(0, n - used);
+      const geometry = BackboneCNNMath.poolingGeometry(n, k, s);
+      const { output, axis } = geometry;
       $("#poolInputSizeValue").textContent = n;
       $("#poolKernelSizeValue").textContent = k;
       $("#poolStrideValue").textContent = s;
       $("#poolGeometryFormula").textContent = `⌊(${n} − ${k}) / ${s}⌋ + 1 = ${output}`;
       $("#poolGeometryShape").textContent = `${n} × ${n} → ${output} × ${output}`;
       $("#poolGeometryWindows").textContent = `${output * output}개 창`;
-      $("#poolGeometryRemainder").textContent = leftover === 0
-        ? "경계까지 정확히 사용"
-        : `오른쪽·아래 ${leftover}px은 창에 포함되지 않음`;
-      const cells = Math.min(n, 12);
+      const skipped = axis.flatMap((used, index) => used ? [] : [index + 1]);
+      $("#poolGeometryRemainder").textContent = !geometry.uncovered
+        ? "모든 입력 칸이 적어도 한 창에 포함됩니다."
+        : `미사용 ${geometry.uncovered}/${n * n}칸. 가로·세로의 ${skipped.join(", ")}번째 좌표는 어떤 창에도 포함되지 않습니다.`;
+      const cells = n;
       $("#poolGeometryGrid").style.setProperty("--geometry-size", cells);
       $("#poolGeometryGrid").innerHTML = Array.from({length: cells * cells}, (_, index) => {
         const row = Math.floor(index / cells);
         const column = index % cells;
-        const usedCell = row < used && column < used;
+        const usedCell = axis[row] && axis[column];
         return `<i class="${usedCell ? "is-used" : ""}"></i>`;
       }).join("");
     }
@@ -124,7 +110,7 @@
 
   function createPattern(name, size = 8) {
     return Array.from({length: size}, (_, row) => Array.from({length: size}, (_, column) => {
-      if (name === "edge") return column < size / 2 ? 0.15 : 0.9;
+      if (name === "edge" || name === "edge-shifted") return column < size / 2 - Number(name === "edge-shifted") ? 0.15 : 0.9;
       if (name === "spot") return Math.abs(row - 3.5) < 1.5 && Math.abs(column - 3.5) < 1.5 ? 1 : 0.08;
       const deterministicNoise = ((row * 17 + column * 29 + row * column * 7) % 100) / 100;
       return deterministicNoise;
@@ -161,11 +147,14 @@
       $("#comparisonMaxRange").textContent = range(maximum);
       $("#comparisonAverageRange").textContent = range(average);
       const notes = {
-        edge: "최대 풀링은 밝은 영역을 넓게 남기고, 평균 풀링은 경계를 더 부드럽게 만듭니다.",
+        edge: "현재 경계가 2×2 창의 경계와 일치해 두 출력이 같습니다. ‘한 칸 이동’을 선택하면 달라지는 이유를 확인할 수 있습니다.",
+        "edge-shifted": "한 창에 0.15와 0.90이 섞입니다. 최대값은 0.90, 평균값은 0.525가 되어 경계 열의 결과가 달라집니다.",
         spot: "작은 강한 반응은 최대 풀링에서 보존되지만 평균 풀링에서는 주변 값과 섞여 약해집니다.",
         noise: "최대 풀링은 우연히 큰 잡음도 강조할 수 있고, 평균 풀링은 잡음을 완화하지만 선명도도 낮춥니다.",
       };
       $("#comparisonObservation").textContent = notes[patternControl.value];
+      const differences = maximum.flat().map((value, index) => Math.abs(value - average.flat()[index]));
+      $("#comparisonDifference").textContent = `두 결과가 다른 칸: ${differences.filter(value => value > 1e-9).length}/16 · 최대 차이: ${Math.max(...differences).toFixed(3)}. 세 그림은 같은 0~1 색 척도입니다.`;
     }
 
     patternControl.addEventListener("change", render);
@@ -178,22 +167,14 @@
       ["MaxPool 2×2", 2, 2], ["Conv 3×3", 3, 1], ["MaxPool 2×2", 2, 2],
     ],
     alexnet: [
-      ["입력", 1, 1], ["Conv 5×5", 5, 1], ["MaxPool 2×2", 2, 2],
-      ["Conv 3×3", 3, 1], ["MaxPool 2×2", 2, 2], ["Conv 3×3", 3, 1],
+      ["입력", 1, 1], ["Conv1 3×3", 3, 1], ["MaxPool1 2×2", 2, 2],
+      ["Conv2 5×5", 5, 1], ["MaxPool2 2×2", 2, 2], ["Conv3 3×3", 3, 1],
+      ["Conv4 3×3", 3, 1], ["Conv5 3×3", 3, 1], ["MaxPool3 2×2", 2, 2],
     ],
   };
 
   function calculateReceptiveFields(layers) {
-    let receptiveField = 1;
-    let jump = 1;
-    return layers.map(([name, kernel, stride], index) => {
-      const previousJump = jump;
-      if (index > 0) {
-        receptiveField += (kernel - 1) * previousJump;
-        jump *= stride;
-      }
-      return {name, kernel, stride, receptiveField, jump, previousJump};
-    });
+    return BackboneCNNMath.receptiveFields(layers);
   }
 
   function initializeReceptiveFieldLab() {
@@ -214,9 +195,12 @@
       $("#rfFormula").textContent = activeIndex === 0
         ? "입력 픽셀의 수용영역은 1 × 1"
         : `${records[activeIndex - 1].receptiveField} + (${active.kernel} − 1) × ${active.previousJump} = ${active.receptiveField}`;
-      const percentage = Math.min(94, Math.max(5, active.receptiveField / 32 * 100));
+      const percentage = Math.min(100, active.receptiveField / 32 * 100);
       $("#rfOverlay").style.width = `${percentage}%`;
       $("#rfOverlay").style.height = `${percentage}%`;
+      $("#rfDisplayNote").textContent = active.receptiveField > 32
+        ? `이론적 수용영역은 ${active.receptiveField}×${active.receptiveField}로 입력보다 큽니다. 그림은 32×32 안으로 잘라 표시하며, 입력 밖 위치는 패딩일 수 있습니다.`
+        : "그림은 수용영역의 가로·세로 크기만 비교하는 도식입니다. 각 층의 패딩과 출력 좌표에 따른 정확한 시작 위치는 표시하지 않습니다.";
       $("#rfStageList").innerHTML = records.map((record, index) =>
         `<button type="button" data-stage="${index}" class="${index === activeIndex ? "is-current" : ""}">` +
         `<span>${index}</span><strong>${record.name}</strong><small>r=${record.receptiveField}, j=${record.jump}</small></button>`

@@ -113,7 +113,7 @@ def trace_pooling(feature_map, kernel_size=2, stride=None, mode="max"):
 
 
 def collect_feature_maps(model, image, max_layers=6):
-    """Capture early Conv2d and pooling outputs from one forward pass."""
+    """Snapshot early Conv2d/pooling outputs in eval mode, preserving prior modes."""
     records = []
     handles = []
 
@@ -126,7 +126,7 @@ def collect_feature_maps(model, image, max_layers=6):
                     "name": name,
                     "type": module.__class__.__name__,
                     "shape": tuple(output.shape),
-                    "features": output[:1].detach().cpu(),
+                    "features": output[:1].detach().cpu().clone(),
                 }
             )
 
@@ -136,6 +136,7 @@ def collect_feature_maps(model, image, max_layers=6):
         if isinstance(module, (nn.Conv2d, nn.MaxPool2d, nn.AvgPool2d)):
             handles.append(module.register_forward_hook(capture(name, module)))
 
+    training_states = [(module, module.training) for module in model.modules()]
     try:
         model.eval()
         with torch.no_grad():
@@ -143,6 +144,9 @@ def collect_feature_maps(model, image, max_layers=6):
     finally:
         for handle in handles:
             handle.remove()
+        # Inspection must preserve even a mixed train/eval configuration.
+        for module, training in training_states:
+            module.training = training
 
     if not records:
         raise ValueError("No convolution or pooling layers were found in this model.")
@@ -216,7 +220,7 @@ def plot_pooling_comparison(image, show=True):
 
 
 def receptive_field_stages(model):
-    """Calculate theoretical receptive field and sampling jump for sequential CNN stages."""
+    """Calculate theoretical size/jump for a sequential spatial path, not a branch graph."""
     receptive_field = 1
     jump = 1
     stages = []
