@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="ResNet의 잔차 연결, BasicBlock과 Bottleneck, CIFAR-10 구현, ResNeXt와 Wide ResNet 확장을 실제 코드와 실험으로 살펴보는 학습 자료">
   <title>9장. ResNet과 확장 모델 · Backbone Lab</title>
-  <link rel="stylesheet" href="../assets/css/site.css?v=20261001h">
-  <script src="../assets/js/glossary.js?v=20261001g" defer></script>
-  <script src="../assets/js/resnet.js?v=20261001a" defer></script>
+  <link rel="stylesheet" href="../assets/css/site.css?v=20261020c">
+  <script src="../assets/js/glossary.js?v=20261020c" defer></script>
+  <script src="../assets/js/resnet.js?v=20261020c" defer></script>
 </head>
 <body class="chapter-page">
   <header class="site-header">
@@ -60,6 +60,10 @@
         </div>
         <p class="resnet-lab-note" id="residualNote">F(x)=0이면 양수 입력은 그대로 전달됩니다.</p>
         <aside class="callout callout-note"><strong>항등 경로의 정확한 범위</strong><p>이 구현은 덧셈 뒤에도 ReLU를 적용합니다. 따라서 F(x)=0이어도 음수 입력까지 항상 그대로 나오는 것은 아닙니다. 실습에서 x를 0 이상으로 제한한 이유입니다. 덧셈 뒤 활성화까지 항등으로 만드는 후속 설계는 <a href="https://arxiv.org/abs/1603.05027">pre-activation ResNet</a>에서 살펴볼 수 있습니다.</p></aside>
+        <h3>역전파에서는 두 경로가 어떻게 만날까?</h3>
+        <p>3장에서 본 chain rule을 한 변수 모형에 적용해 봅시다. <code>y=ReLU(x+F(x))</code>에서 덧셈 결과가 양수라면 <code>dy/dx=1+F′(x)</code>입니다. 1은 shortcut 경로에서 옵니다. 실제 텐서에서는 단순 숫자 1 대신 항등 행렬에 해당하는 경로가 더해집니다. 아래는 계산용 함수이며 슬라이더의 값만으로 미분한 결과가 아닙니다. 슬라이더는 F의 함수 모양이 아닌 현재 출력값만 정하기 때문입니다.</p>
+        <div class="comparison-table-wrap"><table class="comparison-table"><caption>한 변수 잔차 모형 · 위층에서 전달된 dL/dy=2 가정</caption><thead><tr><th>조건</th><th>순전파</th><th>입력 기울기 dL/dx</th></tr></thead><tbody><tr><th>x=1.5, F(x)=0.2x</th><td>ReLU(1.5+0.3)=1.8</td><td>2×(1+0.2)=2.4</td></tr><tr><th>x=1, F(x)=−2x</th><td>ReLU(1−2)=0</td><td>마지막 ReLU가 닫혀 0</td></tr></tbody></table></div>
+        <p>첫 행에서 같은 F만 쓰는 plain 모형 <code>ReLU(0.2x)</code>의 입력 기울기는 0.4입니다. shortcut이 직접 경로를 제공함을 보여주지만 모든 입력에서 기울기가 커지거나 보존된다는 보장은 아닙니다. F의 미분과 마지막 ReLU에 따라 달라집니다. 덧셈 결과가 정확히 0인 경계에서는 미분 규약도 구분해야 합니다.</p>
       </section>
 
       <section class="lesson-section" id="blocks">
@@ -69,6 +73,10 @@
         <p>같은 단계에서는 입력과 F(x)의 채널·높이·너비가 같아 x를 그대로 더할 수 있습니다. 새 단계의 첫 블록처럼 공간 크기를 절반으로 줄이거나 채널 수를 늘릴 때는 <code>downsample</code> 경로에 <strong>1×1 합성곱(필요하면 보폭 2)과 BatchNorm</strong>을 두어 모양을 맞춥니다. 이는 매 블록의 항등 shortcut과 달리 학습 파라미터가 있는 <span lang="en">projection shortcut</span>입니다.</p>
         <div class="equation-card resnet-equation"><strong>크기 일치: F(x) + x</strong><span aria-hidden="true">→</span><strong>크기 변경: F(x) + W<sub>s</sub>x</strong></div>
         <p>이 프로젝트는 차원이 달라질 때 항상 위 투영 경로를 사용합니다. 원 논문에서 비교한, 0으로 채워 채널을 맞추는 방식과는 구분해야 합니다.</p>
+        <h3>ResNet18의 layer2 첫 블록을 따라가기</h3>
+        <p>배치 축 N을 포함한 입력은 <code>[N,64,8,8]</code>입니다. 주 경로와 shortcut이 각각 <code>[N,128,4,4]</code>가 되어야 더할 수 있습니다. 아래 각 행은 같은 시각의 실행을 뜻하는 것이 아니라 두 가지 경로의 연산 순서를 나란히 적은 것입니다.</p>
+        <div class="comparison-table-wrap"><table class="comparison-table"><caption>두 경로의 shape 맞추기 · 모든 텐서는 NCHW</caption><thead><tr><th>순서</th><th>주 경로</th><th>shortcut</th></tr></thead><tbody><tr><th>분기</th><td>[N,64,8,8]</td><td>같은 입력 [N,64,8,8]</td></tr><tr><th>첫 변환</th><td>3×3·stride 2·padding 1 → [N,128,4,4]</td><td>1×1·stride 2 → [N,128,4,4]</td></tr><tr><th>후속 연산</th><td>BN → ReLU → 3×3·stride 1·padding 1 → BN</td><td>BN</td></tr><tr><th>합류</th><td colspan="2">같은 shape끼리 원소별 덧셈 → ReLU → [N,128,4,4]</td></tr></tbody></table></div>
+        <p>1×1 필터라도 stride 2이면 위치를 건너뛰므로 공간 크기를 줄일 수 있습니다. 이 projection은 평균 풀링이 아니라 학습 가능한 채널 변환입니다. 다음 블록은 이미 128채널·4×4 입력을 받으므로 stride 1의 항등 shortcut을 사용합니다. 반면 ResNet50의 layer1 첫 블록은 8×8을 유지해도 64→256채널로 바뀌므로 projection이 필요합니다.</p>
       </section>
 
       <section class="lesson-section" id="architecture">
@@ -80,6 +88,7 @@
           <div class="resnet-stage-detail"><div><span>선택한 단계</span><h3 id="resnetStageName">—</h3><p id="resnetStageDescription">—</p></div><dl><div><dt>입력 특징맵 [C, H, W]</dt><dd id="resnetStageInput">—</dd></div><div><dt>출력 특징맵 [C, H, W]</dt><dd id="resnetStageOutput">—</dd></div><div><dt>잔차 블록 수</dt><dd id="resnetStageBlocks">—</dd></div><div><dt>첫 블록 shortcut</dt><dd id="resnetStageShortcut">—</dd></div></dl></div>
         </div>
         <p>32×32 입력은 stem을 지나 8×8이 되고, 네 단계에서 8 → 4 → 2 → 1로 바뀝니다. ResNet50은 Bottleneck의 확장 계수 4 때문에 마지막 특징맵이 2048채널이며, BasicBlock을 쓰는 ResNet18·34는 512채널입니다.</p>
+        <p>ResNet18의 이름은 주 경로의 <code>stem Conv 1 + BasicBlock 8×Conv 2 + 분류 Linear 1 = 18</code>에서 옵니다. 이 명명 관례는 BN과 projection의 합성곱을 별도 층 수로 더하지 않습니다. 따라서 전체 모듈 개수나 모델의 모든 Conv 개수를 세는 것과는 다릅니다.</p>
       </section>
 
       <section class="lesson-section" id="adaptation">

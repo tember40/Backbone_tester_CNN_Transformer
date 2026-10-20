@@ -82,11 +82,13 @@
       $("#vggBlockRF").textContent = `${stage.receptive}×${stage.receptive}`;
       $("#vggBlockParameters").textContent = format(stage.parameters);
       $("#vggBlockList").innerHTML = stages.map((item, itemIndex) =>
-        `<button type="button" data-index="${itemIndex}" class="${itemIndex === index ? "is-current" : ""}"><span>블록 ${item.number}</span><strong>${item.count} × 3×3</strong><small>${item.channels}채널 · ${item.size}×${item.size}</small></button>`
+        `<button type="button" data-index="${itemIndex}" aria-pressed="${itemIndex === index}" class="${itemIndex === index ? "is-current" : ""}"><span>블록 ${item.number}</span><strong>${item.count} × 3×3</strong><small>${item.channels}채널 · ${item.size}×${item.size}</small></button>`
       ).join("");
       $$("#vggBlockList button").forEach((button) => button.addEventListener("click", () => {
         blockControl.value = button.dataset.index;
+        const restoreFocus = document.activeElement === button;
         render();
+        if (restoreFocus) $(`#vggBlockList button[data-index="${blockControl.value}"]`).focus({preventScroll: true});
       }));
     }
     variantControl.addEventListener("change", () => { blockControl.value = 0; render(); });

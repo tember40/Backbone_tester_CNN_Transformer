@@ -846,16 +846,19 @@ code, pre { font-family: var(--mono); }
 .adaptation-principles span { color: var(--blue); font-size: 14.3px; font-weight: 800; }
 .adaptation-principles strong { margin-top: 3px; font-size: 18.85px; }
 .adaptation-principles p { margin: 4px 0 0; color: var(--muted); font-size: 15.6px; }
-.dropout-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 15px 18px; border-bottom: 1px solid var(--line); background: var(--surface-soft); }
+.dropout-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; padding: 15px 18px; border-bottom: 1px solid var(--line); background: var(--surface-soft); }
+.dropout-toolbar .dropout-mode { display: flex; }
+.dropout-mode select { min-width: 0; padding: 7px; border: 1px solid var(--line-dark); background: #fff; color: var(--ink); font: inherit; }
 .dropout-toolbar label { display: grid; grid-template-columns: auto minmax(230px, 1fr) auto; align-items: center; gap: 12px; color: var(--muted); font-size: 14.3px; font-weight: 750; }
 .dropout-toolbar input { width: 260px; accent-color: var(--blue); }
 .dropout-toolbar output { color: var(--blue); font-weight: 800; }
 .dropout-main { display: grid; grid-template-columns: 1.25fr .75fr; }
-.dropout-units { display: grid; grid-template-columns: repeat(6, 1fr); gap: 15px; padding: 31px; border-right: 1px solid var(--line); }
-.dropout-units i { display: grid; aspect-ratio: 1; place-items: center; border-radius: 50%; background: #e3ded8; color: #8c817e; font-style: normal; transition: transform .18s ease, background .18s ease; }
-.dropout-units i.is-active { color: #fff; background: var(--blue); box-shadow: 0 4px 12px rgba(84,16,31,.2); }
-.dropout-units i.is-dropped { transform: scale(.72); text-decoration: line-through; opacity: .45; }
-.dropout-units span { font-family: var(--serif); font-size: 13.65px; }
+.dropout-units { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 24px; border-right: 1px solid var(--line); }
+.dropout-unit { display: grid; min-width: 0; align-content: center; gap: 4px; padding: 9px 3px; background: var(--blue-soft); color: var(--blue-dark); text-align: center; }
+.dropout-unit.is-active { border-bottom: 3px solid var(--blue); }
+.dropout-unit.is-dropped { border-bottom: 3px dashed #8c817e; background: #ece8e3; color: #625955; }
+.dropout-unit span { font-size: 13.65px; }
+.dropout-unit strong { font-family: var(--serif); font-size: 17.55px; font-style: normal; }
 .dropout-readout { display: grid; align-content: center; padding: 26px; background: var(--blue-soft); }
 .dropout-readout > div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid #ddc1c6; }
 .dropout-readout span { color: var(--muted); font-size: 13.65px; }
@@ -1546,7 +1549,7 @@ code, pre { font-family: var(--mono); }
   .dropout-toolbar { align-items: stretch; flex-direction: column; }
   .dropout-toolbar label { grid-template-columns: 1fr auto; }
   .dropout-toolbar input { grid-column: 1 / -1; width: 100%; }
-  .dropout-units { grid-template-columns: repeat(4, 1fr); gap: 11px; padding: 21px; }
+  .dropout-units { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; padding: 16px; }
   .vgg-lab-toolbar { align-items: stretch; flex-direction: column; }
   .vgg-lab-toolbar label { justify-content: space-between; flex-wrap: wrap; }
   .vgg-lab-toolbar input[type="range"] { flex: 1 1 100%; width: 100%; order: 3; }

@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="AlexNet 논문의 핵심 기여와 CIFAR-10용 구조, 특징맵 변화, 파라미터 분포, Dropout을 실제 코드와 시각화로 이해하는 학습 자료">
   <title>7장. AlexNet · Backbone Lab</title>
-  <link rel="stylesheet" href="../assets/css/site.css?v=20261001h">
-  <script src="../assets/js/glossary.js?v=20261001e" defer></script>
-  <script src="../assets/js/alexnet.js?v=20261001b" defer></script>
+  <link rel="stylesheet" href="../assets/css/site.css?v=20261020c">
+  <script src="../assets/js/glossary.js?v=20261020c" defer></script>
+  <script src="../assets/js/alexnet.js?v=20261020c" defer></script>
 </head>
 <body class="chapter-page">
   <header class="site-header">
@@ -73,9 +73,10 @@
           </div>
           <div class="alex-paper-numbers">
             <div><span>학습 이미지</span><strong>약 120만 장</strong><p>1,000개 범주의 대규모 분류 문제</p></div>
-            <div><span>Top-5 오류</span><strong>15.3%</strong><p>당시 2위 26.2%와 큰 차이</p></div>
+            <div><span>2012 대회 Top-5 오류</span><strong>15.3%</strong><p>7개 CNN 앙상블의 test 결과</p></div>
             <div><span>모델 규모</span><strong>약 6천만</strong><p>논문에 보고된 학습 파라미터</p></div>
           </div>
+          <p><span lang="en">Top-5 error</span>는 정답이 높은 점수의 다섯 후보 안에도 없는 비율입니다. 15.3%는 단일 모델의 수치가 아닙니다. 논문 표 2에서 단일 CNN의 validation 오류는 18.2%, 더 큰 ImageNet으로 사전학습한 두 모델을 포함한 7개 앙상블의 test 오류는 15.3%입니다. 당시 2위 test 오류는 26.2%였습니다. 이 결과를 아래의 10-class CIFAR-10 모델과 직접 비교하면 안 됩니다. <a href="https://papers.nips.cc/paper_files/paper/2012/file/c399862d3b9d6b76c8436e924a68c45b-Paper.pdf">논문 §6·표 2</a></p>
           <aside class="callout callout-note">
             <strong>AlexNet이 CNN을 처음 만든 것은 아니다</strong>
             <p>합성곱 신경망의 계보는 훨씬 앞선 연구로 이어집니다. <span lang="en">AlexNet</span>의 의미는 기존 CNN 아이디어를 대규모 데이터와 GPU 계산에 결합해 일반 이미지 인식에서 압도적인 결과를 보였다는 데 있습니다.</p>
@@ -124,15 +125,16 @@
             </div>
             <div class="alex-stage-list" id="alexStageList" aria-label="AlexNet 단계 목록"></div>
           </div>
-
+          <p>모양은 배치 축을 생략한 <code>[C, H, W]</code>입니다. 겹친 판은 채널 묶음의 도식이며 실제 학습된 특징이나 채널 수를 판 수 그대로 나타낸 그림이 아닙니다. 먼저 6장의 수용영역과 연결해 <strong>한 위치의 범위</strong>와 <strong>모든 위치를 결합한 범위</strong>를 구분해 보세요.</p>
+          <p>MaxPool3의 한 값은 이론적으로 42×42 범위를 봅니다. 분류기는 4×4 전체 위치를 펼쳐 사용하므로 범위의 한 변은 <code>42 + (4−1)×8 = 66</code>입니다. 여기서 8은 마지막 격자의 입력 기준 간격입니다. 66×66은 패딩까지 포함한 연결 범위이지, 32×32 이미지에서 새로운 픽셀이 생긴다는 뜻이 아닙니다.</p>
           <div class="parameter-explorer lab-panel">
             <div class="parameter-toolbar"><label>자세히 볼 층<select id="parameterLayer"></select></label><p>전체 <strong id="parameterTotal">—</strong>개</p></div>
             <div class="parameter-chart" id="parameterChart" aria-label="층별 파라미터 비교"></div>
             <div class="parameter-readout"><div><span>선택한 층</span><strong id="parameterSelected">—</strong></div><div><span>파라미터</span><strong id="parameterCount">—</strong></div><div><span>전체 비율</span><strong id="parameterShare">—</strong></div><p id="parameterInterpretation">—</p></div>
           </div>
           <aside class="callout callout-question">
-            <strong>특징 추출과 분류 중 어디가 더 무거울까?</strong>
-            <p>이 CIFAR-10 구현의 전체 파라미터 약 3,605만 개 중 약 3,360만 개가 완전연결 분류기에 있습니다. 뒤에서 살펴볼 현대 CNN은 이 비용을 줄이는 방향으로 구조를 바꿉니다.</p>
+            <strong>파라미터는 어느 부분에 모일까?</strong>
+            <p>이 CIFAR-10 구현의 전체 파라미터 약 3,605만 개 중 약 3,360만 개가 완전연결 분류기에 있습니다. 이것만으로 실행 시간도 분류기가 대부분 차지한다고 결론 내릴 수는 없습니다. 합성곱은 같은 가중치를 여러 공간 위치에 반복 적용하기 때문입니다. 막대는 작은 층도 선택할 수 있게 최소 길이를 두었으므로 정확한 비율은 숫자로 확인하세요.</p>
           </aside>
         </section>
 
@@ -157,6 +159,8 @@
               <div><span>출력</span><strong id="adaptationClasses">—</strong></div>
             </div>
           </div>
+          <p>논문 본문은 입력을 224×224로 적고 그림 2는 첫 공간 크기를 55로 표시합니다. 하지만 <code>N=224, K=11, S=4, P=0</code>을 4장의 공식에 넣으면 54가 됩니다. 227·패딩 0 또는 224·패딩 2에서는 55입니다. 따라서 비교창의 논문 표기를 그대로 PyTorch의 패딩 0 설정으로 옮기지 마세요. 프로젝트의 첫 층은 32·3·1·1이므로 출력 32가 명확합니다.</p>
+          <p>필터 크기뿐 아니라 채널 수도 다릅니다. 논문 Conv2는 256채널이고 일부 합성곱은 GPU별로 연결을 나누지만, 이 프로젝트 Conv2는 192채널이며 모든 합성곱의 <code>groups=1</code>입니다. 기본형의 LRN은 이웃 채널의 값을 이용하는 정규화이며 공간 크기를 줄이는 Pooling과 다릅니다. <code>alexnet_bn</code>은 BN이 추가된 별도 변형이므로 이 장의 파라미터 수에서 제외합니다.</p>
           <div class="adaptation-principles">
             <div><span>유지</span><strong>5개 합성곱과 3개 풀링의 흐름</strong><p>얕은 특징에서 깊은 특징으로 진행하는 전체 단계는 보존합니다.</p></div>
             <div><span>변경</span><strong>입력에 맞는 필터·보폭·출력 수</strong><p>공간 해상도와 분류 대상 수는 데이터셋에 맞게 조정합니다.</p></div>
@@ -168,7 +172,7 @@
           <div class="lesson-heading">
             <p class="eyebrow">실제 순전파 코드</p>
             <h2><span>7.5</span> 특징 추출부와 분류기를 연결하기</h2>
-            <p>프로젝트의 `forward`는 네 단계로 읽을 수 있습니다. 합성곱 특징을 만들고, 크기를 고정하고, 한 줄로 펼친 뒤 완전연결 분류기에 전달합니다.</p>
+            <p>프로젝트의 <code>forward</code>는 네 단계로 읽을 수 있습니다. 합성곱 특징을 만들고, 크기를 고정하고, 한 줄로 펼친 뒤 완전연결 분류기에 전달합니다.</p>
           </div>
           <div class="code-study">
             <div class="code-window">
@@ -184,12 +188,15 @@
               <button type="button" data-highlight="1-2"><span>① 특징 추출</span><strong>Conv·ReLU·LRN·Pool</strong><small>입력을 256×4×4 특징 텐서로 변환합니다.</small></button>
               <button type="button" data-highlight="3-3"><span>② 크기 고정</span><strong>AdaptiveAvgPool 4×4</strong><small>분류기가 받을 공간 크기를 일정하게 맞춥니다.</small></button>
               <button type="button" data-highlight="4-4"><span>③ 펼치기</span><strong>256×4×4 → 4096</strong><small>공간과 채널 축을 하나의 벡터로 합칩니다.</small></button>
-              <button type="button" data-highlight="5-6"><span>④ 분류</span><strong>4096 → 4096 → 10</strong><small>Dropout이 포함된 분류기가 클래스 점수를 냅니다.</small></button>
+              <button type="button" data-highlight="5-6"><span>④ 분류</span><strong>4096 → 4096 → 4096 → 10</strong><small>선형층 세 개, 은닉층 두 개를 구분하세요.</small></button>
             </div>
           </div>
+          <p>배치 N장을 함께 처리하면 <code>[N,3,32,32] → [N,256,4,4] → [N,4096] → [N,10]</code>입니다. <code>flatten(x, 1)</code>은 배치 축을 보존합니다. 이 입력에서 4×4 적응형 평균 풀링은 이미 4×4인 특징맵을 더 축소하지 않습니다. 펼치기는 값을 재배열할 뿐 학습 파라미터가 없고, 그 뒤 선형층이 서로 다른 가중치로 값들을 조합합니다.</p>
+          <div class="comparison-table-wrap"><table class="comparison-table"><caption>분류기 세 선형층 · bias 포함, 기본 10-class 모델</caption><thead><tr><th>층</th><th>입력 → 출력</th><th>계산과 파라미터</th></tr></thead><tbody><tr><th>classifier[0]</th><td>4096 → 4096</td><td>4096×4096+4096 = 16,781,312</td></tr><tr><th>classifier[3]</th><td>4096 → 4096</td><td>16,781,312</td></tr><tr><th>classifier[6]</th><td>4096 → 10</td><td>4096×10+10 = 40,970</td></tr></tbody></table></div>
+          <p>앞의 두 Linear 뒤에는 ReLU와 Dropout이 있고 마지막 Linear 뒤에는 없습니다. <code>pretrained=True</code>도 주의하세요. 이 파일은 별도 초기화만 생략하며 가중치를 불러오는 코드는 주석 처리되어 있습니다. 학습된 가중치나 논문 성능이 자동으로 제공되는 옵션이 아닙니다.</p>
           <aside class="callout callout-tip">
             <strong>출력은 확률이 아니라 logits</strong>
-            <p>마지막 선형층의 열 개 값은 정규화되지 않은 점수입니다. 학습 손실인 `CrossEntropyLoss`가 내부에서 필요한 확률 변환을 함께 처리하므로 모델 끝에 softmax를 중복해서 넣지 않습니다.</p>
+            <p>마지막 선형층의 열 개 값은 정규화되지 않은 점수입니다. 학습 손실인 <code>CrossEntropyLoss</code>에 logits를 전달하므로 모델 끝에 softmax를 중복해서 넣지 않습니다.</p>
           </aside>
         </section>
 
@@ -198,22 +205,27 @@
           <div class="lesson-heading">
             <p class="eyebrow">실습 7.2 · Dropout</p>
             <h2><span>7.6</span> 학습할 때마다 다른 경로를 사용하기</h2>
-            <p>Dropout 확률을 바꾸고 다시 표본화해 어떤 뉴런이 남는지 확인하세요. 실제 AlexNet 분류기는 두 은닉층에서 `p=0.5`를 사용합니다.</p>
+            <p>먼저 p=0.5에서 입력 3이 남으면 출력이 얼마일지 예상해 보세요. 확률을 바꾸고 다시 표본화한 뒤 평가 모드와 비교하세요. 실제 AlexNet 분류기는 두 은닉층에서 <code>p=0.5</code>를 사용합니다.</p>
           </div>
           <div class="dropout-lab lab-panel">
             <div class="dropout-toolbar">
+              <label class="dropout-mode">모드<select id="dropoutMode"><option value="train">학습 · train</option><option value="eval">평가 · eval</option></select></label>
               <label>Dropout 확률 p<input id="dropoutProbability" type="range" min="0" max="0.8" step="0.1" value="0.5"><output id="dropoutProbabilityValue">0.5</output></label>
               <button class="button" id="resampleDropout" type="button">다시 표본화</button>
             </div>
             <div class="dropout-main">
-              <div class="dropout-units" id="dropoutUnits" aria-label="Dropout이 적용된 뉴런"></div>
-              <div class="dropout-readout"><div><span>활성 뉴런</span><strong id="dropoutActive">—</strong></div><div><span>학습 중 출력 보정</span><strong id="dropoutScale">—</strong></div><p id="dropoutMessage">—</p></div>
+              <div class="dropout-units" id="dropoutUnits" aria-label="24개 원소의 입력과 Dropout 출력"></div>
+              <div class="dropout-readout" aria-live="polite"><div><span>마스크로 유지된 원소</span><strong id="dropoutActive">—</strong></div><div><span>현재 모드 출력 배율</span><strong id="dropoutScale">—</strong></div><p id="dropoutMessage">—</p></div>
             </div>
           </div>
+          <p>각 칸은 번호·상태와 <strong>입력 → 출력</strong>을 보여줍니다. 입력은 1, 2, 3, 4를 반복한 설명용 값이며 학습된 은닉 표현이 아닙니다. 마스크도 재현 가능한 의사난수 시연으로 PyTorch와 같은 난수열을 재현하지는 않습니다. p=0.5라고 해서 24개 중 정확히 12개가 없어져야 하는 것은 아닙니다.</p>
+          <div class="equation-card"><strong>학습: h = m·a / (1−p)</strong><span>m은 유지 시 1, 제외 시 0</span><strong>평가: h = a</strong></div>
+          <p>입력 a=3, p=0.5이면 출력은 제외될 때 0, 유지될 때 6입니다. 여러 마스크에 대한 기댓값은 <code>0.5×0 + 0.5×6 = 3</code>으로 원래 입력과 같습니다. 이것은 매번 표본 평균이나 전체 모델의 예측까지 같다는 뜻은 아닙니다. 평가 모드에서는 3을 그대로 전달합니다. <a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Dropout.html">PyTorch Dropout 문서</a></p>
           <div class="dropout-phases">
-            <div><span>학습 모드</span><strong>`model.train()`</strong><p>확률 p로 뉴런을 끄고 남은 값을 1/(1−p)배 보정합니다.</p></div>
-            <div><span>평가 모드</span><strong>`model.eval()`</strong><p>모든 뉴런을 사용하며 무작위 마스크를 적용하지 않습니다.</p></div>
+            <div><span>학습 모드</span><strong><code>model.train()</code></strong><p>확률 p로 원소를 0으로 만들고 남은 값을 1/(1−p)배 보정합니다.</p></div>
+            <div><span>평가 모드</span><strong><code>model.eval()</code></strong><p>마스크를 적용하지 않고 입력을 그대로 전달합니다. 학습 중 보정을 다시 곱하지 않습니다.</p></div>
           </div>
+          <p>원 논문 §4.2는 학습 중 남은 값을 그대로 쓰고 평가 시 0.5배 하는 방식을 설명합니다. 이 실습과 프로젝트의 PyTorch 구현은 반대로 학습 중 보정하는 <span lang="en">inverted dropout</span>입니다. 모드별 배율을 섞어 적용하지 마세요. 또한 <code>torch.no_grad()</code>만으로 Dropout이 평가 모드가 되지는 않습니다.</p>
           <aside class="callout callout-question">
             <strong>Dropout을 합성곱층에도 항상 써야 할까?</strong>
             <p>공간적으로 가중치를 공유하는 합성곱층은 완전연결층보다 파라미터가 적습니다. AlexNet은 파라미터가 집중된 완전연결층에 Dropout을 적용했고, 이후 구조에서는 정규화·데이터 증강·확률적 깊이 등 다양한 방법이 함께 사용됩니다.</p>

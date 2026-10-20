@@ -84,7 +84,9 @@
       const button = event.target.closest("button[data-index]");
       if (!button) return;
       selectedStage = Number(button.dataset.index);
+      const restoreFocus = document.activeElement === button;
       render();
+      if (restoreFocus) $(`button[data-index="${selectedStage}"]`, list).focus({preventScroll: true});
     });
     render();
   }
