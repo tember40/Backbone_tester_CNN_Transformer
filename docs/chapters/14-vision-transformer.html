@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="이미지 패치부터 임베딩·위치 정보·Transformer Encoder·분류까지 ViT의 계산 흐름을 직접 확인하는 인공지능 기초 자료">
   <title>14장. Vision Transformer · Backbone Lab</title>
-  <link rel="stylesheet" href="../assets/css/site.css?v=20261002c">
+  <link rel="stylesheet" href="../assets/css/site.css?v=20261021a">
   <script src="../assets/js/glossary.js?v=20261002c" defer></script>
   <script src="../assets/js/vision-transformer.js?v=20261002a" defer></script>
 </head>
-<body class="chapter-page">
+<body class="chapter-page modern-lesson">
   <header class="site-header">
     <a class="brand" href="../index.html" aria-label="Backbone Lab 홈"><span class="brand-mark">KW</span><span><strong>인공지능 기초</strong><small><span lang="en">Backbone Lab</span> 학습 자료</small></span></a>
     <div class="chapter-progress" aria-label="현재 과정"><span>제5부 · Transformer</span><div><i style="width: 67%"></i></div><strong>2 / 3</strong></div>
@@ -58,6 +58,22 @@
         <p>이 저장소의 <code>vit_tiny</code>는 기본 P=4에서 각 패치를 48개 숫자로 펼친 후, 학습 가능한 선형층으로 길이 192의 <span lang="en">patch embedding</span>을 만듭니다. 64개 패치 토큰 앞에 학습 가능한 [CLS] 토큰 하나를 붙입니다. 마지막으로 토큰마다 길이 192의 <span lang="en">position embedding</span>을 더합니다. 위치 임베딩은 픽셀 위치를 출력 결과에 단순히 추가하는 것이 아니라, <strong>Encoder에 들어가기 전 토큰 벡터에 더하는 값</strong>입니다.</p>
         <div class="vit-shape-flow" aria-label="ViT-Tiny 기본 설정의 텐서 모양"><div><span>입력</span><strong>[B, 3, 32, 32]</strong><small>RGB 이미지</small></div><div><span>패치 펼침</span><strong>[B, 64, 48]</strong><small>64개 × 3·4²</small></div><div><span>선형 투영</span><strong>[B, 64, 192]</strong><small>패치 임베딩</small></div><div><span>[CLS] + 위치</span><strong>[B, 65, 192]</strong><small>Encoder 입력</small></div></div>
         <p>위 모양은 <strong>기본 P=4를 고정한 예</strong>입니다. 앞의 패치 실습에서 크기를 바꾸더라도 실제 <code>vit_tiny()</code> 인스턴스는 자동으로 재설정되지 않습니다. 모델을 새 패치 크기로 만들 때만 토큰 수와 위치 임베딩 크기가 함께 바뀝니다.</p>
+        <h3 id="patch-order">“펼친다”에도 순서가 있다</h3>
+        <p>실제 <code>Rearrange</code>의 출력 식은 <code>b (h w) (p1 p2 c)</code>입니다. 바깥의 패치는 왼쪽에서 오른쪽, 위에서 아래 순서로 나열하고, 패치 안에서는 한 픽셀의 R·G·B를 차례로 놓습니다. 단순히 NCHW 텐서 전체에 <code>flatten()</code>을 적용한 순서와 다릅니다.</p>
+        <div class="comparison-table-wrap"><table class="comparison-table shape-trace-table"><caption>순서를 확인하기 위한 별도의 2×2 RGB 패치 · 실제 이미지 값이 아닌 1~12 예시</caption><thead><tr><th>픽셀 위치</th><th>[R,G,B]</th></tr></thead><tbody>
+          <tr><th scope="row">왼쪽 위</th><td>[1,2,3]</td></tr><tr><th scope="row">오른쪽 위</th><td>[4,5,6]</td></tr><tr><th scope="row">왼쪽 아래</th><td>[7,8,9]</td></tr><tr><th scope="row">오른쪽 아래</th><td>[10,11,12]</td></tr>
+          <tr><th scope="row">패치 벡터</th><td>[1,2,3,4,5,6,7,8,9,10,11,12]</td></tr>
+          <tr><th scope="row">NCHW 그대로 펼침</th><td>[1,4,7,10,2,5,8,11,3,6,9,12] · R면 전체 → G면 전체 → B면 전체</td></tr>
+        </tbody></table></div>
+        <p>순서가 다르다고 반드시 정보가 사라지는 것은 아닙니다. 하지만 학습된 선형층의 각 가중치는 <strong>정해진 입력 성분의 위치</strong>와 연결됩니다. 가중치는 그대로 두고 펼침 순서만 바꾸면 같은 계산이 아닙니다. 패치 크기 P를 바꾸는 경우에도 입력 길이와 위치 임베딩 수가 바뀌므로 기존 가중치를 그대로 재사용할 수 있다고 가정하지 마세요.</p>
+        <p>코드의 <code>pos_embedding[:, :(n + 1)]</code>은 앞의 n+1개를 자르는 연산이지 위치 임베딩의 2D 보간이 아닙니다. 원 논문의 해상도 변경·전이 절차를 이 한 줄이 모두 구현한다고 읽으면 안 됩니다. 이 페이지의 기본 실습은 32×32이며, 다른 해상도를 실험할 때는 모델 생성 설정과 가중치 처리까지 별도로 맞춰야 합니다.</p>
+        <h3>학습되는 부분은 어느 것일까?</h3>
+        <div class="comparison-table-wrap"><table class="comparison-table shape-trace-table"><caption>기본 P=4, D=192 · 입력을 만드는 세 종류의 학습 변수</caption><thead><tr><th>구성</th><th>파라미터 shape와 개수</th></tr></thead><tbody>
+          <tr><th scope="row">패치 선형층</th><td>가중치 [192,48] + 편향 [192] → 48×192+192 = 9,408개</td></tr>
+          <tr><th scope="row">위치 임베딩</th><td>[1,65,192] → 12,480개</td></tr>
+          <tr><th scope="row">[CLS]</th><td>[1,1,192] → 192개</td></tr>
+        </tbody></table></div>
+        <p><code>Rearrange</code> 자체에는 학습 변수가 없습니다. 패치 선형층은 64개 패치 모두에 같은 가중치를 공유하므로 9,408을 패치 수만큼 곱하지 않습니다. [CLS]도 이미지마다 별도 파라미터가 아니라 하나의 벡터를 배치에 반복합니다. 시작은 같아도 Encoder에서 각 이미지의 패치 정보를 모은 <strong>최종 [CLS] 표현은 이미지마다 달라질 수 있습니다.</strong> [CLS]는 정답 클래스 번호를 입력하는 토큰이 아닙니다.</p>
       </section>
 
       <section class="lesson-section" id="encoder">

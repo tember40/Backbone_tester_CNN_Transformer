@@ -12,11 +12,13 @@
   let kernel = 7;
   let selected = [4, 4];
 
-  function render() {
+  function render(focusSelection = false) {
     const {side, channels, blocks} = stages[stage];
     selected = selected.map((coordinate) => Math.min(coordinate, side - 1));
     const radius = Math.floor(kernel / 2);
     const grid = $("#convnextGrid");
+    grid.setAttribute("role", "group");
+    grid.setAttribute("aria-describedby", "convnextKeyboardHint");
     grid.style.setProperty("--convnext-side", String(side));
     grid.replaceChildren();
     let active = 0;
@@ -29,7 +31,20 @@
         if (inWindow) active += 1;
         cell.classList.toggle("is-covered", inWindow);
         cell.classList.toggle("is-selected", row === selected[0] && col === selected[1]);
-        cell.addEventListener("click", () => { selected = [row, col]; render(); });
+        const current = row === selected[0] && col === selected[1];
+        cell.tabIndex = current ? 0 : -1;
+        cell.setAttribute("aria-pressed", String(current));
+        cell.addEventListener("click", () => { selected = [row, col]; render(true); });
+        cell.addEventListener("keydown", (event) => {
+          const moves = {ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [-1, 0], ArrowDown: [1, 0]};
+          if (event.key === "Home") selected = [0, 0];
+          else if (event.key === "End") selected = [side - 1, side - 1];
+          else if (moves[event.key]) {
+            selected = [row, col].map((value, axis) => Math.max(0, Math.min(side - 1, value + moves[event.key][axis])));
+          } else return;
+          event.preventDefault();
+          render(true);
+        });
         grid.append(cell);
       }
     }
@@ -67,6 +82,7 @@
       button.classList.toggle("is-current", current);
       button.setAttribute("aria-pressed", String(current));
     });
+    if (focusSelection) grid.children[selected[0] * side + selected[1]].focus({preventScroll: true});
   }
 
   $$('[data-convnext-stage]').forEach((button) => button.addEventListener("click", () => {

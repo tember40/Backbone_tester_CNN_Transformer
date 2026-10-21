@@ -31,6 +31,8 @@
     $("#attentionScores").textContent = `[${scores.map((score) => score.toFixed(2)).join(", ")}]`;
     $("#attentionWeights").textContent = `[${weights.map((weight) => weight.toFixed(3)).join(", ")}]`;
     $("#attentionWeightSum").textContent = `Query ${names[selected]} 행의 합 = ${weights.reduce((sum, value) => sum + value, 0).toFixed(3)}`;
+    const exponents = scores.map((score) => Math.exp(score - Math.max(...scores)));
+    $("#attentionNormalization").textContent = `현재 Query ${names[selected]}: exp(S−m) = [${exponents.map((value) => value.toFixed(6)).join(", ")}] · 합 ${exponents.reduce((sum, value) => sum + value, 0).toFixed(6)}. 이 합으로 각 지수 값을 나눕니다.`;
     $("#attentionOutput").textContent = `[${output.map((value) => value.toFixed(3)).join(", ")}]`;
     $("#attentionBreakdown").textContent = weights.map((weight, index) =>
       `${weight.toFixed(3)}×[${vectors[index].join(",")}]`

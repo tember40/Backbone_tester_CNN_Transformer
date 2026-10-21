@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Self-Attention의 Q·K·V, 점수, softmax, 가중합과 ViT 코드의 연결을 단계별로 실습하는 인공지능 기초 자료">
   <title>13장. Attention 기초 · Backbone Lab</title>
-  <link rel="stylesheet" href="../assets/css/site.css?v=20261002b">
+  <link rel="stylesheet" href="../assets/css/site.css?v=20261021a">
   <script src="../assets/js/glossary.js?v=20261002b" defer></script>
-  <script src="../assets/js/attention-basics.js?v=20261002a" defer></script>
+  <script src="../assets/js/attention-basics.js?v=20261021a" defer></script>
 </head>
-<body class="chapter-page">
+<body class="chapter-page modern-lesson">
   <header class="site-header">
     <a class="brand" href="../index.html" aria-label="Backbone Lab 홈"><span class="brand-mark">KW</span><span><strong>인공지능 기초</strong><small><span lang="en">Backbone Lab</span> 학습 자료</small></span></a>
     <div class="chapter-progress" aria-label="현재 과정"><span>제5부 · Transformer</span><div><i style="width: 33%"></i></div><strong>1 / 3</strong></div>
@@ -65,18 +65,37 @@
         <div class="section-number">13.4</div><div class="lesson-heading"><p class="eyebrow">첫 단계 · 유사도</p><h2><span>13.4</span> 내적을 √d<sub>k</sub>로 나눈다</h2></div>
         <div class="equation-card resnet-equation"><strong>점수 S = QK<sup>T</sup> / √d<sub>k</sub></strong><span aria-hidden="true">→</span><strong>가중치 A = softmax(S)</strong></div>
         <p>실습 벡터의 Key 차원은 2이므로 √2로 나눕니다. 예를 들어 Query A=[1,0]과 Key C=[1,1]의 내적은 1이고, 스케일한 점수는 약 0.707입니다. 차원이 커질 때 내적 크기가 과하게 커져 softmax가 한쪽으로 치우치는 일을 완화하려는 조정입니다. 0.707은 확률이 아니라 <strong>softmax 이전 점수</strong>입니다.</p>
+        <p>여기서 내적은 벡터 길이를 나누는 cosine similarity가 아닙니다. 예를 들어 C=[1,1]은 A=[1,0]보다 길고, C·C=2입니다. 높은 점수가 언제나 의미상 비슷함이나 중요한 패치를 보장하지는 않습니다. 또한 이 예의 점수 표는 Q=K라 대칭이지만, 실제 학습에서는 서로 다른 Q·K 투영 때문에 점수부터 비대칭일 수 있습니다.</p>
       </section>
 
       <section class="lesson-section" id="softmax">
         <div class="section-number">13.5</div><div class="lesson-heading"><p class="eyebrow">실습 13.1 · 한 행씩 읽기</p><h2><span>13.5</span> 점수에서 Value 가중합까지</h2><p>Query를 바꾸면 표에서 해당 행의 점수·가중치·출력이 함께 바뀝니다. 각 행의 softmax는 세 Key 방향으로 합이 1이 됩니다. 먼저 A를 선택한 채 숫자를 읽고 B·C로 바꿔 보세요.</p></div>
         <div class="lab-panel attention-lab"><div class="attention-query-controls" role="group" aria-label="Query 토큰 선택"><button type="button" data-query="0" class="is-current" aria-pressed="true">Query A</button><button type="button" data-query="1" aria-pressed="false">Query B</button><button type="button" data-query="2" aria-pressed="false">Query C</button></div><div class="attention-lab-inner"><div class="attention-matrix-wrap"><table class="attention-matrix"><caption>전체 Attention 가중치: 행은 Query, 열은 Key</caption><thead><tr><th scope="col">Q \ K</th><th scope="col">A</th><th scope="col">B</th><th scope="col">C</th></tr></thead><tbody id="attentionMatrix"></tbody></table></div><div class="attention-steps" aria-live="polite"><div><span>① Q·K 내적 / √2</span><strong id="attentionScores">—</strong></div><div><span>② softmax 가중치</span><strong id="attentionWeights">—</strong><small id="attentionWeightSum">—</small></div><div><span>③ Σ 가중치 × V</span><strong id="attentionOutput">—</strong><small id="attentionBreakdown">—</small></div></div></div></div>
+        <p id="attentionNormalization" aria-live="polite"></p>
         <p>색이 진할수록 해당 Query가 그 Key의 Value를 더 많이 반영한다는 뜻입니다. 이 실습에서 C는 A와 B의 성분을 모두 가지므로 여러 Query에서 높은 점수를 얻기 쉽습니다. 표는 <strong>가중치</strong>이지 원본 이미지의 주목 지도나 학습된 ViT의 실제 Attention 결과가 아닙니다.</p>
+        <h3 id="softmax-calculation">Query A의 0.401은 어디서 왔을까?</h3>
+        <p>softmax는 각 점수의 지수함수를 같은 행의 지수 합으로 나눕니다. 계산 중 너무 큰 수가 생기는 것을 줄이려고 행의 최댓값 m을 먼저 빼도 결과는 같습니다. 분자와 분모에 같은 exp(−m)을 곱하는 셈이기 때문입니다. 브라우저 코드의 <code>score - highest</code>가 이 계산입니다.</p>
+        <div class="comparison-table-wrap"><table class="comparison-table shape-trace-table"><caption>Query A · 중간 계산은 반올림해 표시</caption><thead><tr><th>순서</th><th>계산과 결과</th></tr></thead><tbody>
+          <tr><th scope="row">점수</th><td>[1/√2, 0, 1/√2] ≈ [0.707107, 0, 0.707107]</td></tr>
+          <tr><th scope="row">최댓값 빼기</th><td>S−m = [0, −0.707107, 0]</td></tr>
+          <tr><th scope="row">지수와 합</th><td>exp(S−m) ≈ [1, 0.493069, 1], 합 ≈ 2.493069</td></tr>
+          <tr><th scope="row">행별 정규화</th><td>[1, 0.493069, 1] ÷ 2.493069 ≈ [0.401112, 0.197776, 0.401112]</td></tr>
+          <tr><th scope="row">Value 가중합</th><td>0.401112·[1,0] + 0.197776·[0,1] + 0.401112·[1,1] ≈ [0.802224, 0.598888]</td></tr>
+        </tbody></table></div>
+        <p>A→C의 가중치는 약 0.401이지만 C→A는 약 0.248입니다. 같은 점수 0.707을 다른 행의 합으로 나누기 때문입니다. <strong>대칭인 점수 표도 행별 softmax 뒤에는 대칭일 필요가 없습니다.</strong> Query C를 골라 두 방향을 직접 비교해 보세요.</p>
       </section>
 
       <section class="lesson-section" id="multihead">
         <div class="section-number">13.6</div><div class="lesson-heading"><p class="eyebrow">여러 관점으로 반복</p><h2><span>13.6</span> Multi-Head는 한 표를 복사하는가?</h2></div>
         <p>아닙니다. Head마다 Q·K·V의 서로 다른 성분을 사용하므로 각자 다른 가중치 표를 만들 수 있습니다. 이 저장소의 <code>vit_tiny</code>는 <code>heads=3</code>, <code>dim_head=64</code>이며 내부 Q·K·V를 [배치, 3, 토큰, 64] 모양으로 나눕니다. Head 출력을 다시 합친 뒤 선형 변환으로 모델 차원 192에 돌려놓습니다.</p>
         <p>토큰이 N개라면 Head 하나의 점수·가중치 행렬에는 N×N개 칸이 있습니다. 이 프로젝트의 기본 설정은 패치 64개+[CLS] 1개이므로 <strong>Head마다 65×65=4,225칸</strong>입니다. Head가 3개라면 한 층에서 이 크기의 표가 3개 생깁니다. 이미지가 커지거나 패치가 작아져 N이 늘면 이 부분의 저장·계산 부담도 커집니다.</p>
+        <div class="comparison-table-wrap"><table class="comparison-table shape-trace-table"><caption>vit_tiny의 한 Attention 모듈 · B는 배치 크기</caption><thead><tr><th>연산</th><th>텐서 shape와 축 의미</th></tr></thead><tbody>
+          <tr><th scope="row">입력과 QKV</th><td>[B,65,192] → Linear → [B,65,576] → 세 개의 [B,65,192]</td></tr>
+          <tr><th scope="row">Head 분리</th><td>Q·K·V 각각 [B,3,65,64] · 배치, Head, 토큰, Head 차원</td></tr>
+          <tr><th scope="row">QKᵀ</th><td>[B,3,65,64] × [B,3,64,65] → [B,3,65,65]</td></tr>
+          <tr><th scope="row">AV와 결합</th><td>[B,3,65,65] × [B,3,65,64] → [B,3,65,64] → [B,65,192]</td></tr>
+        </tbody></table></div>
+        <p>여기서 transpose는 마지막 두 축만 바꿉니다. 배치나 Head를 서로 곱하는 연산이 아닙니다. softmax는 각 [Query,Key] 표의 <strong>마지막 Key 축</strong>에 적용합니다. 이 표는 <a href="https://arxiv.org/pdf/1706.03762">원 논문 §3.2의 계산</a>을 현재 저장소의 차원으로 추적한 것이며 논문의 Head 수를 그대로 옮긴 설정은 아닙니다.</p>
       </section>
 
       <section class="lesson-section" id="code">
@@ -91,7 +110,7 @@
 <span data-line="8">out = torch.matmul(attn, v)</span>
 <span data-line="9">out = rearrange(out, 'b h n d -> b n (h d)')</span>
 <span data-line="10">return self.to_out(out)</span></code></pre></div><div class="code-notes" role="list" aria-label="코드 해설"><button type="button" data-highlight="1-2"><span>① 준비</span><strong>스케일과 QKV 투영</strong><small>Key 차원으로 스케일하고 세 벡터를 만듭니다.</small></button><button type="button" data-highlight="3-4"><span>② Head 분리</span><strong>[b, h, n, d]</strong><small>Head마다 토큰 열을 따로 읽습니다.</small></button><button type="button" data-highlight="5-7"><span>③ 가중치</span><strong>QKᵀ → softmax</strong><small>토큰 쌍 점수를 행별 비율로 바꿉니다.</small></button><button type="button" data-highlight="8-10"><span>④ 새 표현</span><strong>AV → 출력 투영</strong><small>Value를 모아 Head를 다시 합칩니다.</small></button></div></div>
-        <p><code>self.attend</code>는 마지막 축에 적용하는 <code>nn.Softmax(dim = -1)</code>입니다. 따라서 각 Query 행에서 모든 Key에 대한 가중치 합이 1이 됩니다. 추론 시 Dropout은 꺼지지만, 학습 시에는 softmax 뒤 Dropout이 적용되어 개별 숫자 예시와 달라질 수 있습니다.</p>
+        <p><code>self.attend</code>는 마지막 축에 적용하는 <code>nn.Softmax(dim = -1)</code>입니다. 따라서 <strong>Dropout 전</strong> 각 Query 행의 합은 1입니다. <code>dropout&gt;0</code>으로 설정하고 학습 모드이면 일부 가중치를 0으로 만들고 남은 값을 1/(1−p)배 하므로, <strong>Dropout 후의 한 행은 합이 1이 아닐 수 있습니다.</strong> 다시 softmax로 정규화하지 않습니다. 현재 생성 함수의 기본 dropout은 0이며, 평가 모드에서도 Dropout은 값을 바꾸지 않습니다. 이 차이는 <a href="07-alexnet.html#lab">7장의 Dropout 수치 실습</a>과 연결됩니다.</p>
       </section>
 
       <section class="lesson-section" id="bridge">
