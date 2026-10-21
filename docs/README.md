@@ -7,8 +7,11 @@
 저장소 루트에서 다음 명령을 실행합니다.
 
 ```powershell
-.\.venv\Scripts\python.exe -m http.server 8000 --directory docs
+# Windows · ML 패키지나 가상환경 없이도 Python만 있으면 됩니다.
+py -3 -m http.server 8000 --bind 127.0.0.1 --directory docs
 ```
+
+macOS/Linux에서는 `python3 -m http.server 8000 --bind 127.0.0.1 --directory docs`를 사용합니다. 이미 만든 가상환경의 Python 경로로 실행해도 됩니다. 이는 이 컴퓨터에서만 보는 로컬 미리보기이며, 외부 공개는 GitHub Pages 배포를 사용합니다.
 
 브라우저에서 `http://localhost:8000`을 엽니다. 단순히 HTML 파일을 직접 열 수도 있지만,
 브라우저 보안 정책과 실제 GitHub Pages 경로를 동일하게 확인하려면 로컬 서버 사용을 권장합니다.

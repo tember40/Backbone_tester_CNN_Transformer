@@ -3,6 +3,7 @@
 import math
 
 import matplotlib.pyplot as plt
+from matplotlib.patches import FancyBboxPatch
 import torch
 
 
@@ -33,9 +34,18 @@ def plot_perceptron_anatomy(sample=(1.0, 0.5), weights=(0.8, -0.4), bias=0.1):
         "activation": (7.0, 0.0),
         "output": (9.7, 0.0),
     }
+    node_patches = {}
     for label, (x, y) in nodes.items():
-        axis.scatter(x, y, s=1800, color="#F2F2F2", edgecolor="#333333", zorder=3)
-        axis.text(x, y, label, ha="center", va="center", fontsize=12, zorder=4)
+        width = 1.5 if label == "activation" else .95
+        node = FancyBboxPatch((x - width / 2, y - .35), width, .7,
+                              boxstyle="round,pad=0.06", facecolor="#F2F2F2",
+                              edgecolor="#333333", zorder=3)
+        node.set_gid(f"perceptron-node-{label}")
+        axis.add_patch(node)
+        node_patches[label] = node
+        text = f"{label}\n{float(sample_tensor[int(label[1]) - 1]):.2f}" if label in ("x1", "x2") else label
+        artist = axis.text(x, y, text, ha="center", va="center", fontsize=12, zorder=4)
+        artist.set_gid(f"perceptron-label-{label}")
 
     for input_name, weight, contribution in zip(("x1", "x2"), weights, contributions):
         start = nodes[input_name]
@@ -44,7 +54,8 @@ def plot_perceptron_anatomy(sample=(1.0, 0.5), weights=(0.8, -0.4), bias=0.1):
             "",
             xy=end,
             xytext=start,
-            arrowprops={"arrowstyle": "->", "lw": 1.8, "shrinkA": 28, "shrinkB": 28},
+            arrowprops={"arrowstyle": "->", "lw": 1.8, "patchA": node_patches[input_name],
+                        "patchB": node_patches["sum"], "shrinkA": 5, "shrinkB": 5},
         )
         midpoint_y = (start[1] + end[1]) / 2
         axis.text(
@@ -54,6 +65,8 @@ def plot_perceptron_anatomy(sample=(1.0, 0.5), weights=(0.8, -0.4), bias=0.1):
             ha="center",
             va="center",
             fontsize=10,
+            bbox={"facecolor": "white", "edgecolor": "none", "pad": 2},
+            zorder=5,
         )
 
     for start_name, end_name in (("sum", "activation"), ("activation", "output")):
@@ -61,7 +74,8 @@ def plot_perceptron_anatomy(sample=(1.0, 0.5), weights=(0.8, -0.4), bias=0.1):
             "",
             xy=nodes[end_name],
             xytext=nodes[start_name],
-            arrowprops={"arrowstyle": "->", "lw": 1.8, "shrinkA": 30, "shrinkB": 30},
+            arrowprops={"arrowstyle": "->", "lw": 1.8, "patchA": node_patches[start_name],
+                        "patchB": node_patches[end_name], "shrinkA": 5, "shrinkB": 5},
         )
 
     axis.text(4.2, -1.35, f"z = Σxw + b = {score:+.2f}\nb = {bias:+.2f}", ha="center")

@@ -12,12 +12,12 @@
 
 ```powershell
 # Windows PowerShell
-py -3 -m http.server 8000 --directory docs
+py -3 -m http.server 8000 --bind 127.0.0.1 --directory docs
 ```
 
 ```bash
 # macOS / Linux
-python3 -m http.server 8000 --directory docs
+python3 -m http.server 8000 --bind 127.0.0.1 --directory docs
 ```
 
 브라우저에서 `http://localhost:8000`을 열면 됩니다. `main` 브랜치의 `docs/` 변경 사항은 GitHub Pages 배포 작업을 통해 자동으로 반영됩니다.
@@ -88,7 +88,7 @@ classification
 
 ## 빠른 시작
 
-Python 3.10 이상과 Git만 있으면 됩니다. `bootstrap.py`는 `.venv` 생성, 노트북 포함 의존성 설치, 실행 환경 검사, CIFAR-10 train/test 다운로드를 순서대로 수행합니다.
+PyTorch·torchvision이 지원하는 Python 3.10 이상과 Git, 인터넷 연결이 필요합니다. `bootstrap.py`는 `.venv` 생성, 노트북 포함 의존성 설치, 실행 환경 검사, CIFAR-10 train/test 다운로드를 순서대로 수행합니다. 아래에서는 가상환경 활성화 여부와 관계없이 같은 Python을 사용하도록 경로를 직접 지정합니다.
 
 ### Windows PowerShell
 
@@ -96,9 +96,9 @@ Python 3.10 이상과 Git만 있으면 됩니다. `bootstrap.py`는 `.venv` 생�
 git clone https://github.com/tember40/Backbone_tester_CNN_Transformer.git
 cd Backbone_tester_CNN_Transformer
 py -3 bootstrap.py
-.venv\Scripts\Activate.ps1
-cifar10-lab train --model resnet18 --quick
-.venv\Scripts\python -m jupyter lab
+.\.venv\Scripts\python.exe -m cifar10_lab doctor
+.\.venv\Scripts\python.exe -m cifar10_lab train --model perceptron --quick --device cpu --num-workers 0
+.\.venv\Scripts\python.exe -m jupyter lab
 ```
 
 ### macOS / Linux
@@ -107,12 +107,29 @@ cifar10-lab train --model resnet18 --quick
 git clone https://github.com/tember40/Backbone_tester_CNN_Transformer.git
 cd Backbone_tester_CNN_Transformer
 python3 bootstrap.py
-source .venv/bin/activate
-cifar10-lab train --model resnet18 --quick
-python -m jupyter lab
+.venv/bin/python -m cifar10_lab doctor
+.venv/bin/python -m cifar10_lab train --model perceptron --quick --device cpu --num-workers 0
+.venv/bin/python -m jupyter lab
 ```
 
 Jupyter Lab이 열리면 `foundations.ipynb` → `cnn_internals.ipynb` → `main.ipynb` 순서로 실행하는 것을 권장합니다.
+
+`perceptron`은 작은 선형 기준 모델로 실행 경로를 확인하기 위한 첫 예입니다. CNN을 실행하려면 같은 명령의 모델 ID를 `resnet18` 등으로 바꾸세요. `--quick`의 정확도는 모델 계열의 최종 성능 비교가 아닙니다.
+
+### PowerShell에서 활성화가 차단되는 경우
+
+`.\.venv\Scripts\Activate.ps1`은 선택 사항입니다. 실행 정책 때문에 차단돼도 위의 `.\.venv\Scripts\python.exe -m ...` 명령은 활성화 스크립트를 사용하지 않습니다. 이 프로젝트 때문에 시스템 전체 실행 정책을 변경할 필요는 없습니다. `pip`도 `.\.venv\Scripts\python.exe -m pip ...`처럼 실행하면 다른 Python에 설치하는 실수를 줄일 수 있습니다.
+
+### VS Code와 Jupyter의 커널 선택
+
+터미널의 가상환경과 노트북의 커널은 별개로 선택될 수 있습니다.
+
+1. VS Code에 Python·Jupyter 확장을 설치하고 저장소 폴더를 엽니다.
+2. 노트북 오른쪽 위의 **Select Kernel / 커널 선택**에서 **Python Environments**를 열어 프로젝트 `.venv`의 Python을 선택합니다. Windows 경로는 `.venv\Scripts\python.exe`, macOS/Linux는 `.venv/bin/python`입니다.
+3. 첫 코드 셀의 `현재 커널 Python` 출력을 확인합니다. 터미널에서 `python -c ...`를 확인하는 것만으로 노트북의 환경을 확인한 것은 아닙니다.
+4. 커널을 바꿨다면 재시작하고 위에서부터 다시 실행합니다. `ModuleNotFoundError`가 나면 해당 가상환경에 `python -m pip install ".[notebook]"`로 설치했는지 확인합니다.
+
+별도 Jupyter 서버에서 이 환경을 선택해야 할 때만 `.\.venv\Scripts\python.exe -m ipykernel install --user --name backbone-lab --display-name "Python (Backbone Lab)"`처럼 등록할 수 있습니다. 같은 `--name`의 기존 등록을 덮어쓰므로 이름을 확인하세요. 일반적인 VS Code 환경 선택에는 이 사용자 등록이 필수는 아닙니다. [VS Code 안내](https://code.visualstudio.com/docs/datascience/jupyter-notebooks), [IPython 커널 안내](https://ipython.readthedocs.io/en/stable/install/kernel_install.html)를 참고하세요.
 
 `bootstrap.py` 실행 중에 PyTorch와 CIFAR-10을 받으므로 인터넷 연결과 수백 MB 이상의 저장 공간이 필요합니다. 노트북이 필요 없으면 `python bootstrap.py --minimal`, 데이터는 나중에 받으려면 `python bootstrap.py --skip-data`를 사용합니다.
 
@@ -148,7 +165,7 @@ cifar10-lab doctor
 
     *   **모델 구조 및 파라미터 확인**: `torchinfo.summary`를 사용하여 선택된 모델의 구조와 파라미터 수를 확인할 수 있습니다.
 
-    *   **데이터셋 다운로드 및 학습/평가**: `main.ipynb`를 실행하면 CIFAR-10 데이터셋이 사용자 데이터 폴더에 자동 다운로드됩니다. 단, 개발 중인 저장소에 기존 `Cifar-10 dataset/`이 있으면 그 데이터를 재사용합니다. 공식 학습 데이터는 train/validation으로 재현 가능하게 분리하며, test 데이터는 최종 평가에서만 사용합니다.
+    *   **데이터셋 다운로드 및 학습/평가**: `main.ipynb`를 실행하면 CIFAR-10 데이터셋이 사용자 데이터 폴더에 자동 다운로드됩니다. 단, 개발 중인 저장소에 기존 `Cifar-10 dataset/`이 있으면 그 데이터를 재사용합니다. 공식 학습 데이터는 train/validation으로 재현 가능하게 분리합니다. Test 셀은 모델·설정을 선택한 뒤 실행해야 합니다. 현재 CLI는 각 `train` 실행 뒤 test를 평가하고 `compare`도 test 점수로 정렬하므로, 그 결과를 반복해서 보며 설정을 고르면 독립적인 최종 평가가 아닙니다. 선택에는 validation 기록을 사용하세요([18장](https://tember40.github.io/Backbone_tester_CNN_Transformer/docs/chapters/18-backbone-selection.html#splits)).
 
         *   모델, seed, 학습률, 데이터 설정을 해시한 실험 ID로 체크포인트를 분리하여 서로 다른 실험이 덮어쓰지 않습니다.
         *   체크포인트에는 모델 ID, 가중치, optimizer 상태, 최고 validation 정확도와 학습 이력이 함께 저장됩니다.
@@ -241,6 +258,8 @@ python -m unittest discover -s tests -v
 ```
 
 ## 개발 환경
+
+검증 범위: Windows / Python 3.10 / PyTorch 2.14 CPU에서 자동 검사, 실제 Jupyter 커널, 작은 CIFAR-10 실행을 확인했습니다. 별도 가상환경의 wheel 설치 검사는 기존 의존성을 공유한 오프라인 검사입니다. 모든 의존성의 새 다운로드, 다른 OS·GPU 및 VS Code 화면 조작까지 검증했다는 뜻은 아닙니다. 자세한 근거와 미확인 사항은 [품질 개선 기록](docs/UPGRADE_PROGRESS.md)에 구분합니다.
 
 *   Python 3.10+
 *   PyTorch

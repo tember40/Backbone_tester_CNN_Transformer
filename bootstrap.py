@@ -73,11 +73,17 @@ def main(argv=None):
         else "source .venv/bin/activate"
     )
     print("\nSetup complete.")
-    print(f"Activate the environment: {activate}")
-    print("Run the beginner example: cifar10-lab train --model resnet18 --quick")
-    print("Open the foundations notebook: python -m jupyter lab foundations.ipynb")
-    print("Continue with CNN internals in: cnn_internals.ipynb")
-    print("Then explore all backbones in: main.ipynb")
+    print(f"Optional activation: {activate}")
+    print("Activation is not required; use this environment's Python directly:")
+    python_command = f'& "{python}"' if sys.platform == "win32" else f'"{python}"'
+    print(f"  {python_command} -m cifar10_lab doctor")
+    print(f"  {python_command} -m cifar10_lab train --model perceptron --quick --device cpu")
+    if not args.minimal:
+        print(f"  {python_command} -m jupyter lab foundations.ipynb")
+        print("Continue with CNN internals in: cnn_internals.ipynb")
+        print("Then explore all backbones in: main.ipynb")
+    else:
+        print("Notebook extras were not installed (--minimal).")
     return 0
 
 
