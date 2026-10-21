@@ -5,7 +5,7 @@
     <pattern id="grid" width="12" height="12" patternUnits="userSpaceOnUse"><path d="M12 0H0V12" fill="none" stroke="#7e7573" stroke-opacity=".3"/></pattern>
     <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#756c69"/></marker>
     <style>
-      text{font-family:Arial,'Malgun Gothic',sans-serif;fill:#312b2a}.head{font-size:20px;font-weight:700}.sub{font-size:15px;fill:#625957}.label{font-size:17px;font-weight:700}.small{font-size:14px;fill:#625957}.line{fill:none;stroke:#756c69;stroke-width:1.9;marker-end:url(#arrow)}.bus{fill:none;stroke:#9d9290;stroke-width:1.7}
+      text{font-family:'Times New Roman','Malgun Gothic',serif;font-style:normal;fill:#312b2a}.head{font-size:20px;font-weight:700}.sub{font-size:15px;fill:#625957}.label{font-size:17px;font-weight:700}.small{font-size:14px;fill:#625957}.line{fill:none;stroke:#756c69;stroke-width:1.9;marker-end:url(#arrow)}.bus{fill:none;stroke:#9d9290;stroke-width:1.7}
     </style>
   </defs>
   <rect width="540" height="515" fill="#fff"/>

@@ -3,6 +3,7 @@
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
   const channels = [[1, 3, 5, 7], [2, 2, 4, 4], [8, 4, 0, 0]];
+  const manualGates = [0.25, 0.7, 0.95];
   const channelSelect = $("#seChannel");
 
   function renderExamples(rebuildPixels = true) {
@@ -11,7 +12,7 @@
     const values = channels[index];
     if (rebuildPixels) {
       $("#sePixelGrid").innerHTML = values.map((value, position) =>
-        `<label><span class="sr-only">${position + 1}번째 위치</span><input type="number" min="0" max="9" step="1" value="${value}" data-position="${position}"></label>`
+        `<label><span class="sr-only">채널 ${index + 1}, ${position + 1}번째 위치</span><input type="number" min="-9" max="9" step="1" value="${value}" data-position="${position}"></label>`
       ).join("");
     }
     $("#seSqueezeSummary").innerHTML = channels.map((channel, position) => {
@@ -21,13 +22,33 @@
     const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
     $("#seSqueezeEquation").textContent = `채널 ${index + 1}: (${values.join(" + ")}) ÷ 4 = ${mean.toFixed(2)}`;
 
-    const gate = Number($("#seGate" + (index + 1)).value);
+    const means = channels.map(channel => channel.reduce((sum, value) => sum + value, 0) / channel.length);
+    // Small, fixed-weight SELayer(3, reduction=3), not weights learned on CIFAR-10.
+    const beforeRelu = 0.5 * means[0] - 0.5 * means[1] + 0.25 * means[2];
+    const hidden = Math.max(0, beforeRelu);
+    const logits = [hidden, 0.5 * hidden, -hidden];
+    const mlpGates = logits.map(value => 1 / (1 + Math.exp(-value)));
+    const automatic = $("#seGateMode").value === "mlp";
+    const gates = automatic ? mlpGates : manualGates;
+    const gate = gates[index];
+    const fixed = value => value.toFixed(4);
+    $("#seMLPMeans").textContent = `[${means.map(fixed).join(", ")}]`;
+    $("#seMLPHidden").textContent = `${fixed(beforeRelu)} → ReLU → ${fixed(hidden)}`;
+    $("#seMLPLogits").textContent = `[${logits.map(fixed).join(", ")}]`;
+    $("#seMLPGates").textContent = `[${mlpGates.map(fixed).join(", ")}]`;
+    $("#seMLPMessage").textContent = automatic
+      ? "고정 MLP 모드: 위 특징맵의 값을 바꾸면 평균 → 은닉값 → gate → 채널 출력이 함께 바뀝니다. 학습은 수행하지 않습니다."
+      : "수동 모드: 위 계산표의 MLP 결과 대신 슬라이더 값을 곱합니다. 두 모드의 gate를 구분해 읽으세요.";
     $("#seCurrentGate").textContent = gate.toFixed(2);
     $("#seScaleBefore").innerHTML = values.map((value) => `<span>${value.toFixed(1)}</span>`).join("");
     $("#seScaleAfter").innerHTML = values.map((value) => `<span>${(value * gate).toFixed(2)}</span>`).join("");
-    $("#seScaleExplanation").textContent = `채널 ${index + 1}의 모든 위치에 같은 가중치 ${gate.toFixed(2)}를 곱했습니다. 다른 채널에는 각각의 가중치가 적용됩니다.`;
-    $$("#seGate1, #seGate2, #seGate3").forEach((slider) => {
-      $("#" + slider.id + "Value").textContent = Number(slider.value).toFixed(2);
+    $("#seScaleExplanation").textContent = `10.2절에서 선택한 채널 ${index + 1}: 모든 위치에 같은 가중치 ${gate.toFixed(4)}를 곱했습니다. 다른 채널에는 각각의 가중치가 적용됩니다.`;
+    [1, 2, 3].forEach((number) => {
+      const slider = $("#seGate" + number);
+      slider.disabled = automatic;
+      slider.step = automatic ? "0.0001" : "0.05";
+      slider.value = String(gates[number - 1]);
+      $("#" + slider.id + "Value").textContent = gates[number - 1].toFixed(automatic ? 4 : 2);
     });
   }
 
@@ -37,11 +58,23 @@
     if (!field) return;
     const number = Number(field.value);
     channels[Number(channelSelect.value)][Number(field.dataset.position)] = Number.isFinite(number)
-      ? Math.max(0, Math.min(9, Math.round(number))) : 0;
+      ? Math.max(-9, Math.min(9, Math.round(number))) : 0;
+    if (field.value !== "" && Number.isFinite(number)) {
+      field.value = String(channels[Number(channelSelect.value)][Number(field.dataset.position)]);
+    }
     renderExamples(false);
   });
-  $("#sePixelGrid")?.addEventListener("change", () => renderExamples());
-  $$("#seGate1, #seGate2, #seGate3").forEach((slider) => slider.addEventListener("input", renderExamples));
+  $("#sePixelGrid")?.addEventListener("change", (event) => {
+    const field = event.target.closest("input[data-position]");
+    if (!field) return;
+    field.value = String(channels[Number(channelSelect.value)][Number(field.dataset.position)]);
+    renderExamples(false);
+  });
+  [1, 2, 3].forEach(number => $("#seGate" + number)?.addEventListener("input", () => {
+    manualGates[number - 1] = Number($("#seGate" + number).value);
+    renderExamples(false);
+  }));
+  $("#seGateMode")?.addEventListener("change", () => renderExamples(false));
   renderExamples();
 
   function renderReduction() {

@@ -30,6 +30,12 @@
     $("#mobileFlowOutput").textContent = String(output);
     $("#mobileFlowExpandLabel").textContent = expand === 1 ? "확장 생략" : "1×1 확장";
     $("#mobileExpandNote").textContent = expand === 1 ? "확장 층 생략" : "ReLU6";
+    const size = 8 / stride;
+    const expansionWeights = expand === 1 ? 0 : input * hidden;
+    const depthwiseWeights = 9 * hidden;
+    const projectionWeights = hidden * output;
+    $("#mobileBlockShapes").textContent = `[N,${input},8,8] → [N,${hidden},8,8] → [N,${hidden},${size},${size}] → [N,${output},${size},${size}]`;
+    $("#mobileBlockWeights").textContent = `필터 가중치: 확장 ${format(expansionWeights)} + depthwise ${format(depthwiseWeights)} + 투영 ${format(projectionWeights)} = ${format(expansionWeights + depthwiseWeights + projectionWeights)}개 (BN 제외)`;
     $("#mobileSkipNote").textContent = stride === 1 && input === output
       ? "보폭 1·입출력 채널 일치 → shortcut으로 입력을 더합니다."
       : `보폭 ${stride}·입력 ${input}채널·출력 ${output}채널 → 이 블록은 shortcut을 더하지 않습니다.`;
@@ -85,7 +91,9 @@
     const button = event.target.closest("button[data-index]");
     if (!button) return;
     selectedStage = Number(button.dataset.index);
+    const restoreFocus = document.activeElement === button;
     renderStages();
+    if (restoreFocus) $(`button[data-index="${selectedStage}"]`, stageList).focus({preventScroll: true});
   });
   renderStages();
 

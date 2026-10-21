@@ -985,6 +985,7 @@ code, pre { font-family: var(--mono); }
 /* MobileNetV2 calculation and architecture labs */
 .mobile-convolution-figure { margin: 23px 0 27px; }
 .mobile-visual-scroll { overflow-x: auto; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.mobile-visual-scroll:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
 .mobile-visual-scroll img { display: block; width: 100%; min-width: 500px; height: auto; }
 .mobile-convolution-figure figcaption { margin-top: 10px; color: var(--muted); font-size: 15.6px; line-height: 1.65; }
 .mobile-convolution-figure figcaption a { color: var(--blue-dark); text-decoration: underline; text-underline-offset: 3px; }
@@ -1570,6 +1571,12 @@ code, pre { font-family: var(--mono); }
 }
 @media (max-width: 650px) {
   /* Formula stages need a full line each; narrow flex columns split symbols. */
+  .se-mlp-table { table-layout: fixed; }
+  .se-mlp-table th, .se-mlp-table td { overflow-wrap: anywhere; }
+  .se-mlp-table th:first-child { width: 28%; }
+  .shape-trace-table { table-layout: fixed; }
+  .shape-trace-table th, .shape-trace-table td { padding: 10px 9px; overflow-wrap: anywhere; }
+  .shape-trace-table th:first-child { width: 30%; }
   .equation-card { flex-direction: column; gap: 12px; }
   .equation-card > div:not(.equation-arrow) { width: 100%; min-width: 0; }
   .equation-card p { overflow-wrap: anywhere; }
