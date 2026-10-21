@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - "docs/**"
+      - "index.html"
+      - "chapters/**"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -28,10 +30,17 @@ jobs:
         uses: actions/checkout@v4
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
+      - name: Prepare compatible static URL layout
+        run: |
+          mkdir -p "$RUNNER_TEMP/backbone-pages/docs" "$RUNNER_TEMP/backbone-pages/chapters"
+          cp -R docs/. "$RUNNER_TEMP/backbone-pages/docs/"
+          cp index.html "$RUNNER_TEMP/backbone-pages/index.html"
+          cp chapters/*.html "$RUNNER_TEMP/backbone-pages/chapters/"
+          touch "$RUNNER_TEMP/backbone-pages/.nojekyll"
       - name: Upload static learning site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs
+          path: ${{ runner.temp }}/backbone-pages
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

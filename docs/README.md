@@ -40,5 +40,14 @@ docs/
 - `09-resnet.html`: 잔차 연결, 단계별 특징맵, CIFAR-10 구현과 ResNeXt·Wide ResNet 비교
 - `10-senet.html`: 채널별 squeeze·excitation·scale, 축소 비율, SE-ResNet 코드 실습
 - `11-mobilenetv2.html`: 깊이별·점별 합성곱, 역잔차와 선형 병목, 32×32 단계별 구조 실습
+- `12-efficientnet.html`: 복합 스케일링, MBConv·SE, B0~B3의 실제 정수 구조
+- `13-attention-basics.html`: Q/K/V, 안정적 softmax 수치와 Multi-Head 차원
+- `14-vision-transformer.html`: 패치 펼침·투영·위치·CLS와 Encoder
+- `15-pvt.html`: 특징 피라미드와 SRA, 작은 입력의 K/V 수 및 잔차
+- `16-convnext.html`: 현대 CNN 블록, 채널 LayerNorm, 큰 커널과 padding
+- `17-cnn-transformer.html`: 연결·공유·위치·자원 비교와 먼 입력 변화 실습
+- `18-backbone-selection.html`: 조건 통제·검증 선택·합성 학습 곡선·혼동행렬·실패 가설
 
-`main` 브랜치의 `docs/` 변경은 GitHub Actions가 GitHub Pages에 자동 배포합니다.
+총 18장입니다. 장별 수치와 시각화의 검증 범위·진행 상태는 `UPGRADE_PROGRESS.md`에 기록합니다. 브라우저의 합성 예시는 실제 CIFAR-10 학습 결과와 구분합니다.
+
+`main` 브랜치의 `docs/`·홈 리다이렉트·`chapters/` 변경은 GitHub Actions가 GitHub Pages에 자동 배포합니다. 배포 아티팩트는 `/docs/`의 실제 자료와 루트 `/`·`/chapters/`의 리다이렉트만 포함합니다. 저장소 루트를 게시하는 Pages 경로와 같은 주소 배치를 유지하며, 데이터셋·가상환경·체크포인트를 아티팩트에 넣지 않습니다.

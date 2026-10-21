@@ -302,9 +302,8 @@ class StaticSiteTests(unittest.TestCase):
         glossary = (DOCS / "assets" / "js" / "glossary.js").read_text(
             encoding="utf-8"
         )
-        for chapter in range(1, 12):
-            number = f"{chapter:02d}"
-            page = next((DOCS / "chapters").glob(f"{number}-*.html"))
+        for page in sorted((DOCS / "chapters").glob("[0-9][0-9]-*.html")):
+            number = page.name[:2]
             source = page.read_text(encoding="utf-8")
             self.assertIn('id="chapterGlossary"', source)
             self.assertIn(f'data-chapter="{number}"', source)
@@ -321,9 +320,8 @@ class StaticSiteTests(unittest.TestCase):
             )
         }
         self.assertGreaterEqual(len(definitions), 30)
-        for chapter in range(1, 12):
-            number = f"{chapter:02d}"
-            page = next((DOCS / "chapters").glob(f"{number}-*.html"))
+        for page in sorted((DOCS / "chapters").glob("[0-9][0-9]-*.html")):
+            number = page.name[:2]
             match = re.search(
                 rf'^\s*"{number}": \[(.*)\],?$', glossary, re.MULTILINE
             )
@@ -500,10 +498,11 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('id="timelineSource"', home)
         self.assertIn('id="timelineChapter"', home)
         self.assertNotIn("학습 가능", home)
-        self.assertEqual(home.count('class="is-locked"'), 2)
-        self.assertEqual(home.count('class="private-label">비공개'), 2)
+        self.assertNotIn('class="is-locked"', home)
+        self.assertNotIn('class="private-label">비공개', home)
         self.assertNotIn("lock-icon", home)
-        self.assertIn("아직 제작 중인 단원", home)
+        for page in (DOCS / "chapters").glob("[0-9][0-9]-*.html"):
+            self.assertIn(f'href="chapters/{page.name}"', home)
 
         script = (DOCS / "assets" / "js" / "home.js").read_text(
             encoding="utf-8"

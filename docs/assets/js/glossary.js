@@ -21,11 +21,13 @@
     "14": "14-vision-transformer.html",
     "15": "15-pvt.html",
     "16": "16-convnext.html",
+    "17": "17-cnn-transformer.html",
+    "18": "18-backbone-selection.html",
   };
   const chapterNames = {
     "01": "퍼셉트론", "02": "선형 분리와 XOR", "03": "다층 퍼셉트론",
     "04": "합성곱과 필터", "05": "특징맵과 활성화",
-    "06": "Pooling과 수용영역", "07": "AlexNet", "08": "VGG", "09": "ResNet과 확장 모델", "10": "SENet", "11": "MobileNetV2", "12": "EfficientNet", "13": "Attention 기초", "14": "Vision Transformer", "15": "PVT", "16": "ConvNeXt",
+    "06": "Pooling과 수용영역", "07": "AlexNet", "08": "VGG", "09": "ResNet과 확장 모델", "10": "SENet", "11": "MobileNetV2", "12": "EfficientNet", "13": "Attention 기초", "14": "Vision Transformer", "15": "PVT", "16": "ConvNeXt", "17": "CNN과 Transformer", "18": "백본 선택과 실패 분석",
   };
   const term = (english, korean, meaning, chapter, section) =>
     ({english, korean, meaning, chapter, section});
@@ -132,6 +134,16 @@
     layerScale: term("Layer Scale", "층별 잔차 크기 조절", "블록 출력의 채널별 크기를 학습 가능한 gamma로 조절한 뒤 입력에 더합니다.", "16", "training-parts"),
     dropPath: term("DropPath / Stochastic Depth", "확률적 잔차 생략", "학습 중 샘플별로 잔차 가지 전체를 확률적으로 생략합니다. 이 저장소의 기본 Tiny 설정에서는 비율이 0입니다.", "16", "training-parts"),
     channelsLast: term("Channels Last", "채널 마지막 배열", "특징 텐서를 (N,H,W,C) 순서로 두는 배열 형태로, 블록 안의 LayerNorm과 Linear에 사용됩니다.", "16", "block"),
+    latency: term("Latency", "지연시간", "지정한 배치·장비·측정 범위에서 실제 실행에 걸리는 시간입니다. 연산량이나 파라미터 수만으로 결정되지 않습니다.", "17", "resources"),
+    validation: term("Validation Set", "검증 자료", "학습 중 epoch와 설정을 선택하는 데 쓰는 자료입니다. 가중치 갱신에 쓰는 train 및 최종 test와 구분합니다.", "18", "splits"),
+    testSet: term("Test Set", "최종 평가 자료", "설정을 선택한 뒤 결과를 보고하기 위해 남기는 자료입니다. 반복해서 보고 설정을 고르면 독립 평가 역할이 약해집니다.", "18", "splits"),
+    dataLeakage: term("Data Leakage", "데이터 누수", "평가에 남겨야 할 정보가 학습·전처리·선택에 들어가 성능 추정을 왜곡하는 문제입니다.", "18", "splits"),
+    overfitting: term("Overfitting", "과적합", "학습 자료에는 맞지만 새 자료에 대한 성능이 충분히 따라오지 않는 상태입니다. 곡선의 차이만으로 원인을 단정하지 않습니다.", "18", "curves"),
+    underfitting: term("Underfitting", "과소적합", "학습 자료의 관계도 충분히 학습하지 못한 상태입니다. 표현력 외에 최적화·입력·라벨 문제도 확인합니다.", "18", "curves"),
+    confusionMatrix: term("Confusion Matrix", "혼동행렬", "정답과 예측의 조합별 표본 수입니다. 이 프로젝트는 정답이 행, 예측이 열입니다.", "18", "metrics"),
+    support: term("Support", "클래스 표본 수", "평가 자료에 실제로 있는 해당 클래스의 표본 수입니다. 0이면 그 클래스 성능을 판단할 근거가 없습니다.", "18", "metrics"),
+    recall: term("Recall", "재현율", "정답이 해당 클래스인 표본 중 맞힌 비율입니다. 프로젝트의 per_class_accuracy는 이 행 기준 비율입니다.", "18", "metrics"),
+    seed: term("Random Seed", "난수 초기값", "분할·초기화 등 무작위 절차의 재현 조건을 조절합니다. 다른 장비·버전까지 동일 결과를 보장하는 값은 아닙니다.", "18", "reproducibility"),
   };
   const chapterWords = {
     "01": [["perceptron", "anatomy"], ["weightedSum", "calculator"], ["weight", "anatomy"], ["bias", "anatomy"], ["decisionBoundary", "learning"], ["learningRate", "learning"]],
@@ -150,6 +162,8 @@
     "14": [["vit", "paper"], ["inductiveBias", "paper"], ["imagePatch", "patches"], ["patchEmbedding", "embedding"], ["positionEmbedding", "embedding"], ["transformerEncoder", "encoder"], ["classToken", "classification"], ["multiHead", "encoder"], ["transferLearning", "experiment"]],
     "15": [["pvt", "paper"], ["densePrediction", "paper"], ["featurePyramid", "pyramid"], ["progressiveShrinking", "pyramid"], ["sra", "sra"], ["srRatio", "cifar"], ["query", "stage-lab"], ["key", "stage-lab"], ["globalAverage", "scope"]],
     "16": [["convnext", "paper"], ["patchifyStem", "architecture"], ["depthwise", "block"], ["channelsLast", "block"], ["layerNorm", "training-parts"], ["gelu", "block"], ["layerScale", "training-parts"], ["dropPath", "training-parts"], ["receptiveField", "kernel-lab"], ["shortcut", "block"]],
+    "17": [["inductiveBias", "question"], ["weightSharing", "position"], ["selfAttention", "mixing"], ["receptiveField", "mixing"], ["equivariance", "position"], ["featurePyramid", "shapes"], ["parameter", "resources"], ["macs", "resources"], ["latency", "resources"]],
+    "18": [["validation", "splits"], ["testSet", "splits"], ["dataLeakage", "splits"], ["overfitting", "curves"], ["underfitting", "curves"], ["confusionMatrix", "metrics"], ["support", "metrics"], ["recall", "metrics"], ["logits", "code"], ["seed", "reproducibility"]],
   };
 
   const currentChapter = rail.dataset.chapter;

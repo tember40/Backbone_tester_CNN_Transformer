@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="CIFAR-10 백본 실험의 조건 통제, 학습 곡선, 혼동행렬, 오분류와 실패 원인 확인을 연결하는 학습 자료">
+  <title>18장. 백본 선택과 실패 분석 · Backbone Lab</title>
+  <link rel="stylesheet" href="../assets/css/site.css?v=20261021b">
+  <script src="../assets/js/glossary.js?v=20261021b" defer></script>
+  <script src="../assets/js/synthesis-math.js?v=20261021a" defer></script>
+  <script src="../assets/js/synthesis.js?v=20261021a" defer></script>
+</head>
+<body class="chapter-page modern-lesson">
+  <header class="site-header">
+    <a class="brand" href="../index.html" aria-label="Backbone Lab 홈"><span class="brand-mark">KW</span><span><strong>인공지능 기초</strong><small><span lang="en">Backbone Lab</span> 학습 자료</small></span></a>
+    <div class="chapter-progress" aria-label="현재 과정"><span>제6부 · 현대 CNN과 종합</span><div><i style="width: 100%"></i></div><strong>3 / 3</strong></div>
+    <nav class="header-actions"><a href="../index.html#curriculum">전체 목차</a><a class="button button-small" href="https://github.com/tember40/Backbone_tester_CNN_Transformer/blob/main/cifar10_lab/engine.py">실제 코드</a></nav>
+  </header>
+  <div class="chapter-layout">
+    <aside class="chapter-sidebar" aria-label="단원 목차"><p class="sidebar-label">백본 선택과 실패 분석</p><nav>
+      <a class="is-current" href="#overview"><span>18.0</span>학습 안내</a><a href="#protocol"><span>18.1</span>실험 계획</a><a href="#baseline"><span>18.2</span>작은 실행</a><a href="#splits"><span>18.3</span>분할과 선택</a><a href="#curves"><span>18.4</span>학습 곡선</a><a href="#metrics"><span>18.5</span>분류 지표</a><a href="#errors"><span>18.6</span>오분류 점검</a><a href="#code"><span>18.7</span>평가 코드</a><a href="#reproducibility"><span>18.8</span>재현성과 자원</a><a href="#next"><span>18.9</span>다음 실험</a><a class="has-long-number" href="#checkpoint"><span>18.10</span>정리와 문제</a>
+    </nav></aside>
+    <main class="chapter-content"><article>
+      <header class="chapter-hero" id="overview">
+        <div class="chapter-kicker"><span>제6부</span><span>현대 CNN과 종합</span><span>선수 지식: 3·7~17장</span></div>
+        <h1><small>제18장 · 관찰에서 확인 실험으로</small>백본 선택과 실패 분석</h1>
+        <p class="chapter-lead">낮은 정확도가 곧 나쁜 백본의 증거는 아닙니다. 입력·정답·학습 설정·평가 방법을 먼저 확인하고, <strong>관찰 → 가능한 가설 → 확인 방법 → 다음 조치</strong>로 원인을 좁혀갑니다. 마지막에는 프로젝트가 저장한 결과와 체크포인트를 읽어 다음 실험 하나를 결정합니다.</p>
+        <div class="learning-objectives"><h2>학습 목표</h2><ul><li>실행 확인용 실습과 성능 비교 실험을 구분합니다.</li><li>train·validation·test의 역할과 데이터 누수를 설명합니다.</li><li>학습 곡선·혼동행렬·오분류를 서로 연결해 읽습니다.</li><li>가설을 단정하지 않고 확인할 변수를 하나씩 정합니다.</li></ul></div>
+      </header>
+      <section class="lesson-section" id="protocol">
+        <div class="section-number">18.1</div><div class="lesson-heading"><p class="eyebrow">모델 이름을 고르기 전에</p><h2><span>18.1</span> 무엇을 비교하려는가?</h2></div>
+        <p>먼저 작업이 CIFAR-10의 10종 이미지 분류인지, 사용할 장비와 시간은 얼마인지, 목표가 실행 이해인지 충분히 학습한 성능 비교인지 적습니다. 이 저장소는 분류 프레임워크이며 모델 이름이 같아도 논문의 입력 크기·헤드·학습 recipe와 다를 수 있습니다.</p>
+        <div class="comparison-table-wrap"><table class="comparison-table shape-trace-table"><thead><tr><th>기록할 조건</th><th>구체적으로 적을 것</th></tr></thead><tbody><tr><th scope="row">데이터</th><td>분할 seed, validation 비율, 각 split의 실제 표본 수, 전처리</td></tr><tr><th scope="row">모델·학습</th><td>model ID, 초기화·사전학습 여부, epoch, batch, learning rate, optimizer</td></tr><tr><th scope="row">선택 기준</th><td>어떤 validation 지표로 checkpoint와 설정을 선택하는가?</td></tr><tr><th scope="row">자원·환경</th><td>장비·dtype·소프트웨어 버전, 시간·메모리 제약, 측정 범위</td></tr></tbody></table></div>
+        <p>처음에는 <code>perceptron</code>이나 작은 MLP로 전체 경로를 확인하고, 이미지 구조를 쓰는 CNN을 다음 기준으로 둘 수 있습니다. 이는 비교를 좁히는 순서이지 작은 모델이 항상 빨리 수렴하거나 최종 성능이 충분하다는 보장은 아닙니다. <a href="17-cnn-transformer.html#comparison">같은 recipe의 비교와 모델별 조정 비교</a>도 구분하세요.</p>
+      </section>
+      <section class="lesson-section" id="baseline">
+        <div class="section-number">18.2</div><div class="lesson-heading"><p class="eyebrow">실행 확인과 결과 파일</p><h2><span>18.2</span> 작게 실행하고 무엇을 볼까?</h2></div>
+        <p>프로젝트 폴더에서 설치를 마친 뒤 아래 명령으로 환경과 모델 목록을 먼저 확인합니다. PowerShell 활성화가 막혔어도 <code>.venv\Scripts\python.exe</code>를 직접 실행할 수 있습니다. macOS·Linux에서는 해당 경로를 <code>.venv/bin/python</code>으로 바꿉니다.</p>
+        <div class="command-block"><code>.\.venv\Scripts\python.exe -m cifar10_lab doctor</code><button class="copy-button" type="button" data-copy-text=".\.venv\Scripts\python.exe -m cifar10_lab doctor">복사</button></div>
+        <div class="command-block"><code>.\.venv\Scripts\python.exe -m cifar10_lab list-models</code><button class="copy-button" type="button" data-copy-text=".\.venv\Scripts\python.exe -m cifar10_lab list-models">복사</button></div>
+        <div class="command-block"><code>.\.venv\Scripts\python.exe -m cifar10_lab train --model perceptron --quick --device cpu --num-workers 0 --save-plots</code><button class="copy-button" type="button" data-copy-text=".\.venv\Scripts\python.exe -m cifar10_lab train --model perceptron --quick --device cpu --num-workers 0 --save-plots">복사</button></div>
+        <p>첫 실행은 CIFAR-10 다운로드가 필요할 수 있습니다. <code>--quick</code>의 기본은 1 epoch, train 최대2,048·validation 최대512·test 최대512개입니다. 실제 수는 로그와 설정으로 확인하세요. CPU에서 실행 가능해도 다운로드 시간과 장비별 학습 시간은 다릅니다. 이 단계는 충분한 정확도를 얻는 절차가 아닙니다.</p>
+        <p>출력의 <code>Run ID</code>, 데이터·체크포인트 경로, <code>Result saved to</code>, <code>Plot saved to</code>를 확인합니다. 저장 PNG에는 학습/검증 곡선과 혼동행렬·클래스별 결과가 있습니다. 체크포인트가 이미 있으면 학습을 건너뛸 수 있으므로 <strong>이번 실행에서 실제로 훈련했는지</strong>도 확인하세요. 이어 학습은 <code>--resume --epochs 5</code>처럼 전체 완료 epoch 목표를 주며, 새 학습은 별도 출력 경로와 <code>--retrain</code>의 덮어쓰기 범위를 확인한 뒤 실행합니다.</p>
+      </section>
+      <section class="lesson-section" id="splits">
+        <div class="section-number">18.3</div><div class="lesson-heading"><p class="eyebrow">답을 보고 고르지 않기</p><h2><span>18.3</span> 학습·선택·최종 평가를 나누자</h2></div>
+        <ol><li><strong>Train:</strong> 가중치 갱신에 사용합니다.</li><li><strong>Validation:</strong> epoch·설정·모델 선택에 사용합니다.</li><li><strong>Test:</strong> 선택을 마친 뒤 최종 결과를 보고하는 별도 자료입니다.</li></ol>
+        <p><code>data.py</code>는 공식 train split을 seed로 섞어 train/validation으로 나누고, test는 공식 test split에서 가져옵니다. 학습에는 RandomCrop·HorizontalFlip을 적용하지만 validation/test에는 적용하지 않고 같은 정규화 상수를 사용합니다. <code>engine.py</code>는 <strong>validation accuracy가 가장 높은 epoch</strong>의 가중치를 보관하고 학습 종료 뒤 그 상태를 불러옵니다. 동률이면 먼저 나온 epoch를 유지합니다.</p>
+        <p>주의할 점이 있습니다. 현재 CLI의 <code>train</code>은 학습 뒤 test를 평가하고, <code>compare</code>도 test accuracy로 보고서를 정렬합니다. 따라서 보고서를 여러 번 보며 설정을 고르면 test가 사실상 validation 역할을 하게 됩니다. <strong>실행 확인과 최종 성능 선택을 분리하고, 모델 선택은 validation 기록으로 하세요.</strong> 최종 비교에서는 test를 보고 바꾼 설정과 횟수를 숨기지 않습니다.</p>
+        <p><span lang="en">Data leakage</span>는 최종 평가에 남겨야 할 정보가 학습·선택에 들어가는 문제입니다. 같은 원본의 중복·유사 이미지가 split을 가로지르는지, 새 데이터에서 평균·표준편차를 전체 split으로 미리 계산하지 않았는지 확인하세요. 일반적인 전처리 불일치·누수 원리는 <a href="https://scikit-learn.org/stable/common_pitfalls.html">공식 점검 문서</a>도 참고할 수 있습니다. 이 프로젝트의 고정 정규화 상수를 현재 실행에서 test로 새로 맞추는 것은 아닙니다.</p>
+      </section>
+      <section class="lesson-section" id="curves">
+        <div class="section-number">18.4</div><div class="lesson-heading"><p class="eyebrow">실습 18.1 · 관찰과 가설</p><h2><span>18.4</span> 곡선만 보고 원인을 확정할 수 있을까?</h2><p>아래 값은 패턴을 읽기 위한 합성 예시이며 실제 CIFAR-10 학습 결과가 아닙니다. 같은 축의 train/validation loss와 validation accuracy를 함께 읽어 보세요.</p></div>
+        <div class="lab-panel synthesis-lab"><label for="failureScenario">관찰할 예시</label><select id="failureScenario"><option value="gap">검증 손실 반등</option><option value="flat">두 손실 정체</option><option value="unstable">두 손실 진동</option></select>
+          <figure class="synthesis-curve"><svg id="failureCurve" viewBox="0 0 620 290" role="img" aria-labelledby="failureCurveTitle failureCurveDesc"><title id="failureCurveTitle">합성 학습 곡선</title><desc id="failureCurveDesc">아래 표에 동일한 수치를 제공합니다.</desc><path d="M60 30V240H590" fill="none" stroke="currentColor"/><g id="failureCurveTicks"></g><polyline id="failureTrainLine" fill="none" stroke="#7C192D" stroke-width="3"/><polyline id="failureValLine" fill="none" stroke="#545454" stroke-width="3" stroke-dasharray="8 5"/><text x="300" y="280">epoch</text><text x="8" y="20">loss</text></svg><figcaption>실선: train loss · 점선: validation loss · 합성 예시, 세 모드 모두 loss축 0~4 고정</figcaption></figure>
+          <div class="comparison-table-wrap"><table class="comparison-table synthesis-epoch-table"><caption>그래프의 원 값 · accuracy 단위 %</caption><thead><tr><th>epoch</th><th>train loss</th><th>val loss</th><th>val acc.</th></tr></thead><tbody id="failureCurveRows"></tbody></table></div><p id="failureObservation" aria-live="polite"></p><p><strong>가능한 가설:</strong> <span id="failureHypothesis"></span></p><p><strong>확인할 실험:</strong> <span id="failureAction"></span></p>
+        </div>
+        <p>Train만 계속 좋아지고 validation이 악화되면 <span lang="en">overfitting</span>을 의심할 수 있습니다. 하지만 데이터 분포·전처리 차이도 확인해야 합니다. 둘 다 나쁘면 <span lang="en">underfitting</span>뿐 아니라 학습률·라벨·gradient 경로 문제도 후보입니다. 진동에는 큰 학습률, 작은 배치, 데이터·수치 문제가 모두 관련될 수 있으므로 원인을 하나로 확정하지 마세요.</p>
+        <p>이 저장소의 train 지표는 <strong>증강과 train 모드에서 가중치를 갱신하는 동안</strong> 집계하고, validation은 epoch 끝의 고정 가중치·eval 모드로 계산합니다. 따라서 두 곡선은 조건이 완전히 같지 않고, train loss가 validation loss보다 큰 것만으로 오류라고 할 수 없습니다. 필요하면 같은 eval 전처리·모드로 train 일부를 별도 평가하여 비교하세요.</p>
+        <p>또한 loss는 확신의 정도에 반응하고 accuracy는 argmax의 정오답만 셉니다. 둘이 같은 epoch에서 최선일 필요는 없습니다. 현재 checkpoint 선택 기준은 최소 validation loss가 아니라 <strong>최대 validation accuracy</strong>라는 점을 곡선과 함께 확인하세요.</p>
+      </section>
+      <section class="lesson-section" id="metrics">
+        <div class="section-number">18.5</div><div class="lesson-heading"><p class="eyebrow">실습 18.2 · 평균 뒤의 클래스</p><h2><span>18.5</span> 정확도 90%가 숨기는 것</h2></div>
+        <p><span lang="en">Confusion matrix</span>의 행은 정답, 열은 예측입니다. 대각선은 정답 수이고, 행의 합은 그 클래스의 실제 표본 수인 <span lang="en">support</span>입니다. 예를 들어 정답 A가 B로 분류된 건수는 [A,B]입니다. <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.confusion_matrix.html">이 축 관례</a>와 프로젝트의 <code>confusion_matrix[label,prediction]</code>가 일치합니다.</p>
+        <div class="lab-panel synthesis-lab"><label for="failureMatrixCase">세 클래스의 합성 평가 결과</label><select id="failureMatrixCase"><option value="balanced">클래스당 10개</option><option value="imbalanced">다수 클래스만 예측</option><option value="missing">C 표본 없음</option></select><div class="comparison-table-wrap"><table class="comparison-table synthesis-matrix"><caption>행: 정답 · 열: 예측 · 숫자는 표본 수</caption><thead><tr><th>정답＼예측</th><th>A</th><th>B</th><th>C</th></tr></thead><tbody id="failureMatrixRows"></tbody></table></div><p id="failureMatrixSummary" aria-live="polite"></p><p id="failureClassRecall"></p><p id="failureMatrixInterpretation"></p></div>
+        <div class="equation-card"><strong>전체 accuracy = 대각선 합 ÷ 전체 표본 수</strong><strong>클래스 recall = 해당 대각선 ÷ 해당 행의 합</strong></div>
+        <p>첫 예는 (8+7+7)/30≈73.33%입니다. 두 번째는 90/100=90%지만 B·C의 recall은0%입니다. 클래스 recall을 같은 비중으로 평균하면 약33.33%가 되어 다수 클래스에만 의존하는 결과를 구분할 수 있습니다. 이 불균형 예시는 실제 CIFAR-10 전체의 클래스 비율을 나타낸 것이 아닙니다.</p>
+        <p>프로젝트의 <code>per_class_accuracy</code>는 행 기준 recall이며 precision이 아닙니다. 평가 표본이 없는 클래스는 코드에서0을 반환하지만, <strong>틀린 표본이 있었다는 뜻이 아니라 평가 근거가 없다는 뜻</strong>입니다. 이 실습은 그 경우 N/A로 표시하고, 평균에서도 제외했다고 명시합니다. 실제 결과를 읽을 때도 support를 함께 확인하세요.</p>
+      </section>
+      <section class="lesson-section" id="errors">
+        <div class="section-number">18.6</div><div class="lesson-heading"><p class="eyebrow">숫자에서 표본으로</p><h2><span>18.6</span> 오분류를 보고 무엇을 확인할까?</h2></div>
+        <p>혼동이 큰 행·열을 고르고 해당 정답/예측의 표본을 모아 봅니다. 배경·작은 물체·가림·애매한 정답·전처리 잘림 등 가능한 원인을 적고, 맞힌 표본도 같은 기준으로 함께 봅니다. 잘못된 사례 몇 개만 골라 “이 모델은 배경만 본다”고 단정하지 마세요.</p>
+        <p><code>evaluate_model_detailed</code>는 <code>labels</code>와 <code>predictions</code>를 같은 순서로 반환하지만, 저장 JSON에는 기본적으로 그 표본별 배열이나 원본 이미지가 없습니다. 반환 배열은 dataloader가 낸 순서와 대응시켜야 하며, subset·shuffle 때문에 원본 dataset index와 같다고 가정하면 안 됩니다. testloader의 평가 순서를 유지하고 필요한 이미지 배치를 함께 모아 확인하세요.</p>
+        <p><code>main.ipynb</code>의 데이터 미리보기·평가 흐름과 연결할 때는 이미지를 표시하기 위해 정규화를 되돌리는 것과, 모델 입력 전처리를 바꾸는 것을 구분합니다. 여기서는 검증하지 않은 Grad-CAM이나 Attention 지도를 새로 만들어 원인 설명으로 제시하지 않습니다.</p>
+      </section>
+      <section class="lesson-section" id="code">
+        <div class="section-number">18.7</div><div class="lesson-heading"><p class="eyebrow">실제 평가 경로</p><h2><span>18.7</span> eval과 no_grad는 같은 설정일까?</h2></div>
+        <div class="code-study"><div class="code-window"><div class="code-toolbar"><span>cifar10_lab/engine.py · 평가 경로 발췌</span><button class="copy-button" type="button" data-copy-target="failureCode">코드 복사</button></div><pre class="line-code" id="failureCode"><code><span data-line="1">model.eval()</span>
+<span data-line="2">with torch.no_grad():</span>
+<span data-line="3">    outputs = _main_logits(model(images))</span>
+<span data-line="4">    predictions = outputs.argmax(dim=1)</span>
+<span data-line="5">    correct += (predictions == labels).sum().item()</span>
+<span data-line="6">confusion_matrix[label.long(), prediction.long()] += 1</span>
+<span data-line="7">class_totals = confusion_matrix.sum(dim=1)</span>
+<span data-line="8">class_correct = confusion_matrix.diag()</span></code></pre></div><div class="code-notes" aria-label="코드 해설"><button type="button" data-highlight="1-2"><span>① 평가 준비</span><strong>모드와 미분 기록을 분리</strong><small>eval은 층 동작, no_grad는 자동 미분에 관여합니다.</small></button><button type="button" data-highlight="3-5"><span>② 전체 지표</span><strong>분류 점수의 argmax</strong><small>softmax 없이도 가장 큰 클래스는 같습니다.</small></button><button type="button" data-highlight="6-8"><span>③ 클래스별</span><strong>정답 행으로 집계</strong><small>대각선과 support를 함께 읽습니다.</small></button></div></div>
+        <p>반복문·장치 이동·반환 부분을 생략한 코드이며 그대로 독립 실행하는 블록은 아닙니다. <a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.eval">eval()</a>은 Dropout·BatchNorm 등의 모드를 바꾸지만 미분 기록을 끄지는 않습니다. 반대로 <code>no_grad()</code>만 사용해도 train 모드의 Dropout이나 BatchNorm 통계 갱신이 자동으로 멈추지 않습니다.</p>
+        <p>학습의 <a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html">CrossEntropyLoss</a>에는 정답 클래스와 원래 logits를 넣습니다. 먼저 softmax한 값을 다시 입력하는 것은 이 프로젝트의 경로와 다릅니다. 균등한 10클래스 확률의 손실은 −ln(0.1)≈2.3026이지만, 학습 초기 loss가 반드시 이 값이어야 하는 것은 아닙니다. 초기 logits의 크기나 불균등한 예측을 함께 확인해야 합니다.</p>
+      </section>
+      <section class="lesson-section" id="reproducibility">
+        <div class="section-number">18.8</div><div class="lesson-heading"><p class="eyebrow">다시 실행할 때의 조건</p><h2><span>18.8</span> seed 하나와 숫자 하나를 넘어서</h2></div>
+        <p>같은 seed는 분할·초기화 등 무작위 요소를 통제하는 출발점입니다. <a href="https://docs.pytorch.org/docs/stable/notes/randomness.html">PyTorch 재현성 안내</a>처럼 다른 버전·장비·CPU/GPU에서 완전히 같은 결과가 보장되지는 않습니다. <code>--deterministic</code>의 사용 여부, 버전과 장비를 남기고 여러 seed의 평균·변동을 함께 보고하세요. 서로 다른 모델이 같은 분할 seed를 쓰더라도 파라미터 개수와 난수 소비 순서까지 같다는 뜻은 아닙니다.</p>
+        <p>OOM이면 먼저 배치 크기와 해당 연산의 입력 크기를 확인합니다. 배치를 줄이면 optimizer 갱신 횟수·BatchNorm 통계 등 학습 조건도 바뀔 수 있으므로 성능 비교 기록에 남겨야 합니다. 파라미터 수가 작다는 이유만으로 학습 메모리가 반드시 작다고 단정하지 않습니다.</p>
+        <p>보고서의 <code>inference_ms_per_image</code>는 warm-up 뒤 최대5개 배치의 forward 시간/이미지 수이며 데이터 읽기·장치 전송은 제외합니다. warm-up 뒤 배치가 없으면0을 반환하므로 <strong>0ms를 무한히 빠른 모델의 측정값으로 해석하면 안 됩니다.</strong> GPU 시간에는 동기화가 들어갑니다. 지연시간은 다른 장비·배치와 직접 비교하지 마세요.</p>
+        <p><code>checkpoint_size_mb</code>는 이름과 달리 1024²로 나눈 MiB이며, 저장된 optimizer·마지막 상태·최적 상태·기록을 포함한 파일 크기입니다. 순수 파라미터 용량이나 실행 중 최대 메모리와 다릅니다. 실험 JSON·checkpoint·환경 정보를 묶어 보존하고, 기존 결과를 덮어쓰기 전에 출력 경로를 확인합니다.</p>
+      </section>
+      <section class="lesson-section" id="next">
+        <div class="section-number">18.9</div><div class="lesson-heading"><p class="eyebrow">한 번에 질문 하나</p><h2><span>18.9</span> 다음 실행의 가설을 정하자</h2></div>
+        <div class="comparison-table-wrap"><table class="comparison-table shape-trace-table"><thead><tr><th>관찰</th><th>가설 → 확인 → 다음 조치</th></tr></thead><tbody><tr><th scope="row">두 split 모두 나쁨</th><td>학습 자체 문제? → 소수 train 표본의 입력·라벨·gradient와 loss 감소 확인 → 정상 경로를 확보한 뒤 규모 조절</td></tr><tr><th scope="row">train만 개선</th><td>과적합 또는 평가 조건 차이? → 같은 eval 조건과 split·누수 점검 → 필요한 정규화·증강을 한 가지씩 비교</td></tr><tr><th scope="row">특정 클래스만 나쁨</th><td>표본·라벨·배경 차이? → support와 오분류/정분류를 함께 검사 → 데이터 문제를 먼저 수정</td></tr><tr><th scope="row">실행마다 큰 차이</th><td>무작위성·캐시 재사용·환경 차이? → seed·Run ID·trained_this_run·버전 비교 → 조건을 고정한 반복</td></tr></tbody></table></div>
+        <p>소수 표본에 맞추는 검사는 데이터 파이프라인과 최적화가 동작하는지 보는 진단이지 일반화 성능 증명이 아닙니다. 결과를 본 뒤 “모델이 안 좋다”로 끝내지 말고, 다음 실행에서 바꿀 변수 하나와 유지할 조건을 적으세요.</p>
+        <p>비교 명령은 <code>cifar10-lab compare --models perceptron mlp resnet18 --quick</code>처럼 실행할 수 있습니다. 단, 이는 세 모델이 같은 짧은 설정으로 실행되는지 보는 예입니다. 실제 선택은 18.3절의 validation 기준과 자원 제약으로 진행합니다. 결과가 가설을 지지하지 않으면 그 사실도 기록합니다.</p>
+      </section>
+      <section class="lesson-section" id="checkpoint">
+        <div class="section-number">18.10</div><div class="lesson-heading"><p class="eyebrow">정리와 연습문제</p><h2><span>18.10</span> 다음 실험 계획을 직접 적기</h2></div>
+        <div class="chapter-summary-box"><h3>18장 핵심 정리</h3><ul><li>실행 확인·모델 선택·최종 평가는 목적과 데이터를 구분합니다.</li><li>곡선은 원인을 확정하는 답이 아니라 확인할 가설의 출발점입니다.</li><li>전체 정확도에 클래스 support·recall·오분류를 연결합니다.</li><li>모드·전처리·재현성·캐시·측정 조건을 모델 구조와 분리해 점검합니다.</li></ul></div>
+        <details class="synthesis-question"><summary>Q1. 검증 손실 최저 epoch가 저장 epoch와 다른 이유는?</summary><p>현재 구현은 validation accuracy의 최댓값으로 선택합니다. loss와 accuracy는 서로 다른 지표이므로 최적 epoch가 다를 수 있습니다.</p></details><details class="synthesis-question"><summary>Q2. 클래스 C의 support=0, 코드 결과=0%이면?</summary><p>C의 평가 표본이 없으므로 실패율을 판단할 수 없습니다. support와 함께 N/A로 해석하고, 평균을 어떻게 계산했는지 명시합니다.</p></details><details class="synthesis-question"><summary>Q3. 다음 실행에서 꼭 적을 네 가지는?</summary><p>관찰한 사실, 가능한 가설, 확인하기 위해 바꿀 변수, 그대로 유지할 조건입니다. 결과와 가설의 지지 여부도 실행 후 남깁니다.</p></details>
+      </section>
+      <nav class="chapter-pagination" aria-label="단원 이동"><a href="17-cnn-transformer.html"><small>이전</small><strong>17장 · CNN과 Transformer</strong></a><a href="../index.html#curriculum"><small>전체 흐름으로</small><strong>목차와 관련 장 다시 보기</strong></a></nav>
+    </article></main>
+    <aside id="chapterGlossary" class="chapter-glossary" aria-label="핵심 용어" data-chapter="18"><div class="glossary-heading"><h2>핵심 용어</h2></div><p class="glossary-intro">영어 용어를 눌러 뜻과 등장 위치를 확인하세요.</p><div class="glossary-list"></div></aside>
+  </div>
+  <footer class="site-footer"><div class="footer-copy"><strong>Backbone Lab · 실제 코드로 배우는 인공지능 기초</strong><p>이 자료는 학습의 출발점입니다. 개념과 결과는 원 논문, 공식 문서, 실제 코드와 함께 확인해 주세요.</p></div><a href="https://github.com/tember40/Backbone_tester_CNN_Transformer">GitHub에서 보기</a></footer>
+</body>
+</html>

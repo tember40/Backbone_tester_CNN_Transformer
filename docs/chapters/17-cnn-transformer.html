@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="CNN과 Transformer의 연결, 가중치 공유, 위치 정보와 자원 비용을 같은 기준에서 비교하는 인공지능 기초 자료">
+  <title>17장. CNN과 Transformer · Backbone Lab</title>
+  <link rel="stylesheet" href="../assets/css/site.css?v=20261021b">
+  <script src="../assets/js/glossary.js?v=20261021b" defer></script>
+  <script src="../assets/js/synthesis-math.js?v=20261021a" defer></script>
+  <script src="../assets/js/synthesis.js?v=20261021a" defer></script>
+</head>
+<body class="chapter-page modern-lesson">
+  <header class="site-header">
+    <a class="brand" href="../index.html" aria-label="Backbone Lab 홈"><span class="brand-mark">KW</span><span><strong>인공지능 기초</strong><small><span lang="en">Backbone Lab</span> 학습 자료</small></span></a>
+    <div class="chapter-progress" aria-label="현재 과정"><span>제6부 · 현대 CNN과 종합</span><div><i style="width: 67%"></i></div><strong>2 / 3</strong></div>
+    <nav class="header-actions"><a href="../index.html#curriculum">전체 목차</a><a class="button button-small" href="https://github.com/tember40/Backbone_tester_CNN_Transformer/tree/main/backbone">실제 코드</a></nav>
+  </header>
+  <div class="chapter-layout">
+    <aside class="chapter-sidebar" aria-label="단원 목차"><p class="sidebar-label">CNN과 Transformer</p><nav>
+      <a class="is-current" href="#overview"><span>17.0</span>학습 안내</a><a href="#question"><span>17.1</span>비교의 질문</a><a href="#mixing"><span>17.2</span>정보 결합</a><a href="#mix-lab"><span>17.3</span>먼 입력 실습</a><a href="#position"><span>17.4</span>공유와 위치</a><a href="#shapes"><span>17.5</span>특징과 토큰</a><a href="#resources"><span>17.6</span>자원 비용</a><a href="#code"><span>17.7</span>코드 대조</a><a href="#comparison"><span>17.8</span>공정한 비교</a><a href="#checkpoint"><span>17.9</span>정리와 문제</a>
+    </nav></aside>
+    <main class="chapter-content"><article>
+      <header class="chapter-hero" id="overview">
+        <div class="chapter-kicker"><span>제6부</span><span>현대 CNN과 종합</span><span>선수 지식: 4·9·13~16장</span></div>
+        <h1><small>제17장 · 이름보다 연산을 비교하다</small>CNN과 Transformer</h1>
+        <p class="chapter-lead">모델을 연대순으로 읽는 것과 같은 기준으로 비교하는 것은 다릅니다. 이제 <strong>어느 위치의 정보를, 어떤 가중치로, 어떤 비용을 들여 모으는가</strong>라는 질문으로 두 계열을 다시 보겠습니다. 이 장은 우승 모델을 고르는 순위표가 아니라 다음 실험의 비교 기준을 만드는 과정입니다.</p>
+        <div class="learning-objectives"><h2>학습 목표</h2><ul><li>학습 가능한 고정 커널과 입력에 따라 계산되는 Attention 가중치를 구분합니다.</li><li>한 층의 연결 범위와 여러 층의 누적 수용영역을 구분합니다.</li><li>특징맵·토큰·피라미드를 같은 shape 기준으로 읽습니다.</li><li>파라미터·연산량·메모리·지연시간을 분리하여 비교합니다.</li></ul></div>
+      </header>
+      <section class="lesson-section" id="question">
+        <div class="section-number">17.1</div><div class="lesson-heading"><p class="eyebrow">여러 논문을 잇는 질문</p><h2><span>17.1</span> “어느 쪽이 더 좋은가?” 전에</h2></div>
+        <p><a href="14-vision-transformer.html#paper">ViT</a>는 대규모 사전학습과 전이의 조건에서 Transformer를 이미지 분류에 적용했습니다. <a href="16-convnext.html#paper">ConvNeXt</a>는 CNN의 학습 절차와 구조를 현대화하여 비교했습니다. 서로 다른 데이터·해상도·학습 방법으로 얻은 숫자를 모델 이름만 보고 정렬하면 구조의 효과와 실험 조건의 효과가 섞입니다.</p>
+        <p>참고할 출발점은 <a href="https://arxiv.org/html/2010.11929v2#S3.SS1">ViT §3.1의 구조적 가정</a>과 <a href="https://arxiv.org/pdf/2201.03545">ConvNeXt의 설계 비교</a>입니다. 여기서는 논문 성능을 새로 측정하지 않습니다. 먼저 구조적으로 확실한 성질을 구분하고, 어느 조건에서 유리한지는 실험으로 확인할 질문으로 남깁니다.</p>
+      </section>
+      <section class="lesson-section" id="mixing">
+        <div class="section-number">17.2</div><div class="lesson-heading"><p class="eyebrow">같은 입력, 다른 결합</p><h2><span>17.2</span> 무엇이 고정되고 무엇이 달라질까?</h2></div>
+        <div class="comparison-table-wrap"><table class="comparison-table"><caption>기본적인 합성곱과 전역 Self-Attention · 모든 변형을 대표하는 규칙은 아님</caption><thead><tr><th>질문</th><th>일반 합성곱</th><th>Self-Attention</th></tr></thead><tbody><tr><th scope="row">공간 연결</th><td>커널이 정한 이웃을 읽음</td><td>mask가 없다면 모든 Key 위치와 비교</td></tr><tr><th scope="row">결합 계수</th><td>학습한 커널을 각 입력에 적용</td><td>학습한 Q/K 투영으로 현재 입력의 계수를 계산</td></tr><tr><th scope="row">값의 전달</th><td>입력 채널과 공간 성분을 곱해 합산</td><td>Attention 계수로 V를 가중합한 뒤 출력 투영</td></tr><tr><th scope="row">한 층의 범위</th><td>커널·dilation 등으로 결정</td><td>전역·창·mask 등 Attention 방식으로 결정</td></tr></tbody></table></div>
+        <p>“고정 커널”은 <strong>학습하지 않는 상수</strong>라는 뜻이 아닙니다. 학습으로 바뀐 뒤, 추론 중에는 같은 커널을 여러 입력에 재사용한다는 뜻입니다. Attention도 Q/K/V 선형층의 가중치는 학습 후 고정되지만, 그 가중치로 만든 <code>softmax(QKᵀ/√d)</code>는 이미지마다 달라질 수 있습니다. 비교 대상은 파라미터의 유무가 아니라 <strong>정보 결합 계수가 만들어지는 방식</strong>입니다.</p>
+        <p>한편 CNN도 여러 층을 쌓고 공간 축소나 전역 평균을 사용하면 멀리 있는 정보를 모읍니다. “한 합성곱의 작은 창”을 “CNN 전체는 전체 이미지를 못 본다”로 확장하지 마세요. 반대로 창 단위 Attention까지 모두 처음부터 전역이라고 부를 수도 없습니다.</p>
+      </section>
+      <section class="lesson-section" id="mix-lab">
+        <div class="section-number">17.3</div><div class="lesson-heading"><p class="eyebrow">실습 17.1 · 연결 범위를 분리하기</p><h2><span>17.3</span> 멀리 있는 입력 하나를 바꾸면?</h2><p>다섯 위치 중 가운데 x₂의 출력만 계산합니다. x₀는 세 칸 커널 바깥입니다. x₀를 바꿀 때 어떤 출력이 그대로일지 먼저 예상해 보세요.</p></div>
+        <div class="lab-panel synthesis-lab">
+          <label for="mixFarValue">먼 위치 x₀의 첫 성분 <output id="mixInputValue" for="mixFarValue">1.00</output></label><input id="mixFarValue" type="range" min="-2" max="2" step="0.25" value="1"><button class="button button-small" type="button" id="mixReset">초기화</button>
+          <p>입력 순서: <span id="mixVectors"></span> · Query는 x₂=[1,1]로 고정</p>
+          <div class="comparison-table-wrap"><table class="comparison-table synthesis-weights"><caption>x₂ 출력을 위한 결합 계수 · 0은 이 예제의 연결 없음</caption><thead><tr><th>입력 위치</th><th>세 칸 합성곱</th><th>전역 Attention</th></tr></thead><tbody id="mixWeights"></tbody></table></div>
+          <div class="synthesis-results" aria-live="polite"><p>합성곱 출력 <strong id="mixConvOutput"></strong></p><p>Attention 출력 <strong id="mixAttentionOutput"></strong></p></div><p id="mixExplanation" aria-live="polite"></p>
+        </div>
+        <p>이것은 이미지 전체 모델이 아닌 <strong>1차원 위치 다섯 개·특징 두 개의 고정 예제</strong>입니다. 합성곱은 두 성분을 독립 처리하는 같은 커널 [0.25,0.5,0.25]를 써서 x₂ 주변을 계산합니다. 따라서 0.25·[0,1]+0.5·[1,1]+0.25·[−1,0]=[0.25,0.75]로 일정합니다. 일반 합성곱의 채널 혼합까지 재현하는 예는 아닙니다.</p>
+        <p>Attention은 Q=K=V라는 <a href="13-attention-basics.html#qkv">13장의 특수한 항등 투영</a>을 사용합니다. x₀가 변하면 그 위치의 Key 점수와 Value가 함께 변하고, 행의 정규화 때문에 다른 위치의 계수도 달라집니다. 멀리 연결됐다고 더 좋은 결과를 보장하거나, 이 계수를 중요도의 인과적 설명으로 읽을 수는 없습니다. 이 예에는 학습·정확도·위치 임베딩·잔차가 없습니다.</p>
+      </section>
+      <section class="lesson-section" id="position">
+        <div class="section-number">17.4</div><div class="lesson-heading"><p class="eyebrow">공유는 CNN만의 성질일까?</p><h2><span>17.4</span> 같은 층을 쓰는 것과 위치를 아는 것</h2></div>
+        <p>CNN은 위치가 달라도 같은 커널을 사용합니다. ViT도 패치 선형층과 토큰별 MLP, Q/K/V 투영을 위치마다 공유합니다. 따라서 “CNN은 공유, Transformer는 위치마다 별도 가중치”라는 대조는 틀립니다. 차이는 어떤 성분을 같은 방식으로 묶도록 구조가 제한하는가에 있습니다.</p>
+        <p>위치 정보가 없는 Self-Attention에서 토큰을 같은 순열로 재배열하면 출력도 대응해 재배열됩니다. 단, 위치값·mask 등의 조건도 따져야 합니다. ViT는 학습 가능한 위치 임베딩을 더하여 위치를 구분합니다. CNN은 공간 배열과 이웃 연결 자체가 위치 관계를 사용하며, stride·경계 padding 때문에 모든 이동에 정확히 같은 성질이 보장되는 것은 아닙니다. <a href="04-convolution-filters.html#principles">이동 등변성은 이동 불변성과 다릅니다.</a></p>
+        <p>이 저장소의 PVT에는 별도 위치 임베딩이 없지만, 패치를 순서대로 격자로 복원하고 공간 축소 연산을 수행합니다. 그러므로 “위치 임베딩이 없으니 공간 관계가 전혀 없다”고 단정할 수 없습니다. 모델 이름보다 실제 연산 경로를 확인해야 하는 사례입니다.</p>
+      </section>
+      <section class="lesson-section" id="shapes">
+        <div class="section-number">17.5</div><div class="lesson-heading"><p class="eyebrow">같은 크기의 입력에서 추적하기</p><h2><span>17.5</span> 특징맵과 토큰은 완전히 다른 물건일까?</h2></div>
+        <p>NCHW의 [B,C,H,W]는 공간 위치별 C차원 벡터 HW개로도 읽을 수 있습니다. <code>flatten(2).transpose(1,2)</code>는 이를 [B,HW,C]로 바꿉니다. 배열을 바꿨다는 사실만으로 새로운 정보가 생기거나 Attention이 수행되는 것은 아닙니다. 그 다음에 어떤 연산을 적용하는지가 중요합니다.</p>
+        <div class="comparison-table-wrap"><table class="comparison-table shape-trace-table"><caption>저장소 기본 모델 · 배치 B, CIFAR-10 32×32 · 표현 순서를 명시</caption><thead><tr><th>경로</th><th>중간 표현과 분류</th></tr></thead><tbody><tr><th scope="row">ViT-Tiny</th><td>[B,64,192] → CLS 포함 [B,65,192]를 12블록 동안 유지 → 기본 CLS 선택 → [B,10]</td></tr><tr><th scope="row">PVT-Tiny</th><td>토큰 [B,64,64] → [B,16,128] → [B,4,320] → [B,1,512] → 정규화·평균 → [B,10]</td></tr><tr><th scope="row">ConvNeXt-Tiny</th><td>NCHW [B,96,8,8] → [B,192,4,4] → [B,384,2,2] → [B,768,1,1] → 평균·정규화 → [B,10]</td></tr></tbody></table></div>
+        <p>PVT와 ConvNeXt는 모두 단계별로 공간을 줄이고 채널을 늘립니다. 따라서 피라미드는 CNN만의 전유물이 아닙니다. 현재 두 구현은 중간 다중 규모 특징을 외부에 반환하지 않는 분류용 모델이므로, 이 표만 보고 검출·분할까지 바로 실행할 수 있다고 생각하면 안 됩니다.</p>
+      </section>
+      <section class="lesson-section" id="resources">
+        <div class="section-number">17.6</div><div class="lesson-heading"><p class="eyebrow">자원 비교의 단위</p><h2><span>17.6</span> 작은 모델이 반드시 빠른가?</h2></div>
+        <div class="comparison-table-wrap"><table class="comparison-table shape-trace-table"><thead><tr><th>항목</th><th>무엇을 세는가?</th></tr></thead><tbody><tr><th scope="row">파라미터</th><td>학습 변수의 원소 수 · 입력 크기가 달라도 고정일 수 있음</td></tr><tr><th scope="row">MACs/FLOPs</th><td>지정한 입력에서의 연산량 · 집계 관례와 포함 연산을 명시</td></tr><tr><th scope="row">메모리</th><td>가중치뿐 아니라 활성값·기울기·optimizer 상태·임시 작업 공간</td></tr><tr><th scope="row">지연시간</th><td>장비·배치·dtype·구현·측정 범위에 따른 실제 시간</td></tr></tbody></table></div>
+        <p>특징 격자가 L×L, 채널 C, 커널 K일 때 같은 채널 수의 일반 합성곱 가중치는 K²C², MACs는 대략 L²K²C²입니다(편향 등 제외). 반면 전역 Attention의 QKᵀ와 AV는 토큰 T개와 전체 Head 차원 D에 대해 합계 약 2T²D MACs입니다. QKV·출력 투영과 MLP 비용은 이 식에 빠져 있으므로 <strong>이 두 부분식만으로 백본 전체의 비용 순위를 정할 수 없습니다.</strong></p>
+        <p>예를 들어 L=8,C=192,K=3이면 합성곱 가중치는 331,776개, 해당 층은 21,233,664 MACs입니다. 별도로 ViT-Tiny의 T=65,D=192에서는 QKᵀ+AV가 1,622,400 MACs입니다. 서로 다른 연산 일부를 계산한 예이지 동등한 두 모델의 속도 비교가 아닙니다. <a href="12-efficientnet.html#dimensions">MACs의 집계 기준</a>도 함께 확인하세요.</p>
+        <p>P=4를 고정하고 입력 한 변을 32→64로 바꾸면 패치는 64→256개, CLS 포함 T는 65→257개입니다. Head당 표는 4,225→66,049칸으로 약 15.63배가 됩니다. CLS를 무시한 큰 T의 근사에서는 한 변 2배가 표 크기 약16배로 연결됩니다. 이것은 해상도별 비용을 생각하는 가정이며 저장소의 학습 CLI가 자동으로 64×64 모델을 구성한다는 뜻이 아닙니다.</p>
+        <p>프로젝트의 <code>inference_ms_per_image</code>는 준비된 배치의 forward 시간을 이미지 수로 나눈 값입니다. 데이터 읽기·전송을 포함한 서비스 응답시간이나 배치1 latency와 같지 않습니다. <code>checkpoint_size_mb</code>도 optimizer와 기록을 담는 파일 크기이며 순수 가중치 메모리가 아닙니다.</p>
+      </section>
+      <section class="lesson-section" id="code">
+        <div class="section-number">17.7</div><div class="lesson-heading"><p class="eyebrow">구현을 읽는 기준</p><h2><span>17.7</span> 코드에서 비교의 근거 찾기</h2></div>
+        <div class="code-study"><div class="code-window"><div class="code-toolbar"><span>실제 구현의 서로 다른 경로를 발췌</span><button class="copy-button" type="button" data-copy-target="synthesisCode">코드 복사</button></div><pre class="line-code" id="synthesisCode"><code><span data-line="1"># backbone/ConvNeXt.py · Block</span>
+<span data-line="2">self.dwconv = nn.Conv2d(dim, dim, kernel_size=7, padding=3, groups=dim)</span>
+<span data-line="3">x = x.permute(0, 2, 3, 1)</span>
+<span data-line="4">x = input + self.drop_path(x)</span>
+<span data-line="5"># backbone/ViT.py · Attention</span>
+<span data-line="6">dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale</span>
+<span data-line="7">attn = self.attend(dots)</span>
+<span data-line="8">out = torch.matmul(attn, v)</span>
+<span data-line="9"># backbone/PVT.py · Attention</span>
+<span data-line="10">x_ = self.sr(x_).reshape(B, C, -1).permute(0, 2, 1)</span></code></pre></div><div class="code-notes" aria-label="코드 해설"><button type="button" data-highlight="1-4"><span>① CNN</span><strong>공간 커널과 배열 변환</strong><small>permute 자체는 Attention이 아닙니다.</small></button><button type="button" data-highlight="5-8"><span>② Attention</span><strong>현재 입력에서 계수 생성</strong><small>토큰 쌍의 점수로 Value를 모읍니다.</small></button><button type="button" data-highlight="9-10"><span>③ 피라미드</span><strong>K/V 위치 수 조절</strong><small>축소 뒤에도 채널 축이 남습니다.</small></button></div></div>
+        <p>중간 정규화·투영 등은 생략한 발췌이며 독립 실행 코드가 아닙니다. 전체 경로는 <a href="16-convnext.html#code">16장</a>, <a href="13-attention-basics.html#code">13장</a>, <a href="15-pvt.html#code">15장</a>에서 확인하세요. ConvNeXt와 PVT는 “CNN 또는 Transformer”라는 두 이름만으로 연산과 특징 구조를 전부 설명하기 어렵다는 구체적인 사례입니다.</p>
+      </section>
+      <section class="lesson-section" id="comparison">
+        <div class="section-number">17.8</div><div class="lesson-heading"><p class="eyebrow">다음 장의 실험 설계</p><h2><span>17.8</span> 같은 설정이면 언제나 공정할까?</h2></div>
+        <p>같은 데이터 분할·입력·epoch·증강·optimizer를 쓰는 것은 좋은 출발점입니다. 하지만 동일 learning rate가 모든 구조에 동일하게 적합한 것은 아닙니다. <strong>같은 recipe에서의 동작 비교</strong>와 <strong>각 모델을 같은 탐색 예산으로 조정한 성능 비교</strong>는 다른 실험입니다. 어느 질문을 택했는지 먼저 기록하세요.</p>
+        <p>작은 데이터에서 CNN을 기준으로 시작하거나, 전이 학습을 후보로 검토하는 것은 실험 전략이지 모든 경우의 우열 법칙이 아닙니다. 특히 이 프로젝트의 생성 함수는 사전학습 가중치를 자동으로 내려받지 않습니다. <code>--quick</code> 결과는 실행 확인에 사용하고, 최종 결론은 학습 조건·여러 seed·검증 선택·자원 제약을 함께 고려해야 합니다. 그 절차를 다음 장에서 실제 저장 파일과 연결합니다.</p>
+      </section>
+      <section class="lesson-section" id="checkpoint">
+        <div class="section-number">17.9</div><div class="lesson-heading"><p class="eyebrow">정리와 연습문제</p><h2><span>17.9</span> 비교 문장을 조건과 함께 쓰기</h2></div>
+        <div class="chapter-summary-box"><h3>17장 핵심 정리</h3><ul><li>합성곱의 학습 커널과 입력별 Attention 계수는 서로 다른 수준의 가중치입니다.</li><li>지역 연결·피라미드·위치 공유는 모델 이름만으로 단정하지 않습니다.</li><li>배열 변환과 정보 결합, 부분 연산량과 전체 모델 속도를 구분합니다.</li><li>구조 비교에는 학습·데이터·평가 조건이 따라야 합니다.</li></ul></div>
+        <details class="synthesis-question"><summary>Q1. x₀를 바꿔도 합성곱 출력이 같은 이유는?</summary><p>지금 계산하는 x₂의 한 층 커널은 x₁·x₂·x₃만 연결하기 때문입니다. 깊은 CNN 전체가 x₀를 이용하지 못한다는 뜻은 아닙니다.</p></details><details class="synthesis-question"><summary>Q2. Attention의 Head 수가 같으면 메모리도 같은가?</summary><p>토큰 수·Head 차원·배치·dtype·구현을 함께 봐야 합니다. 전역 가중치 표의 크기만 해도 배치×Head×T²입니다.</p></details><details class="synthesis-question"><summary>Q3. 빠른 1 epoch 비교로 모델 계열의 우열을 결론 낼 수 있을까?</summary><p>아닙니다. 짧은 실행 조건에서의 결과이며, 충분한 학습·동일한 선택 기준·반복·자원 보고가 필요합니다.</p></details>
+      </section>
+      <nav class="chapter-pagination" aria-label="단원 이동"><a href="16-convnext.html"><small>이전</small><strong>16장 · ConvNeXt</strong></a><a href="18-backbone-selection.html"><small>다음</small><strong>18장 · 백본 선택과 실패 분석</strong></a></nav>
+    </article></main>
+    <aside id="chapterGlossary" class="chapter-glossary" aria-label="핵심 용어" data-chapter="17"><div class="glossary-heading"><h2>핵심 용어</h2></div><p class="glossary-intro">영어 용어를 눌러 뜻과 등장 위치를 확인하세요.</p><div class="glossary-list"></div></aside>
+  </div>
+  <footer class="site-footer"><div class="footer-copy"><strong>Backbone Lab · 실제 코드로 배우는 인공지능 기초</strong><p>이 자료는 학습의 출발점입니다. 개념과 결과는 원 논문, 공식 문서, 실제 코드와 함께 확인해 주세요.</p></div><a href="https://github.com/tember40/Backbone_tester_CNN_Transformer">GitHub에서 보기</a></footer>
+</body>
+</html>

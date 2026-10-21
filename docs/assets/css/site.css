@@ -1182,6 +1182,24 @@ code, pre { font-family: var(--mono); }
 .modern-lesson .shape-trace-table th:first-child { width: 30%; }
 .modern-lesson .shape-trace-table th, .modern-lesson .shape-trace-table td { overflow-wrap: anywhere; }
 .modern-lesson h3 { word-break: keep-all; overflow-wrap: break-word; }
+.modern-lesson .sidebar-label, .modern-lesson .chapter-sidebar a { word-break: keep-all; }
+.synthesis-lab { padding: 22px; }
+.synthesis-lab > label { display: block; margin-bottom: 10px; font-weight: 700; }
+.synthesis-lab > input[type="range"] { width: min(400px, 100%); margin: 8px 14px 16px 0; accent-color: var(--blue); }
+.synthesis-lab > select { max-width: 100%; width: 100%; padding: 10px; font: inherit; color: var(--ink); background: #fff; border: 1px solid var(--line-dark); }
+.synthesis-results { display: flex; flex-wrap: wrap; gap: 8px 30px; border-bottom: 1px solid var(--line); }
+.synthesis-results strong { display: block; }
+.synthesis-weights, .synthesis-matrix, .synthesis-epoch-table { table-layout: fixed; }
+.synthesis-weights th, .synthesis-weights td, .synthesis-matrix th, .synthesis-matrix td, .synthesis-epoch-table th, .synthesis-epoch-table td { padding: 12px 8px; overflow-wrap: anywhere; }
+.synthesis-matrix td.is-diagonal { background: #fbf4ef; font-weight: 700; }
+.synthesis-curve { margin: 24px 0; }
+.synthesis-curve svg { display: block; width: 100%; height: auto; overflow: visible; }
+.synthesis-curve svg text { font-family: "Times New Roman", serif; font-size: 18px; font-style: normal; fill: currentColor; }
+.synthesis-curve figcaption { font-size: .82rem; line-height: 1.7; }
+.synthesis-question { padding: 16px 0; border-bottom: 1px solid var(--line); }
+.synthesis-question summary { cursor: pointer; font-weight: 700; line-height: 1.7; }
+.synthesis-question summary:hover { color: var(--blue); }
+.synthesis-question summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; }
 .convnext-grid button.is-covered { border-color: #9f7772; background: #d6b6b0; }
 .convnext-grid button.is-selected { border: 2px solid var(--blue-dark); background: var(--blue); }
 .convnext-window { grid-template-columns: repeat(var(--convnext-kernel-side), minmax(0, 1fr)); }
@@ -1576,6 +1594,7 @@ code, pre { font-family: var(--mono); }
 }
 @media (max-width: 650px) {
   /* Formula stages need a full line each; narrow flex columns split symbols. */
+  .synthesis-curve svg text { font-size: 32px; }
   .se-mlp-table { table-layout: fixed; }
   .se-mlp-table th, .se-mlp-table td { overflow-wrap: anywhere; }
   .se-mlp-table th:first-child { width: 28%; }

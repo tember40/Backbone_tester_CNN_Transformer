@@ -12,7 +12,7 @@
 <body class="chapter-page modern-lesson">
   <header class="site-header">
     <a class="brand" href="../index.html" aria-label="Backbone Lab 홈"><span class="brand-mark">KW</span><span><strong>인공지능 기초</strong><small><span lang="en">Backbone Lab</span> 학습 자료</small></span></a>
-    <div class="chapter-progress" aria-label="현재 과정"><span>제6부 · 현대 CNN</span><div><i style="width: 33.33%"></i></div><strong>1 / 3</strong></div>
+    <div class="chapter-progress" aria-label="현재 과정"><span>제6부 · 현대 CNN과 종합</span><div><i style="width: 33.33%"></i></div><strong>1 / 3</strong></div>
     <nav class="header-actions"><a href="../index.html#curriculum">전체 목차</a><a class="button button-small" href="https://github.com/tember40/Backbone_tester_CNN_Transformer/blob/main/backbone/ConvNeXt.py">실제 코드</a></nav>
   </header>
   <div class="chapter-layout">
@@ -31,7 +31,7 @@
     </nav></aside>
     <main class="chapter-content"><article>
       <header class="chapter-hero" id="overview">
-        <div class="chapter-kicker"><span>제6부</span><span>현대 CNN</span><span>선수 지식: 6·9·11·14·15장</span></div>
+        <div class="chapter-kicker"><span>제6부</span><span>현대 CNN과 종합</span><span>선수 지식: 6·9·11·14·15장</span></div>
         <h1><small>제16장 · Transformer 시대에 CNN을 다시 설계하다</small><span lang="en">ConvNeXt</span></h1>
         <p class="chapter-lead">ViT와 PVT를 본 뒤에는 “좋은 이미지 백본을 만들려면 반드시 Attention이 필요한가?”라는 질문을 던질 수 있습니다. <span lang="en">ConvNeXt</span>는 ResNet 계열 CNN의 구성과 학습 방식을 차례로 바꾸어 그 질문을 실험했습니다. 이 장에서는 <strong>무엇이 합성곱으로 남고, 무엇이 현대적으로 바뀌었는지</strong> 실제 구현과 함께 읽습니다.</p>
         <div class="learning-objectives"><h2>학습 목표</h2><ul>
@@ -135,7 +135,7 @@
         <div class="quiz-list chapter-quiz-spacing"><fieldset class="quiz" data-answer="b"><legend><span>Q1</span>32×32 입력에서 ConvNeXt-Tiny의 3단계 격자는?</legend><label><input type="radio" name="q1" value="a"> 8×8</label><label><input type="radio" name="q1" value="b"> 2×2</label><label><input type="radio" name="q1" value="c"> 7×7</label><p class="quiz-feedback"></p></fieldset><fieldset class="quiz" data-answer="a"><legend><span>Q2</span><code>groups=dim</code>인 7×7 합성곱의 주된 역할은?</legend><label><input type="radio" name="q2" value="a"> 채널별 공간 처리</label><label><input type="radio" name="q2" value="b"> 모든 채널을 한 필터에서 혼합</label><label><input type="radio" name="q2" value="c"> Query와 Key의 내적</label><p class="quiz-feedback"></p></fieldset><fieldset class="quiz" data-answer="c"><legend><span>Q3</span>현재 <code>convnext_tiny</code> 기본 설정에서 DropPath는?</legend><label><input type="radio" name="q3" value="a"> 항상 50% 적용</label><label><input type="radio" name="q3" value="b"> 추론할 때만 적용</label><label><input type="radio" name="q3" value="c"> 비율 0으로 Identity</label><p class="quiz-feedback"></p></fieldset><button class="button" id="checkQuiz" type="button">정답 확인</button><p class="quiz-score" id="quizScore" aria-live="polite"></p></div>
       </section>
       <section class="local-run-card"><div><p class="eyebrow">직접 실행</p><h2>CIFAR-10에서 ConvNeXt-Tiny 확인하기</h2><p>프로젝트 의존성을 설치한 뒤 짧은 학습을 실행합니다. 데이터는 첫 실행 시 내려받습니다. 실행 환경에 따라 시간과 결과가 달라집니다.</p></div><div class="command-block"><code>pip install -e .</code><button class="copy-button" type="button" data-copy-text="pip install -e .">복사</button></div><div class="command-block"><code>cifar10-lab train --model convnext_tiny --quick</code><button class="copy-button" type="button" data-copy-text="cifar10-lab train --model convnext_tiny --quick">복사</button></div></section>
-      <nav class="chapter-pagination" aria-label="단원 이동"><a href="15-pvt.html"><small>이전</small><strong>15장 · PVT</strong></a><span class="disabled"><small>다음</small><strong>17장 · CNN과 Transformer</strong></span></nav>
+      <nav class="chapter-pagination" aria-label="단원 이동"><a href="15-pvt.html"><small>이전</small><strong>15장 · PVT</strong></a><a href="17-cnn-transformer.html"><small>다음</small><strong>17장 · CNN과 Transformer</strong></a></nav>
     </article></main>
     <aside id="chapterGlossary" class="chapter-glossary" aria-label="핵심 용어" data-chapter="16"><div class="glossary-heading"><h2>핵심 용어</h2></div><p class="glossary-intro">영어 용어를 눌러 뜻과 등장 위치를 확인하세요.</p><div class="glossary-list"></div></aside>
   </div>
